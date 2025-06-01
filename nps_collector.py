@@ -10,15 +10,23 @@ import pandas as pd
 import os
 import time
 import logging
+from logging.handlers import RotatingFileHandler
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
+
+# Set up rotating log files
+file_handler = RotatingFileHandler(
+    'nps_collector.log',
+    maxBytes=5*1024*1024,  # 5MB per file
+    backupCount=3  # Keep 3 old files
+)
 
 # Configure logging for debugging and monitoring
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('nps_collector.log'),
+        file_handler,
         logging.StreamHandler()
     ]
 )
@@ -46,7 +54,7 @@ class NPSDataCollector:
         # Set up session headers that will be used for all requests
         self.session.headers.update({
             'X-Api-Key': self.api_key,
-            'User-Agent': 'Python-NPS-Collector/1.0'
+            'User-Agent': 'Python-NPS-Collector/1.0 (sean.angiolillo@gmail.com)'
         })
         
         logger.info("NPS Data Collector initialized successfully")
@@ -121,11 +129,22 @@ class NPSDataCollector:
             
             # Check if the request was successful
             response.raise_for_status()
+
+            # Log rate limit information
+            rate_limit_remaining = response.headers.get('X-RateLimit-Remaining')
+            rate_limit_limit = response.headers.get('X-RateLimit-Limit')
             
+            if rate_limit_remaining:
+                logger.info(f"Rate limit status: {rate_limit_remaining}/{rate_limit_limit} requests remaining")
+                
+                # Warn if getting close to the limit
+                if int(rate_limit_remaining) < 50:
+                    logger.warning(f"Approaching rate limit! Only {rate_limit_remaining} requests remaining")
+                        
             # Parse the JSON response
             data = response.json()
             
-            # Validate that it returend data
+            # Validate that it returned data
             if 'data' not in data or not data['data']:
                 logger.warning(f"No results found for park: {park_name}")
                 return None
@@ -182,10 +201,46 @@ class NPSDataCollector:
         logger.debug(f"Best match for '{search_term}': '{best_park.get('fullName')}' (score: {best_score})")
         
         return best_park
-    
+
+    def _validate_coordinates(self, lat_value: str, lon_value: str, park_name: str) -> Tuple[Optional[float], Optional[float]]:
+            """
+            Validate and convert coordinate values to proper floats.
+            
+            This method handles the common issues with geographic coordinate data:
+            conversion errors, invalid ranges, and missing values.
+            
+            Args:
+                lat_value (str): Raw latitude value from API
+                lon_value (str): Raw longitude value from API  
+                park_name (str): Park name for error logging context
+                
+            Returns:
+                Tuple[Optional[float], Optional[float]]: Validated lat/lon or (None, None) if invalid
+            """
+            try:
+                # Convert to float
+                lat_float = float(lat_value)
+                lon_float = float(lon_value)
+                
+                # Validate geographic ranges
+                if not (-90 <= lat_float <= 90):
+                    logger.warning(f"Invalid latitude {lat_float} for {park_name} (must be between -90 and 90)")
+                    return None, None
+                    
+                if not (-180 <= lon_float <= 180):
+                    logger.warning(f"Invalid longitude {lon_float} for {park_name} (must be between -180 and 180)")
+                    return None, None
+                
+                logger.debug(f"Valid coordinates for {park_name}: ({lat_float}, {lon_float})")
+                return lat_float, lon_float
+                
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Could not parse coordinates for {park_name}: lat='{lat_value}', lon='{lon_value}' - {str(e)}")
+                return None, None
+
     def extract_park_data(self, park_api_data: Dict, original_data: pd.Series) -> Dict:
         """
-        Extract the specific fields we need from the API response.
+        Extract the specific fields needed from the API response.
         
         Args:
             park_api_data (Dict): Raw park data from the NPS API
@@ -201,23 +256,32 @@ class NPSDataCollector:
             'visit_year': original_data['year'],
             'park_code': park_api_data.get('parkCode', ''),
             'full_name': park_api_data.get('fullName', ''),
-            'description': park_api_data.get('description', ''),
             'states': park_api_data.get('states', ''),
             'url': park_api_data.get('url', ''),
             'latitude': None,
-            'longitude': None
+            'longitude': None,
+            'description': park_api_data.get('description', '')
         }
+
+        # Handle geographic coordinates with proper validation
+        lat_raw = park_api_data.get('latitude')
+        lon_raw = park_api_data.get('longitude')
         
-        # Handle geographic coordinates safely since they might be missing or malformed
-        try:
-            lat = park_api_data.get('latitude')
-            lon = park_api_data.get('longitude')
-            
-            if lat and lon:
-                extracted_data['latitude'] = float(lat)
-                extracted_data['longitude'] = float(lon)
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Could not parse coordinates for {extracted_data['full_name']}: {str(e)}")
+        if lat_raw and lon_raw:
+            # Use validation method to safely convert and validate coordinates
+            validated_lat, validated_lon = self._validate_coordinates(
+                lat_raw, 
+                lon_raw, 
+                extracted_data['full_name']
+            )
+            extracted_data['latitude'] = validated_lat
+            extracted_data['longitude'] = validated_lon
+        else:
+            # Log when coordinate data is missing
+            if not lat_raw and not lon_raw:
+                logger.info(f"No coordinate data available for {extracted_data['full_name']}")
+            else:
+                logger.warning(f"Incomplete coordinate data for {extracted_data['full_name']}: lat={lat_raw}, lon={lon_raw}")
         
         return extracted_data
     
@@ -234,7 +298,7 @@ class NPSDataCollector:
         """
         logger.info("Starting park data collection process")
         
-        # Load our park list
+        # Load park list
         parks_df = self.load_parks_from_csv(csv_path)
         # FOR TESTING: Limit to first 2 parks
         parks_df = parks_df.head(2)
@@ -256,7 +320,7 @@ class NPSDataCollector:
             park_data = self.query_park_api(park_name)
             
             if park_data:
-                # Extract the data we need
+                # Extract the data needed
                 extracted = self.extract_park_data(park_data, park_row)
                 successful_parks.append(extracted)
                 logger.info(f"✓ Successfully processed {park_name}")
