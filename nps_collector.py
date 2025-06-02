@@ -155,7 +155,6 @@ class NPSDataCollector:
             best_match = self._find_best_park_match(data['data'], search_query, park_name)
 
             if best_match:
-                logger.info(f"Found match for '{park_name}': {best_match.get('fullName', 'Unknown')}")
                 return best_match
             else:
                 logger.warning(f"No suitable match found for park: {park_name}")
