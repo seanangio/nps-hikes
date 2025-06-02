@@ -116,13 +116,15 @@ class NPSDataCollector:
             endpoint = f"{self.base_url}/parks"
             
             # Set up query parameters for fuzzy matching
+            search_query = f"{park_name} National Park"
             params = {
-                'q': park_name,
+                'q': search_query,
                 'limit': 10,  # Get multiple results to find the best match
+                'sort': '-relevanceScore',
                 'fields': 'addresses,contacts,description,directionsInfo,latitude,longitude,name,parkCode,states,url,fullName'
             }
             
-            logger.debug(f"Querying API for park: {park_name}")
+            logger.debug(f"Querying API for park: '{park_name}' (searching for: '{search_query}')")
             
             # Make the API request with timeout for reliability
             response = self.session.get(endpoint, params=params, timeout=30)
@@ -143,15 +145,15 @@ class NPSDataCollector:
                         
             # Parse the JSON response
             data = response.json()
-            
+
             # Validate that it returned data
             if 'data' not in data or not data['data']:
                 logger.warning(f"No results found for park: {park_name}")
                 return None
             
             # Find the best match using relevance score logic
-            best_match = self._find_best_park_match(data['data'], park_name)
-            
+            best_match = self._find_best_park_match(data['data'], search_query, park_name)
+
             if best_match:
                 logger.info(f"Found match for '{park_name}': {best_match.get('fullName', 'Unknown')}")
                 return best_match
@@ -169,36 +171,48 @@ class NPSDataCollector:
             logger.error(f"Unexpected error querying park '{park_name}': {str(e)}")
             return None
     
-    def _find_best_park_match(self, park_results: List[Dict], search_term: str) -> Optional[Dict]:
+    def _find_best_park_match(self, park_results: List[Dict], search_query: str, original_park_name: str) -> Optional[Dict]:
         """
-        Find the best matching park from API results according to the relevanceScore.
+        Find the best matching park from API results using a tiered approach.
+        
+        Strategy:
+        1. Look for exact fullName match with search query
+        2. If no exact match, take the first result (highest relevance due to sorting)
+        3. Log the matching decision for debugging
         
         Args:
-            park_results (List[Dict]): List of park results from the API
-            search_term (str): Original search term for logging
+            park_results (List[Dict]): List of park results from the API (pre-sorted by relevance)
+            search_query (str): The actual query string sent to API
+            original_park_name (str): Original park name from CSV for logging
             
         Returns:
-            Optional[Dict]: Best matching park or None if no good match
+            Optional[Dict]: Best matching park or None if no results
         """
         if not park_results:
+            logger.warning(f"No results returned for '{original_park_name}'")
             return None
         
-        # Look for relevance scores in the results
-        parks_with_scores = []
-        
+        # Strategy 1: Look for exact fullName match
         for park in park_results:
-            # Some API responses include relevanceScore, others don't
-            relevance = park.get('relevanceScore', 0)
-            parks_with_scores.append((park, relevance))
+            park_full_name = park.get('fullName', '')
+            if park_full_name == search_query:
+                logger.info(f"Found exact match for '{original_park_name}': '{park_full_name}'")
+                return park
         
-        # Sort by relevance score (highest first)
-        parks_with_scores.sort(key=lambda x: x[1], reverse=True)
+        # Strategy 2: No exact match, so take the first result (highest relevance)
+        best_park = park_results[0]
+        best_score = best_park.get('relevanceScore', 'N/A')
+        best_name = best_park.get('fullName', 'Unknown')
         
-        # Get the highest scoring park
-        best_park, best_score = parks_with_scores[0]
+        logger.info(f"No exact match for '{original_park_name}'. Using highest relevance: '{best_name}' (score: {best_score})")
         
-        # Log matching decision for debugging
-        logger.debug(f"Best match for '{search_term}': '{best_park.get('fullName')}' (score: {best_score})")
+        # Log other top candidates for debugging
+        if len(park_results) > 1:
+            logger.debug(f"Other candidates for '{original_park_name}':")
+            for i, park in enumerate(park_results[1:4], 2):  # Show next 3 candidates
+                candidate_name = park.get('fullName', 'Unknown')
+                candidate_score = park.get('relevanceScore', 'N/A')
+                logger.debug(f"  {i}. {candidate_name} (score: {candidate_score})")
         
         return best_park
 
@@ -301,7 +315,7 @@ class NPSDataCollector:
         # Load park list
         parks_df = self.load_parks_from_csv(csv_path)
         # FOR TESTING: Limit to first 2 parks
-        parks_df = parks_df.head(2)
+        #parks_df = parks_df.head(2)
         
         total_parks = len(parks_df)
         
