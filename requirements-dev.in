@@ -1,3 +1,4 @@
 -r requirements.in
-pytest
 pip-tools
+pytest
+pytest-cov

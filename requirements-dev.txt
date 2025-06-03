@@ -49,6 +49,8 @@ comm==0.2.2
     # via
     #   ipykernel
     #   ipywidgets
+coverage[toml]==7.8.2
+    # via pytest-cov
 debugpy==1.8.14
     # via ipykernel
 decorator==5.2.1
@@ -256,6 +258,10 @@ pyproject-hooks==1.2.0
     #   build
     #   pip-tools
 pytest==8.4.0
+    # via
+    #   -r requirements-dev.in
+    #   pytest-cov
+pytest-cov==6.1.1
     # via -r requirements-dev.in
 python-dateutil==2.9.0.post0
     # via
