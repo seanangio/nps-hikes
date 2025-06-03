@@ -1,5 +1,6 @@
 # artifacts
 park_data_collected.csv
+test_results.xml
 scratch*
 
 # Byte-compiled / optimized / DLL files
