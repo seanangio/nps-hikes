@@ -129,7 +129,7 @@ class NPSDataCollector:
             logger.debug(f"Querying API for park: '{park_name}' (searching for: '{search_query}')")
             
             # Make the API request with timeout for reliability
-            response = self.session.get(endpoint, timeout=30)
+            response = self.session.get(endpoint, params=params, timeout=30)
             
             # Check if the request was successful
             response.raise_for_status()
@@ -403,7 +403,7 @@ class NPSDataCollector:
             logger.debug(f"Querying boundary API for park code: '{park_code}'")
             
             # Make the API request with timeout for reliability
-            response = self.session.get(endpoint, params=params, timeout=30)
+            response = self.session.get(endpoint, timeout=30)
             
             # Check if the request was successful
             response.raise_for_status()
@@ -422,12 +422,6 @@ class NPSDataCollector:
             # Parse the JSON response
             data = response.json()
             
-            # TEMPORARY DEBUG: Print raw response to understand structure
-            import json
-            print("DEBUG: Raw API response structure:")
-            print(json.dumps(data, indent=2)[:1000])  # First 1000 chars
-            print("DEBUG: Response keys:", list(data.keys()) if isinstance(data, dict) else "Not a dict")
-
             # Validate boundary data - boundaries endpoint returns GeoJSON directly
             if isinstance(data, dict):
                 # Check for GeoJSON FeatureCollection format
