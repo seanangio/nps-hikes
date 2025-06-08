@@ -78,6 +78,7 @@ class NPSDataCollector:
         try:
             # Load the CSV with explicit error handling
             df = pd.read_csv(csv_path)
+            df = df.tail()
             logger.info(f"Successfully loaded CSV with {len(df)} parks")
             
             # Validate that we have the expected columns
@@ -383,79 +384,102 @@ class NPSDataCollector:
         
         return extracted_data
     
-    def query_park_boundaries_api(self, park_code: str) -> Optional[Dict]:
+    def query_park_boundaries_api(self, park_code: str, max_retries: int = 3, retry_delay: float = 5.0) -> Optional[Dict]:
         """
-        Query the NPS API for park boundary spatial data.
+        Query the NPS API for park boundary spatial data with retry logic.
         
         This method queries the mapdata/parkboundaries endpoint to retrieve
-        geometric boundary information for a specific park.
+        geometric boundary information for a specific park. Includes automatic
+        retry logic for temporary server errors.
         
         Args:
             park_code (str): NPS park code (e.g., 'zion', 'yell')
+            max_retries (int): Maximum number of retry attempts for server errors
+            retry_delay (float): Delay in seconds between retry attempts
             
         Returns:
             Optional[Dict]: Boundary data if found, None if not found or error occurred
         """
-        try:
-            # Build the API endpoint URL for park boundaries
-            endpoint = f"{self.base_url}/mapdata/parkboundaries/{park_code}"
-            
-            logger.debug(f"Querying boundary API for park code: '{park_code}'")
-            
-            # Make the API request with timeout for reliability
-            response = self.session.get(endpoint, timeout=30)
-            
-            # Check if the request was successful
-            response.raise_for_status()
-
-            # Log rate limit information
-            rate_limit_remaining = response.headers.get('X-RateLimit-Remaining')
-            rate_limit_limit = response.headers.get('X-RateLimit-Limit')
-            
-            if rate_limit_remaining:
-                logger.debug(f"Rate limit status: {rate_limit_remaining}/{rate_limit_limit} requests remaining")
+        endpoint = f"{self.base_url}/mapdata/parkboundaries/{park_code}"
+        
+        for attempt in range(max_retries + 1):  # +1 for initial attempt
+            try:
+                if attempt > 0:
+                    logger.info(f"Retry attempt {attempt}/{max_retries} for park code '{park_code}' after {retry_delay}s delay")
+                    time.sleep(retry_delay)
                 
-                # Warn if getting close to the limit
-                if int(rate_limit_remaining) < 50:
-                    logger.warning(f"Approaching rate limit! Only {rate_limit_remaining} requests remaining")
-                        
-            # Parse the JSON response
-            data = response.json()
-            
-            # Validate boundary data - boundaries endpoint returns GeoJSON directly
-            if isinstance(data, dict):
-                # Check for GeoJSON FeatureCollection format
-                if data.get('type') == 'FeatureCollection' and 'features' in data:
-                    if data['features']:  # Has features
+                logger.debug(f"Querying boundary API for park code: '{park_code}' (attempt {attempt + 1})")
+                
+                # Make the API request with timeout for reliability
+                response = self.session.get(endpoint, timeout=30)
+                
+                # Check if the request was successful
+                response.raise_for_status()
+
+                # Log rate limit information
+                rate_limit_remaining = response.headers.get('X-RateLimit-Remaining')
+                rate_limit_limit = response.headers.get('X-RateLimit-Limit')
+                
+                if rate_limit_remaining:
+                    logger.debug(f"Rate limit status: {rate_limit_remaining}/{rate_limit_limit} requests remaining")
+                    
+                    # Warn if getting close to the limit
+                    if int(rate_limit_remaining) < 50:
+                        logger.warning(f"Approaching rate limit! Only {rate_limit_remaining} requests remaining")
+                            
+                # Parse the JSON response
+                data = response.json()
+                
+                # Validate boundary data - boundaries endpoint returns GeoJSON directly
+                if isinstance(data, dict):
+                    # Check for GeoJSON FeatureCollection format
+                    if data.get('type') == 'FeatureCollection' and 'features' in data:
+                        if data['features']:  # Has features
+                            logger.info(f"Successfully retrieved boundary data for park code: {park_code}")
+                            return data
+                        else:
+                            logger.warning(f"No boundary features found for park code: {park_code}")
+                            return None
+                    # Check for single Feature format
+                    elif data.get('type') == 'Feature':
+                        logger.info(f"Successfully retrieved boundary data for park code: {park_code}")
+                        return data
+                    # Check for direct geometry
+                    elif 'geometry' in data:
                         logger.info(f"Successfully retrieved boundary data for park code: {park_code}")
                         return data
                     else:
-                        logger.warning(f"No boundary features found for park code: {park_code}")
+                        logger.warning(f"Unexpected boundary data format for park code: {park_code}")
                         return None
-                # Check for single Feature format
-                elif data.get('type') == 'Feature':
-                    logger.info(f"Successfully retrieved boundary data for park code: {park_code}")
-                    return data
-                # Check for direct geometry
-                elif 'geometry' in data:
-                    logger.info(f"Successfully retrieved boundary data for park code: {park_code}")
-                    return data
                 else:
-                    logger.warning(f"Unexpected boundary data format for park code: {park_code}")
+                    logger.warning(f"Invalid boundary data response for park code: {park_code}")
                     return None
-            else:
-                logger.warning(f"Invalid boundary data response for park code: {park_code}")
+                    
+            except requests.exceptions.Timeout:
+                logger.error(f"Boundary API request timed out for park code: {park_code} (attempt {attempt + 1})")
+                if attempt == max_retries:
+                    return None
+                    
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code >= 500:  # Server errors - retry
+                    logger.warning(f"Server error {e.response.status_code} for park '{park_code}' (attempt {attempt + 1}): {str(e)}")
+                    if attempt == max_retries:
+                        logger.error(f"Max retries exceeded for park '{park_code}' due to server errors")
+                        return None
+                else:  # Client errors (4xx) - don't retry
+                    logger.error(f"Client error {e.response.status_code} for park '{park_code}': {str(e)}")
+                    return None
+                    
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Network error for park '{park_code}' (attempt {attempt + 1}): {str(e)}")
+                if attempt == max_retries:
+                    return None
+                    
+            except Exception as e:
+                logger.error(f"Unexpected error querying boundaries for park '{park_code}': {str(e)}")
                 return None
-                
-        except requests.exceptions.Timeout:
-            logger.error(f"Boundary API request timed out for park code: {park_code}")
-            return None
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Boundary API request failed for park '{park_code}': {str(e)}")
-            return None
-        except Exception as e:
-            logger.error(f"Unexpected error querying boundaries for park '{park_code}': {str(e)}")
-            return None
+        
+        return None
     
     def extract_boundary_data(self, boundary_api_data: Dict, park_code: str) -> Dict:
         """
@@ -476,7 +500,9 @@ class NPSDataCollector:
             'park_code': park_code,
             'geometry': None,
             'geometry_type': None,
-            'boundary_source': 'NPS API'
+            'boundary_source': 'NPS API',
+            'error_message': None,
+            'collection_status': 'success'
         }
         
         # The boundary data is now properly structured GeoJSON
@@ -527,14 +553,17 @@ class NPSDataCollector:
         Collect boundary data for a list of park codes.
         
         This method queries the boundaries endpoint for each park code and
-        builds a structured dataset of spatial boundary information.
+        builds a structured dataset of spatial boundary information. Failed
+        attempts are included in the dataset with error information for
+        complete data lineage tracking.
         
         Args:
             park_codes (List[str]): List of NPS park codes to collect boundaries for
             delay_seconds (float): Delay between API calls to be respectful
+            limit_for_testing (Optional[int]): Limit processing to first N codes for testing
             
         Returns:
-            pd.DataFrame: Dataset with boundary information for each park
+            pd.DataFrame: Dataset with boundary information for each park, including error records
         """
         logger.info("Starting park boundary data collection process")
         
@@ -544,8 +573,7 @@ class NPSDataCollector:
             logger.info(f"TESTING MODE: Limited to first {limit_for_testing} park codes")
         
         total_parks = len(park_codes)
-        successful_boundaries = []
-        failed_boundaries = []
+        all_results = []  # Changed from separate success/failure lists
         
         # Process each park code with progress tracking
         for index, park_code in enumerate(park_codes):
@@ -559,25 +587,39 @@ class NPSDataCollector:
             if boundary_data:
                 # Extract the boundary data we need
                 extracted = self.extract_boundary_data(boundary_data, park_code)
-                successful_boundaries.append(extracted)
+                extracted['error_message'] = None  # No error
+                extracted['collection_status'] = 'success'
+                all_results.append(extracted)
                 logger.info(f"✓ Successfully processed boundary for {park_code}")
             else:
-                # Track failures for reporting
-                failed_boundaries.append(park_code)
+                # Create error record to maintain complete dataset
+                error_record = {
+                    'park_code': park_code,
+                    'geometry': None,
+                    'geometry_type': None,
+                    'boundary_source': 'NPS API',
+                    'error_message': 'Failed to retrieve boundary data - see logs for details',
+                    'collection_status': 'failed'
+                }
+                all_results.append(error_record)
                 logger.error(f"✗ Failed to process boundary for {park_code}")
             
             # Be respectful to the API with rate limiting
             if index < total_parks - 1:  # Don't delay after the last request
                 time.sleep(delay_seconds)
         
-        # Create final boundary dataset
-        results_df = pd.DataFrame(successful_boundaries)
+        # Create final boundary dataset including both successes and failures
+        results_df = pd.DataFrame(all_results)
         
         # Report final statistics
-        logger.info(f"Boundary collection complete: {len(successful_boundaries)} successful, {len(failed_boundaries)} failed")
+        successful_count = len(results_df[results_df['collection_status'] == 'success'])
+        failed_count = len(results_df[results_df['collection_status'] == 'failed'])
         
-        if failed_boundaries:
-            logger.warning(f"Failed boundary collection for: {', '.join(map(str, failed_boundaries))}")
+        logger.info(f"Boundary collection complete: {successful_count} successful, {failed_count} failed")
+        
+        if failed_count > 0:
+            failed_codes = results_df[results_df['collection_status'] == 'failed']['park_code'].tolist()
+            logger.warning(f"Failed boundary collection for: {', '.join(failed_codes)}")
         
         return results_df
     
