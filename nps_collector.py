@@ -52,6 +52,7 @@ class NPSDataCollector:
         """
         self.api_key = api_key
         self.base_url = "https://developer.nps.gov/api/v1"
+        self.rate_limit_warning_threshold = 50
         self.session = requests.Session()  # Reuse connections for efficiency
         
         # Set up session headers that will be used for all requests
@@ -151,7 +152,7 @@ class NPSDataCollector:
                     logger.info(f"Rate limit status: {rate_limit_remaining}/{rate_limit_limit} requests remaining")
                     
                     # Warn if getting close to the limit
-                    if int(rate_limit_remaining) < 50:
+                    if int(rate_limit_remaining) < self.rate_limit_warning_threshold:
                         logger.warning(f"Approaching rate limit! Only {rate_limit_remaining} requests remaining")
                             
                 # Parse the JSON response
