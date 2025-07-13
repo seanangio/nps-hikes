@@ -20,35 +20,33 @@ from shapely.geometry import shape, Point
 
 # Set up rotating log files
 file_handler = RotatingFileHandler(
-    'nps_collector.log',
-    maxBytes=5*1024*1024,  # 5MB per file
-    backupCount=3  # Keep 3 old files
+    "nps_collector.log",
+    maxBytes=5 * 1024 * 1024,  # 5MB per file
+    backupCount=3,  # Keep 3 old files
 )
 
 # Configure logging for debugging and monitoring
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        file_handler,
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[file_handler, logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
+
 
 class NPSDataCollector:
     """
     A class for collecting comprehensive National Park Service data.
-    
+
     This class encapsulates functionality to query multiple NPS API endpoints
-    and build structured datasets including basic park information and 
+    and build structured datasets including basic park information and
     spatial boundary data.
     """
-    
+
     def __init__(self, api_key: str):
         """
         Initialize the collector with API credentials.
-        
+
         Args:
             api_key (str): NPS API key from the environment
         """
@@ -56,28 +54,30 @@ class NPSDataCollector:
         self.base_url = "https://developer.nps.gov/api/v1"
         self.rate_limit_warning_threshold = 50
         self.session = requests.Session()  # Reuse connections for efficiency
-        
+
         # Load user email from environment variable with fallback
-        user_email = os.getenv('NPS_USER_EMAIL', 'unknown@example.com')
-        
+        user_email = os.getenv("NPS_USER_EMAIL", "unknown@example.com")
+
         # Set up session headers that will be used for all requests
-        self.session.headers.update({
-            'X-Api-Key': self.api_key,
-            'User-Agent': f'Python-NPS-Collector/1.0 ({user_email})'
-        })
-        
+        self.session.headers.update(
+            {
+                "X-Api-Key": self.api_key,
+                "User-Agent": f"Python-NPS-Collector/1.0 ({user_email})",
+            }
+        )
+
         logger.info("NPS Data Collector initialized successfully")
-    
+
     def load_parks_from_csv(self, csv_path: str) -> pd.DataFrame:
         """
         Load the list of parks to process from a CSV file.
 
         Args:
             csv_path (str): Path to the CSV file containing park data
-            
+
         Returns:
             pd.DataFrame: DataFrame containing park names and visit dates
-            
+
         Raises:
             FileNotFoundError: If the CSV file doesn't exist
             ValueError: If the CSV doesn't have required columns
@@ -86,42 +86,46 @@ class NPSDataCollector:
             # Load the CSV with explicit error handling
             df = pd.read_csv(csv_path)
             logger.info(f"Successfully loaded CSV with {len(df)} parks")
-            
+
             # Validate that we have the expected columns
-            required_columns = ['park_name', 'month', 'year']
+            required_columns = ["park_name", "month", "year"]
             missing_columns = [col for col in required_columns if col not in df.columns]
-            
+
             if missing_columns:
                 raise ValueError(f"CSV missing required columns: {missing_columns}")
-            
+
             # Remove any rows with missing park names
             original_count = len(df)
-            df = df.dropna(subset=['park_name'])
-            
+            df = df.dropna(subset=["park_name"])
+
             if len(df) < original_count:
-                logger.warning(f"Removed {original_count - len(df)} rows with missing park names")
-            
+                logger.warning(
+                    f"Removed {original_count - len(df)} rows with missing park names"
+                )
+
             return df
-            
+
         except FileNotFoundError:
             logger.error(f"Could not find CSV file: {csv_path}")
             raise
         except Exception as e:
             logger.error(f"Error loading CSV file: {str(e)}")
             raise
-    
-    def query_park_api(self, park_name: str, max_retries: int = 2, retry_delay: float = 3.0) -> Optional[Dict]:
+
+    def query_park_api(
+        self, park_name: str, max_retries: int = 2, retry_delay: float = 3.0
+    ) -> Optional[Dict]:
         """
         Query the NPS API for a specific park using fuzzy matching with retry logic.
-        
+
         This method includes automatic retry logic for temporary server errors,
         using conservative retry settings since park data is critical for the pipeline.
-        
+
         Args:
             park_name (str): Name of the park to search for
             max_retries (int): Maximum number of retry attempts for server errors
             retry_delay (float): Delay in seconds between retry attempts
-            
+
         Returns:
             Optional[Dict]: Park data if found, None if not found or error occurred
         """
@@ -129,186 +133,225 @@ class NPSDataCollector:
         endpoint = f"{self.base_url}/parks"
         search_query = f"{park_name} National Park"
         params = {
-            'q': search_query,
-            'limit': 10,  # Get multiple results to find the best match
-            'sort': '-relevanceScore',
-            'fields': 'addresses,contacts,description,directionsInfo,latitude,longitude,name,parkCode,states,url,fullName'
+            "q": search_query,
+            "limit": 10,  # Get multiple results to find the best match
+            "sort": "-relevanceScore",
+            "fields": "addresses,contacts,description,directionsInfo,latitude,longitude,name,parkCode,states,url,fullName",
         }
-        
+
         for attempt in range(max_retries + 1):  # +1 for initial attempt
             try:
                 if attempt > 0:
-                    logger.info(f"Retry attempt {attempt}/{max_retries} for park '{park_name}' after {retry_delay}s delay")
+                    logger.info(
+                        f"Retry attempt {attempt}/{max_retries} for park '{park_name}' after {retry_delay}s delay"
+                    )
                     time.sleep(retry_delay)
-                
-                logger.debug(f"Querying API for park: '{park_name}' (searching for: '{search_query}') - attempt {attempt + 1}")
-                
+
+                logger.debug(
+                    f"Querying API for park: '{park_name}' (searching for: '{search_query}') - attempt {attempt + 1}"
+                )
+
                 # Make the API request with timeout for reliability
                 response = self.session.get(endpoint, params=params, timeout=30)
-                
+
                 # Check if the request was successful
                 response.raise_for_status()
 
                 # Log rate limit information
-                rate_limit_remaining = response.headers.get('X-RateLimit-Remaining')
-                rate_limit_limit = response.headers.get('X-RateLimit-Limit')
-                
+                rate_limit_remaining = response.headers.get("X-RateLimit-Remaining")
+                rate_limit_limit = response.headers.get("X-RateLimit-Limit")
+
                 if rate_limit_remaining:
-                    logger.info(f"Rate limit status: {rate_limit_remaining}/{rate_limit_limit} requests remaining")
-                    
+                    logger.info(
+                        f"Rate limit status: {rate_limit_remaining}/{rate_limit_limit} requests remaining"
+                    )
+
                     # Warn if getting close to the limit
                     if int(rate_limit_remaining) < self.rate_limit_warning_threshold:
-                        logger.warning(f"Approaching rate limit! Only {rate_limit_remaining} requests remaining")
-                            
+                        logger.warning(
+                            f"Approaching rate limit! Only {rate_limit_remaining} requests remaining"
+                        )
+
                 # Parse the JSON response
                 data = response.json()
 
                 # Validate that it returned data
-                if 'data' not in data or not data['data']:
+                if "data" not in data or not data["data"]:
                     logger.warning(f"No results found for park: {park_name}")
                     return None
-                
+
                 # Find the best match using relevance score logic
-                best_match = self._find_best_park_match(data['data'], search_query, park_name)
+                best_match = self._find_best_park_match(
+                    data["data"], search_query, park_name
+                )
 
                 if best_match:
                     return best_match
                 else:
                     logger.warning(f"No suitable match found for park: {park_name}")
                     return None
-                    
+
             except requests.exceptions.Timeout:
-                logger.error(f"Park API request timed out for park: {park_name} (attempt {attempt + 1})")
+                logger.error(
+                    f"Park API request timed out for park: {park_name} (attempt {attempt + 1})"
+                )
                 if attempt == max_retries:
                     return None
-                    
+
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code >= 500:  # Server errors - retry
-                    logger.warning(f"Server error {e.response.status_code} for park '{park_name}' (attempt {attempt + 1}): {str(e)}")
+                    logger.warning(
+                        f"Server error {e.response.status_code} for park '{park_name}' (attempt {attempt + 1}): {str(e)}"
+                    )
                     if attempt == max_retries:
-                        logger.error(f"Max retries exceeded for park '{park_name}' due to server errors")
+                        logger.error(
+                            f"Max retries exceeded for park '{park_name}' due to server errors"
+                        )
                         return None
                 else:  # Client errors (4xx) - don't retry
-                    logger.error(f"Client error {e.response.status_code} for park '{park_name}': {str(e)}")
+                    logger.error(
+                        f"Client error {e.response.status_code} for park '{park_name}': {str(e)}"
+                    )
                     return None
-                    
+
             except requests.exceptions.RequestException as e:
-                logger.error(f"Network error for park '{park_name}' (attempt {attempt + 1}): {str(e)}")
+                logger.error(
+                    f"Network error for park '{park_name}' (attempt {attempt + 1}): {str(e)}"
+                )
                 if attempt == max_retries:
                     return None
-                    
+
             except Exception as e:
                 logger.error(f"Unexpected error querying park '{park_name}': {str(e)}")
                 return None
-        
+
         return None
-    
-    def _find_best_park_match(self, park_results: List[Dict], search_query: str, original_park_name: str) -> Optional[Dict]:
+
+    def _find_best_park_match(
+        self, park_results: List[Dict], search_query: str, original_park_name: str
+    ) -> Optional[Dict]:
         """
         Find the best matching park from API results using a tiered approach.
-        
+
         Strategy:
         1. Look for exact fullName match with search query
         2. If no exact match, take the first result (highest relevance due to sorting)
         3. Log the matching decision for debugging
-        
+
         Args:
             park_results (List[Dict]): List of park results from the API (pre-sorted by relevance)
             search_query (str): The actual query string sent to API
             original_park_name (str): Original park name from CSV for logging
-            
+
         Returns:
             Optional[Dict]: Best matching park or None if no results
         """
         if not park_results:
             logger.warning(f"No results returned for '{original_park_name}'")
             return None
-        
+
         # Strategy 1: Look for exact fullName match
         for park in park_results:
-            park_full_name = park.get('fullName', '')
+            park_full_name = park.get("fullName", "")
             if park_full_name == search_query:
-                logger.info(f"Found exact match for '{original_park_name}': '{park_full_name}'")
+                logger.info(
+                    f"Found exact match for '{original_park_name}': '{park_full_name}'"
+                )
                 return park
-        
+
         # Strategy 2: No exact match, so take the first result (highest relevance)
         best_park = park_results[0]
-        best_score = best_park.get('relevanceScore', 'N/A')
-        best_name = best_park.get('fullName', 'Unknown')
-        
-        logger.info(f"No exact match for '{original_park_name}'. Using highest relevance: '{best_name}' (score: {best_score})")
-        
+        best_score = best_park.get("relevanceScore", "N/A")
+        best_name = best_park.get("fullName", "Unknown")
+
+        logger.info(
+            f"No exact match for '{original_park_name}'. Using highest relevance: '{best_name}' (score: {best_score})"
+        )
+
         # Log other top candidates for debugging
         if len(park_results) > 1:
             logger.debug(f"Other candidates for '{original_park_name}':")
             for i, park in enumerate(park_results[1:4], 2):  # Show next 3 candidates
-                candidate_name = park.get('fullName', 'Unknown')
-                candidate_score = park.get('relevanceScore', 'N/A')
+                candidate_name = park.get("fullName", "Unknown")
+                candidate_score = park.get("relevanceScore", "N/A")
                 logger.debug(f"  {i}. {candidate_name} (score: {candidate_score})")
-        
+
         return best_park
-    
+
     def _extract_valid_park_codes(self, park_data: pd.DataFrame) -> List[str]:
         """
         Extract valid, unique park codes from park data for boundary collection.
-        
+
         This method safely extracts park codes, removes duplicates to avoid
         redundant API calls, and provides logging about the extraction process.
-        
+
         Args:
             park_data (pd.DataFrame): DataFrame containing park data with park_code column
-            
+
         Returns:
             List[str]: List of unique, valid park codes ready for boundary collection
         """
         if park_data.empty:
             logger.warning("Park data is empty - no park codes available")
             return []
-        
-        if 'park_code' not in park_data.columns:
-            logger.warning("Park data missing 'park_code' column - no park codes available")
+
+        if "park_code" not in park_data.columns:
+            logger.warning(
+                "Park data missing 'park_code' column - no park codes available"
+            )
             return []
-        
+
         # Get valid park codes (non-empty, non-null)
-        valid_mask = park_data['park_code'].notna() & (park_data['park_code'] != '')
+        valid_mask = park_data["park_code"].notna() & (park_data["park_code"] != "")
         total_parks_with_codes = valid_mask.sum()
-        
+
         if total_parks_with_codes == 0:
             logger.warning("No valid park codes found in park data")
             return []
-        
+
         # Remove duplicates to avoid redundant API calls
-        unique_park_codes = park_data[valid_mask]['park_code'].drop_duplicates().tolist()
-        
+        unique_park_codes = (
+            park_data[valid_mask]["park_code"].drop_duplicates().tolist()
+        )
+
         # Log extraction results
-        logger.info(f"Found {len(unique_park_codes)} unique park codes for boundary collection")
-        
+        logger.info(
+            f"Found {len(unique_park_codes)} unique park codes for boundary collection"
+        )
+
         if total_parks_with_codes > len(unique_park_codes):
             duplicates_removed = total_parks_with_codes - len(unique_park_codes)
-            logger.info(f"Removed {duplicates_removed} duplicate park codes to avoid redundant API calls")
-        
+            logger.info(
+                f"Removed {duplicates_removed} duplicate park codes to avoid redundant API calls"
+            )
+
         return unique_park_codes
-    
-    def _print_collection_summary(self, park_data: pd.DataFrame, boundary_data: gpd.GeoDataFrame, 
-                                 park_output_csv: str, boundary_output_gpkg: str) -> None:
+
+    def _print_collection_summary(
+        self,
+        park_data: pd.DataFrame,
+        boundary_data: gpd.GeoDataFrame,
+        park_output_csv: str,
+        boundary_output_gpkg: str,
+    ) -> None:
         """
         Print comprehensive summary of the data collection results.
-        
+
         Args:
             park_data (pd.DataFrame): Collected park data
-            boundary_data (gpd.GeoDataFrame): Collected boundary data  
+            boundary_data (gpd.GeoDataFrame): Collected boundary data
             park_output_csv (str): Path where park data was saved
             boundary_output_gpkg (str): Path where boundary data was saved
         """
         print("\n" + "=" * 60)
         print("COLLECTION SUMMARY")
         print("=" * 60)
-        
+
         # Park data summary
         print(f"Basic park data:")
         print(f"  Parks processed: {len(park_data)}")
         print(f"  Output saved to: {park_output_csv}")
-        
+
         # Boundary data summary
         if not boundary_data.empty:
             print(f"Boundary data:")
@@ -317,319 +360,397 @@ class NPSDataCollector:
             print(f"  CRS: {boundary_data.crs}")
         else:
             print(f"Boundary data: No boundaries collected")
-        
+
         # Show sample of park data
         print(f"\nFirst few rows of park data:")
         print(park_data.head().to_string())
-        
+
         # Show sample of boundary data if available
         if not boundary_data.empty:
             print(f"\nFirst few rows of boundary data:")
             # Create a display version without geometry column to avoid terminal clutter
-            boundary_display = boundary_data.drop(columns=['geometry']).head()
+            boundary_display = boundary_data.drop(columns=["geometry"]).head()
             print(boundary_display.to_string())
-            print(f"   (Geometry data excluded from display - {len(boundary_data)} total boundaries)")
+            print(
+                f"   (Geometry data excluded from display - {len(boundary_data)} total boundaries)"
+            )
 
-    def _validate_coordinates(self, lat_value: str, lon_value: str, park_name: str) -> Tuple[Optional[float], Optional[float]]:
-            """
-            Validate and convert coordinate values to proper floats.
-            
-            This method handles the common issues with geographic coordinate data:
-            conversion errors, invalid ranges, and missing values.
-            
-            Args:
-                lat_value (str): Raw latitude value from API
-                lon_value (str): Raw longitude value from API  
-                park_name (str): Park name for error logging context
-                
-            Returns:
-                Tuple[Optional[float], Optional[float]]: Validated lat/lon or (None, None) if invalid
-            """
-            try:
-                # Convert to float
-                lat_float = float(lat_value)
-                lon_float = float(lon_value)
-                
-                # Validate geographic ranges
-                if not (-90 <= lat_float <= 90):
-                    logger.warning(f"Invalid latitude {lat_float} for {park_name} (must be between -90 and 90)")
-                    return None, None
-                    
-                if not (-180 <= lon_float <= 180):
-                    logger.warning(f"Invalid longitude {lon_float} for {park_name} (must be between -180 and 180)")
-                    return None, None
-                
-                logger.debug(f"Valid coordinates for {park_name}: ({lat_float}, {lon_float})")
-                return lat_float, lon_float
-                
-            except (ValueError, TypeError) as e:
-                logger.warning(f"Could not parse coordinates for {park_name}: lat='{lat_value}', lon='{lon_value}' - {str(e)}")
+    def _validate_coordinates(
+        self, lat_value: str, lon_value: str, park_name: str
+    ) -> Tuple[Optional[float], Optional[float]]:
+        """
+        Validate and convert coordinate values to proper floats.
+
+        This method handles the common issues with geographic coordinate data:
+        conversion errors, invalid ranges, and missing values.
+
+        Args:
+            lat_value (str): Raw latitude value from API
+            lon_value (str): Raw longitude value from API
+            park_name (str): Park name for error logging context
+
+        Returns:
+            Tuple[Optional[float], Optional[float]]: Validated lat/lon or (None, None) if invalid
+        """
+        try:
+            # Convert to float
+            lat_float = float(lat_value)
+            lon_float = float(lon_value)
+
+            # Validate geographic ranges
+            if not (-90 <= lat_float <= 90):
+                logger.warning(
+                    f"Invalid latitude {lat_float} for {park_name} (must be between -90 and 90)"
+                )
                 return None, None
+
+            if not (-180 <= lon_float <= 180):
+                logger.warning(
+                    f"Invalid longitude {lon_float} for {park_name} (must be between -180 and 180)"
+                )
+                return None, None
+
+            logger.debug(
+                f"Valid coordinates for {park_name}: ({lat_float}, {lon_float})"
+            )
+            return lat_float, lon_float
+
+        except (ValueError, TypeError) as e:
+            logger.warning(
+                f"Could not parse coordinates for {park_name}: lat='{lat_value}', lon='{lon_value}' - {str(e)}"
+            )
+            return None, None
 
     def extract_park_data(self, park_api_data: Dict, original_data: pd.Series) -> Dict:
         """
         Extract the specific fields needed from the API response.
-        
+
         Args:
             park_api_data (Dict): Raw park data from the NPS API
             original_data (pd.Series): Original row from CSV with visit info
-            
+
         Returns:
             Dict: Clean, structured park data for our dataset
         """
         # Extract basic park information with safe defaults
         extracted_data = {
-            'park_name': original_data['park_name'],
-            'visit_month': original_data['month'],
-            'visit_year': original_data['year'],
-            'park_code': park_api_data.get('parkCode', ''),
-            'full_name': park_api_data.get('fullName', ''),
-            'states': park_api_data.get('states', ''),
-            'url': park_api_data.get('url', ''),
-            'latitude': None,
-            'longitude': None,
-            'description': park_api_data.get('description', ''),
-            'error_message': None,
-            'collection_status': 'success'
+            "park_name": original_data["park_name"],
+            "visit_month": original_data["month"],
+            "visit_year": original_data["year"],
+            "park_code": park_api_data.get("parkCode", ""),
+            "full_name": park_api_data.get("fullName", ""),
+            "states": park_api_data.get("states", ""),
+            "url": park_api_data.get("url", ""),
+            "latitude": None,
+            "longitude": None,
+            "description": park_api_data.get("description", ""),
+            "error_message": None,
+            "collection_status": "success",
         }
 
         # Handle geographic coordinates with proper validation
-        lat_raw = park_api_data.get('latitude')
-        lon_raw = park_api_data.get('longitude')
-        
+        lat_raw = park_api_data.get("latitude")
+        lon_raw = park_api_data.get("longitude")
+
         if lat_raw and lon_raw:
             # Use validation method to safely convert and validate coordinates
             validated_lat, validated_lon = self._validate_coordinates(
-                lat_raw, 
-                lon_raw, 
-                extracted_data['full_name']
+                lat_raw, lon_raw, extracted_data["full_name"]
             )
-            extracted_data['latitude'] = validated_lat
-            extracted_data['longitude'] = validated_lon
+            extracted_data["latitude"] = validated_lat
+            extracted_data["longitude"] = validated_lon
         else:
             # Log when coordinate data is missing
             if not lat_raw and not lon_raw:
-                logger.info(f"No coordinate data available for {extracted_data['full_name']}")
+                logger.info(
+                    f"No coordinate data available for {extracted_data['full_name']}"
+                )
             else:
-                logger.warning(f"Incomplete coordinate data for {extracted_data['full_name']}: lat={lat_raw}, lon={lon_raw}")
-        
+                logger.warning(
+                    f"Incomplete coordinate data for {extracted_data['full_name']}: lat={lat_raw}, lon={lon_raw}"
+                )
+
         return extracted_data
-    
-    def query_park_boundaries_api(self, park_code: str, max_retries: int = 3, retry_delay: float = 5.0) -> Optional[Dict]:
+
+    def query_park_boundaries_api(
+        self, park_code: str, max_retries: int = 3, retry_delay: float = 5.0
+    ) -> Optional[Dict]:
         """
         Query the NPS API for park boundary spatial data with retry logic.
-        
+
         This method queries the mapdata/parkboundaries endpoint to retrieve
         geometric boundary information for a specific park. Includes automatic
         retry logic for temporary server errors.
-        
+
         Args:
             park_code (str): NPS park code (e.g., 'zion', 'yell')
             max_retries (int): Maximum number of retry attempts for server errors
             retry_delay (float): Delay in seconds between retry attempts
-            
+
         Returns:
             Optional[Dict]: Boundary data if found, None if not found or error occurred
         """
         endpoint = f"{self.base_url}/mapdata/parkboundaries/{park_code}"
-        
+
         for attempt in range(max_retries + 1):  # +1 for initial attempt
             try:
                 if attempt > 0:
-                    logger.info(f"Retry attempt {attempt}/{max_retries} for park code '{park_code}' after {retry_delay}s delay")
+                    logger.info(
+                        f"Retry attempt {attempt}/{max_retries} for park code '{park_code}' after {retry_delay}s delay"
+                    )
                     time.sleep(retry_delay)
-                
-                logger.debug(f"Querying boundary API for park code: '{park_code}' (attempt {attempt + 1})")
-                
+
+                logger.debug(
+                    f"Querying boundary API for park code: '{park_code}' (attempt {attempt + 1})"
+                )
+
                 # Make the API request with timeout for reliability
                 response = self.session.get(endpoint, timeout=30)
-                
+
                 # Check if the request was successful
                 response.raise_for_status()
 
                 # Log rate limit information
-                rate_limit_remaining = response.headers.get('X-RateLimit-Remaining')
-                rate_limit_limit = response.headers.get('X-RateLimit-Limit')
-                
+                rate_limit_remaining = response.headers.get("X-RateLimit-Remaining")
+                rate_limit_limit = response.headers.get("X-RateLimit-Limit")
+
                 if rate_limit_remaining:
-                    logger.debug(f"Rate limit status: {rate_limit_remaining}/{rate_limit_limit} requests remaining")
-                    
+                    logger.debug(
+                        f"Rate limit status: {rate_limit_remaining}/{rate_limit_limit} requests remaining"
+                    )
+
                     # Warn if getting close to the limit
                     if int(rate_limit_remaining) < 50:
-                        logger.warning(f"Approaching rate limit! Only {rate_limit_remaining} requests remaining")
-                            
+                        logger.warning(
+                            f"Approaching rate limit! Only {rate_limit_remaining} requests remaining"
+                        )
+
                 # Parse the JSON response
                 data = response.json()
-                
+
                 # Validate boundary data - boundaries endpoint returns GeoJSON directly
                 if isinstance(data, dict):
                     # Check for GeoJSON FeatureCollection format
-                    if data.get('type') == 'FeatureCollection' and 'features' in data:
-                        if data['features']:  # Has features
-                            logger.info(f"Successfully retrieved boundary data for park code: {park_code}")
+                    if data.get("type") == "FeatureCollection" and "features" in data:
+                        if data["features"]:  # Has features
+                            logger.info(
+                                f"Successfully retrieved boundary data for park code: {park_code}"
+                            )
                             return data
                         else:
-                            logger.warning(f"No boundary features found for park code: {park_code}")
+                            logger.warning(
+                                f"No boundary features found for park code: {park_code}"
+                            )
                             return None
                     # Check for single Feature format
-                    elif data.get('type') == 'Feature':
-                        logger.info(f"Successfully retrieved boundary data for park code: {park_code}")
+                    elif data.get("type") == "Feature":
+                        logger.info(
+                            f"Successfully retrieved boundary data for park code: {park_code}"
+                        )
                         return data
                     # Check for direct geometry
-                    elif 'geometry' in data:
-                        logger.info(f"Successfully retrieved boundary data for park code: {park_code}")
+                    elif "geometry" in data:
+                        logger.info(
+                            f"Successfully retrieved boundary data for park code: {park_code}"
+                        )
                         return data
                     else:
-                        logger.warning(f"Unexpected boundary data format for park code: {park_code}")
+                        logger.warning(
+                            f"Unexpected boundary data format for park code: {park_code}"
+                        )
                         return None
                 else:
-                    logger.warning(f"Invalid boundary data response for park code: {park_code}")
+                    logger.warning(
+                        f"Invalid boundary data response for park code: {park_code}"
+                    )
                     return None
-                    
+
             except requests.exceptions.Timeout:
-                logger.error(f"Boundary API request timed out for park code: {park_code} (attempt {attempt + 1})")
+                logger.error(
+                    f"Boundary API request timed out for park code: {park_code} (attempt {attempt + 1})"
+                )
                 if attempt == max_retries:
                     return None
-                    
+
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code >= 500:  # Server errors - retry
-                    logger.warning(f"Server error {e.response.status_code} for park '{park_code}' (attempt {attempt + 1}): {str(e)}")
+                    logger.warning(
+                        f"Server error {e.response.status_code} for park '{park_code}' (attempt {attempt + 1}): {str(e)}"
+                    )
                     if attempt == max_retries:
-                        logger.error(f"Max retries exceeded for park '{park_code}' due to server errors")
+                        logger.error(
+                            f"Max retries exceeded for park '{park_code}' due to server errors"
+                        )
                         return None
                 else:  # Client errors (4xx) - don't retry
-                    logger.error(f"Client error {e.response.status_code} for park '{park_code}': {str(e)}")
+                    logger.error(
+                        f"Client error {e.response.status_code} for park '{park_code}': {str(e)}"
+                    )
                     return None
-                    
+
             except requests.exceptions.RequestException as e:
-                logger.error(f"Network error for park '{park_code}' (attempt {attempt + 1}): {str(e)}")
+                logger.error(
+                    f"Network error for park '{park_code}' (attempt {attempt + 1}): {str(e)}"
+                )
                 if attempt == max_retries:
                     return None
-                    
+
             except Exception as e:
-                logger.error(f"Unexpected error querying boundaries for park '{park_code}': {str(e)}")
+                logger.error(
+                    f"Unexpected error querying boundaries for park '{park_code}': {str(e)}"
+                )
                 return None
-        
+
         return None
-    
+
     def transform_boundary_data(self, boundary_api_data: Dict, park_code: str) -> Dict:
         """
         Transform the specific boundary fields needed from the API response.
-        
+
         This method safely transforms geometric and metadata information from
         the park boundaries API response.
-        
+
         Args:
             boundary_api_data (Dict): Raw boundary data from the NPS API
             park_code (str): Park code for reference and logging
-            
+
         Returns:
             Dict: Clean, structured boundary data for our dataset
         """
         # Initialize with park code for reference
         extracted_data = {
-            'park_code': park_code,
-            'geometry': None,
-            'geometry_type': None,
-            'boundary_source': 'NPS API',
-            'error_message': None,
-            'collection_status': 'success'
+            "park_code": park_code,
+            "geometry": None,
+            "geometry_type": None,
+            "boundary_source": "NPS API",
+            "error_message": None,
+            "collection_status": "success",
         }
-        
+
         # The boundary data is now properly structured GeoJSON
         try:
             # Handle GeoJSON FeatureCollection
-            if boundary_api_data.get('type') == 'FeatureCollection':
-                features = boundary_api_data.get('features', [])
+            if boundary_api_data.get("type") == "FeatureCollection":
+                features = boundary_api_data.get("features", [])
                 if features:
                     # Take the first feature (most parks have one main boundary)
                     first_feature = features[0]
-                    geometry = first_feature.get('geometry')
+                    geometry = first_feature.get("geometry")
                     if geometry:
-                        extracted_data['geometry'] = geometry
-                        extracted_data['geometry_type'] = geometry.get('type', 'Unknown')
-                        logger.debug(f"Extracted {geometry.get('type', 'Unknown')} geometry from FeatureCollection for {park_code}")
+                        extracted_data["geometry"] = geometry
+                        extracted_data["geometry_type"] = geometry.get(
+                            "type", "Unknown"
+                        )
+                        logger.debug(
+                            f"Extracted {geometry.get('type', 'Unknown')} geometry from FeatureCollection for {park_code}"
+                        )
                     else:
-                        logger.warning(f"No geometry found in first feature for {park_code}")
+                        logger.warning(
+                            f"No geometry found in first feature for {park_code}"
+                        )
                 else:
-                    logger.warning(f"No features found in FeatureCollection for {park_code}")
-            
+                    logger.warning(
+                        f"No features found in FeatureCollection for {park_code}"
+                    )
+
             # Handle single GeoJSON Feature
-            elif boundary_api_data.get('type') == 'Feature':
-                geometry = boundary_api_data.get('geometry')
+            elif boundary_api_data.get("type") == "Feature":
+                geometry = boundary_api_data.get("geometry")
                 if geometry:
-                    extracted_data['geometry'] = geometry
-                    extracted_data['geometry_type'] = geometry.get('type', 'Unknown')
-                    logger.debug(f"Extracted {geometry.get('type', 'Unknown')} geometry from Feature for {park_code}")
+                    extracted_data["geometry"] = geometry
+                    extracted_data["geometry_type"] = geometry.get("type", "Unknown")
+                    logger.debug(
+                        f"Extracted {geometry.get('type', 'Unknown')} geometry from Feature for {park_code}"
+                    )
                 else:
                     logger.warning(f"No geometry found in Feature for {park_code}")
-            
+
             # Handle direct geometry object
-            elif 'geometry' in boundary_api_data:
-                geometry = boundary_api_data['geometry']
-                extracted_data['geometry'] = geometry
-                extracted_data['geometry_type'] = geometry.get('type', 'Unknown')
-                logger.debug(f"Extracted {geometry.get('type', 'Unknown')} geometry from direct object for {park_code}")
-            
+            elif "geometry" in boundary_api_data:
+                geometry = boundary_api_data["geometry"]
+                extracted_data["geometry"] = geometry
+                extracted_data["geometry_type"] = geometry.get("type", "Unknown")
+                logger.debug(
+                    f"Extracted {geometry.get('type', 'Unknown')} geometry from direct object for {park_code}"
+                )
+
             else:
                 logger.warning(f"Unrecognized boundary data structure for {park_code}")
-            
+
         except Exception as e:
             logger.error(f"Error extracting boundary data for {park_code}: {str(e)}")
-        
+
         return extracted_data
-    
-    def process_park_boundaries(self, park_codes: List[str], delay_seconds: float = 1.0, 
-                               limit_for_testing: Optional[int] = None,
-                               force_refresh: bool = False,
-                               output_path: str = 'park_boundaries_collected.gpkg') -> gpd.GeoDataFrame:
+
+    def process_park_boundaries(
+        self,
+        park_codes: List[str],
+        delay_seconds: float = 1.0,
+        limit_for_testing: Optional[int] = None,
+        force_refresh: bool = False,
+        output_path: str = "park_boundaries_collected.gpkg",
+    ) -> gpd.GeoDataFrame:
         """
         Process boundary data for a list of park codes.
-        
+
         This method queries the boundaries endpoint for each park code and
         builds a structured GeoDataFrame of spatial boundary information. Includes
         incremental processing to avoid re-processing existing boundary data.
-        
+
         Args:
             park_codes (List[str]): List of NPS park codes to process boundaries for
             delay_seconds (float): Delay between API calls to be respectful
             limit_for_testing (Optional[int]): Limit processing to first N codes for testing
             force_refresh (bool): If True, reprocess all boundaries. If False, skip existing data.
             output_path (str): Path to output GPKG file (used for incremental processing)
-            
+
         Returns:
             gpd.GeoDataFrame: GeoDataFrame with boundary information for each park, including error records
         """
         logger.info("Starting park boundary data collection process")
-        
+
         # FOR TESTING: Limit to specified number of park codes
         if limit_for_testing is not None:
             park_codes = park_codes[:limit_for_testing]
-            logger.info(f"TESTING MODE: Limited to first {limit_for_testing} park codes")
-        
+            logger.info(
+                f"TESTING MODE: Limited to first {limit_for_testing} park codes"
+            )
+
         # Handle incremental processing
         existing_data = gpd.GeoDataFrame()
         codes_to_process = park_codes.copy()
-        
+
         if not force_refresh and os.path.exists(output_path):
             try:
                 existing_data = gpd.read_file(output_path)
-                logger.info(f"Found existing boundary data with {len(existing_data)} records")
-                
+                logger.info(
+                    f"Found existing boundary data with {len(existing_data)} records"
+                )
+
                 # Identify park codes that still need processing
-                if not existing_data.empty and 'park_code' in existing_data.columns:
-                    existing_park_codes = set(existing_data['park_code'].tolist())
-                    codes_to_process = [code for code in park_codes if code not in existing_park_codes]
-                    
+                if not existing_data.empty and "park_code" in existing_data.columns:
+                    existing_park_codes = set(existing_data["park_code"].tolist())
+                    codes_to_process = [
+                        code for code in park_codes if code not in existing_park_codes
+                    ]
+
                     skipped_count = len(park_codes) - len(codes_to_process)
                     if skipped_count > 0:
-                        logger.info(f"Incremental processing: Skipping {skipped_count} boundaries already collected")
-                        logger.info(f"Processing {len(codes_to_process)} new/missing boundaries")
+                        logger.info(
+                            f"Incremental processing: Skipping {skipped_count} boundaries already collected"
+                        )
+                        logger.info(
+                            f"Processing {len(codes_to_process)} new/missing boundaries"
+                        )
                     else:
-                        logger.info("All boundaries already collected, no new processing needed")
-                
+                        logger.info(
+                            "All boundaries already collected, no new processing needed"
+                        )
+
             except Exception as e:
-                logger.warning(f"Could not load existing boundary data from {output_path}: {e}")
+                logger.warning(
+                    f"Could not load existing boundary data from {output_path}: {e}"
+                )
                 logger.info("Proceeding with full boundary processing")
                 existing_data = gpd.GeoDataFrame()
                 codes_to_process = park_codes.copy()
@@ -637,25 +758,25 @@ class NPSDataCollector:
             logger.info("Force refresh mode: Processing all boundaries")
         else:
             logger.info("No existing boundary data found: Processing all boundaries")
-        
+
         total_parks = len(codes_to_process)
-        
+
         if total_parks == 0:
             logger.info("No boundaries to process")
             return existing_data if not existing_data.empty else gpd.GeoDataFrame()
-        
+
         # Track all results including failures
         new_results = []
-        
+
         # Process each park code with progress tracking
         for index, park_code in enumerate(codes_to_process):
             progress = f"({index + 1}/{total_parks})"
-            
+
             logger.info(f"Processing boundary {progress}: {park_code}")
-            
+
             # Query the boundaries API for this park
             boundary_data = self.query_park_boundaries_api(park_code)
-            
+
             if boundary_data:
                 # Transform the boundary data we need
                 extracted = self.transform_boundary_data(boundary_data, park_code)
@@ -664,98 +785,121 @@ class NPSDataCollector:
             else:
                 # Create error record to maintain complete dataset
                 error_record = {
-                    'park_code': park_code,
-                    'geometry': None,
-                    'geometry_type': None,
-                    'boundary_source': 'NPS API',
-                    'error_message': 'Failed to retrieve boundary data - see logs for details',
-                    'collection_status': 'failed'
+                    "park_code": park_code,
+                    "geometry": None,
+                    "geometry_type": None,
+                    "boundary_source": "NPS API",
+                    "error_message": "Failed to retrieve boundary data - see logs for details",
+                    "collection_status": "failed",
                 }
                 new_results.append(error_record)
                 logger.error(f"✗ Failed to process boundary for {park_code}")
-            
+
             # Be respectful to the API with rate limiting
             if index < total_parks - 1:  # Don't delay after the last request
                 time.sleep(delay_seconds)
-        
+
         # Convert results to GeoDataFrame
         if new_results:
             # Convert GeoJSON geometries to Shapely objects
             geometries = []
             for result in new_results:
-                if result['geometry']:
+                if result["geometry"]:
                     try:
-                        geom = shape(result['geometry'])  # Convert GeoJSON to Shapely
+                        geom = shape(result["geometry"])  # Convert GeoJSON to Shapely
                         geometries.append(geom)
                     except Exception as e:
-                        logger.warning(f"Invalid geometry for {result['park_code']}: {e}")
+                        logger.warning(
+                            f"Invalid geometry for {result['park_code']}: {e}"
+                        )
                         geometries.append(None)
                 else:
                     # Use empty geometry for failed records
                     geometries.append(None)
-            
+
             # Create GeoDataFrame from results
             new_results_gdf = gpd.GeoDataFrame(
-                data=[{k: v for k, v in result.items() if k != 'geometry'} for result in new_results],
+                data=[
+                    {k: v for k, v in result.items() if k != "geometry"}
+                    for result in new_results
+                ],
                 geometry=geometries,
-                crs='EPSG:4326'
+                crs="EPSG:4326",
             )
-            
+
             # Report statistics for new processing
-            successful_count = len(new_results_gdf[new_results_gdf['collection_status'] == 'success'])
-            failed_count = len(new_results_gdf[new_results_gdf['collection_status'] == 'failed'])
-            
-            logger.info(f"New boundary collection complete: {successful_count} successful, {failed_count} failed")
-            
+            successful_count = len(
+                new_results_gdf[new_results_gdf["collection_status"] == "success"]
+            )
+            failed_count = len(
+                new_results_gdf[new_results_gdf["collection_status"] == "failed"]
+            )
+
+            logger.info(
+                f"New boundary collection complete: {successful_count} successful, {failed_count} failed"
+            )
+
             if failed_count > 0:
-                failed_codes = new_results_gdf[new_results_gdf['collection_status'] == 'failed']['park_code'].tolist()
-                logger.warning(f"Failed boundary collection for: {', '.join(failed_codes)}")
+                failed_codes = new_results_gdf[
+                    new_results_gdf["collection_status"] == "failed"
+                ]["park_code"].tolist()
+                logger.warning(
+                    f"Failed boundary collection for: {', '.join(failed_codes)}"
+                )
         else:
             new_results_gdf = gpd.GeoDataFrame()
-        
+
         # Combine existing data with new results
         if not existing_data.empty and not new_results_gdf.empty:
             # Combine existing and new data - ensure result is GeoDataFrame
-            combined_gdf = gpd.GeoDataFrame(pd.concat([existing_data, new_results_gdf], ignore_index=True))
-            logger.info(f"Combined {len(existing_data)} existing boundary records with {len(new_results_gdf)} new records")
+            combined_gdf = gpd.GeoDataFrame(
+                pd.concat([existing_data, new_results_gdf], ignore_index=True)
+            )
+            logger.info(
+                f"Combined {len(existing_data)} existing boundary records with {len(new_results_gdf)} new records"
+            )
         elif not new_results_gdf.empty:
             # Only new data
             combined_gdf = new_results_gdf
         else:
             # Only existing data (no new processing)
             combined_gdf = existing_data
-        
+
         return combined_gdf
-    
+
     def save_boundary_results(self, gdf: gpd.GeoDataFrame, output_path: str) -> None:
         """
         Save the collected boundary data to a GPKG file with proper error handling.
-        
+
         This saves the GeoDataFrame directly to GeoPackage format, preserving
         the spatial geometry data and coordinate reference system.
-        
+
         Args:
             gdf (gpd.GeoDataFrame): The boundary dataset to save
             output_path (str): Where to save the GPKG file
         """
         try:
-            gdf.to_file(output_path, driver='GPKG')
+            gdf.to_file(output_path, driver="GPKG")
             logger.info(f"Boundary results saved to: {output_path}")
             logger.info(f"GeoDataFrame contains {len(gdf)} parks with CRS: {gdf.crs}")
         except Exception as e:
             logger.error(f"Failed to save boundary results: {str(e)}")
             raise
-    
-    def process_park_data(self, csv_path: str, delay_seconds: float = 1.0, 
-                         limit_for_testing: Optional[int] = None, 
-                         force_refresh: bool = False,
-                         output_path: str = 'park_data_collected.csv') -> pd.DataFrame:
+
+    def process_park_data(
+        self,
+        csv_path: str,
+        delay_seconds: float = 1.0,
+        limit_for_testing: Optional[int] = None,
+        force_refresh: bool = False,
+        output_path: str = "park_data_collected.csv",
+    ) -> pd.DataFrame:
         """
         Main orchestration method that processes all parks and builds the final dataset.
-        
+
         This method includes complete error tracking and incremental processing
         to avoid unnecessary API calls for existing data.
-        
+
         Args:
             csv_path (str): Path to the CSV file with park names
             delay_seconds (float): Delay between API calls to be respectful
@@ -763,41 +907,49 @@ class NPSDataCollector:
                                               None processes all parks (production default).
             force_refresh (bool): If True, reprocess all parks. If False, skip existing data.
             output_path (str): Path to output CSV file (used for incremental processing)
-            
+
         Returns:
             pd.DataFrame: Complete dataset with all park information, including error records
         """
         logger.info("Starting park data collection process")
-        
+
         # Load park list
         parks_df = self.load_parks_from_csv(csv_path)
-        
+
         # FOR TESTING: Limit to specified number of parks
         if limit_for_testing is not None:
             parks_df = parks_df.head(limit_for_testing)
             logger.info(f"TESTING MODE: Limited to first {limit_for_testing} parks")
-        
+
         # Handle incremental processing
         existing_data = pd.DataFrame()
         parks_to_process = parks_df.copy()
-        
+
         if not force_refresh and os.path.exists(output_path):
             try:
                 existing_data = pd.read_csv(output_path)
                 logger.info(f"Found existing data with {len(existing_data)} records")
-                
+
                 # Identify parks that still need processing
-                if not existing_data.empty and 'park_name' in existing_data.columns:
-                    existing_park_names = set(existing_data['park_name'].tolist())
-                    parks_to_process = parks_df[~parks_df['park_name'].isin(existing_park_names)]
-                    
+                if not existing_data.empty and "park_name" in existing_data.columns:
+                    existing_park_names = set(existing_data["park_name"].tolist())
+                    parks_to_process = parks_df[
+                        ~parks_df["park_name"].isin(existing_park_names)
+                    ]
+
                     skipped_count = len(parks_df) - len(parks_to_process)
                     if skipped_count > 0:
-                        logger.info(f"Incremental processing: Skipping {skipped_count} parks already collected")
-                        logger.info(f"Processing {len(parks_to_process)} new/missing parks")
+                        logger.info(
+                            f"Incremental processing: Skipping {skipped_count} parks already collected"
+                        )
+                        logger.info(
+                            f"Processing {len(parks_to_process)} new/missing parks"
+                        )
                     else:
-                        logger.info("All parks already collected, no new processing needed")
-                
+                        logger.info(
+                            "All parks already collected, no new processing needed"
+                        )
+
             except Exception as e:
                 logger.warning(f"Could not load existing data from {output_path}: {e}")
                 logger.info("Proceeding with full processing")
@@ -807,26 +959,26 @@ class NPSDataCollector:
             logger.info("Force refresh mode: Processing all parks")
         else:
             logger.info("No existing data found: Processing all parks")
-        
+
         total_parks = len(parks_to_process)
-        
+
         if total_parks == 0:
             logger.info("No parks to process")
             return existing_data if not existing_data.empty else pd.DataFrame()
-        
+
         # Track all results including failures
         new_results = []
-        
+
         # Process each park with progress tracking
         for index, (_, park_row) in enumerate(parks_to_process.iterrows()):
-            park_name = park_row['park_name']
+            park_name = park_row["park_name"]
             progress = f"({index + 1}/{total_parks})"
-            
+
             logger.info(f"Processing {progress}: {park_name}")
-            
+
             # Query the API for this park
             park_data = self.query_park_api(park_name)
-            
+
             if park_data:
                 # Extract the data needed
                 extracted = self.extract_park_data(park_data, park_row)
@@ -835,57 +987,67 @@ class NPSDataCollector:
             else:
                 # Create error record to maintain complete dataset
                 error_record = {
-                    'park_name': park_row['park_name'],
-                    'visit_month': park_row['month'],
-                    'visit_year': park_row['year'],
-                    'park_code': '',
-                    'full_name': '',
-                    'states': '',
-                    'url': '',
-                    'latitude': None,
-                    'longitude': None,
-                    'description': '',
-                    'error_message': 'Failed to retrieve park data - see logs for details',
-                    'collection_status': 'failed'
+                    "park_name": park_row["park_name"],
+                    "visit_month": park_row["month"],
+                    "visit_year": park_row["year"],
+                    "park_code": "",
+                    "full_name": "",
+                    "states": "",
+                    "url": "",
+                    "latitude": None,
+                    "longitude": None,
+                    "description": "",
+                    "error_message": "Failed to retrieve park data - see logs for details",
+                    "collection_status": "failed",
                 }
                 new_results.append(error_record)
                 logger.error(f"✗ Failed to process {park_name}")
-            
+
             # Be respectful to the API with rate limiting
             if index < total_parks - 1:  # Don't delay after the last request
                 time.sleep(delay_seconds)
-        
+
         # Combine existing data with new results
         if not existing_data.empty and new_results:
             # Combine existing and new data
             new_results_df = pd.DataFrame(new_results)
             combined_df = pd.concat([existing_data, new_results_df], ignore_index=True)
-            logger.info(f"Combined {len(existing_data)} existing records with {len(new_results)} new records")
+            logger.info(
+                f"Combined {len(existing_data)} existing records with {len(new_results)} new records"
+            )
         elif new_results:
             # Only new data
             combined_df = pd.DataFrame(new_results)
         else:
             # Only existing data (no new processing)
             combined_df = existing_data
-        
+
         # Report final statistics for new processing
         if new_results:
             new_results_df = pd.DataFrame(new_results)
-            successful_count = len(new_results_df[new_results_df['collection_status'] == 'success'])
-            failed_count = len(new_results_df[new_results_df['collection_status'] == 'failed'])
-            
-            logger.info(f"New park collection complete: {successful_count} successful, {failed_count} failed")
-            
+            successful_count = len(
+                new_results_df[new_results_df["collection_status"] == "success"]
+            )
+            failed_count = len(
+                new_results_df[new_results_df["collection_status"] == "failed"]
+            )
+
+            logger.info(
+                f"New park collection complete: {successful_count} successful, {failed_count} failed"
+            )
+
             if failed_count > 0:
-                failed_parks = new_results_df[new_results_df['collection_status'] == 'failed']['park_name'].tolist()
+                failed_parks = new_results_df[
+                    new_results_df["collection_status"] == "failed"
+                ]["park_name"].tolist()
                 logger.warning(f"Failed park collection for: {', '.join(failed_parks)}")
-        
+
         return combined_df
-    
+
     def save_park_results(self, df: pd.DataFrame, output_path: str) -> None:
         """
         Save the collected data to a CSV file with proper error handling.
-        
+
         Args:
             df (pd.DataFrame): The dataset to save
             output_path (str): Where to save the CSV file
@@ -893,7 +1055,9 @@ class NPSDataCollector:
         try:
             df.to_csv(output_path, index=False)
             logger.info(f"Results saved to: {output_path}")
-            logger.info(f"Dataset contains {len(df)} parks with {len(df.columns)} columns")
+            logger.info(
+                f"Dataset contains {len(df)} parks with {len(df.columns)} columns"
+            )
         except Exception as e:
             logger.error(f"Failed to save results: {str(e)}")
             raise
@@ -902,16 +1066,16 @@ class NPSDataCollector:
 def main():
     """
     Main function demonstrating the complete NPS data collection pipeline.
-    
+
     This function orchestrates a two-stage data collection process:
     1. Collect basic park information from the parks endpoint
     2. Collect spatial boundary data using the park codes from stage 1
-    
+
     Supports incremental processing to avoid re-collecting existing data.
     """
     # Set up command line argument parsing
     parser = argparse.ArgumentParser(
-        description='Collect National Park Service data from API',
+        description="Collect National Park Service data from API",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -920,110 +1084,148 @@ Examples:
   %(prog)s --force-refresh              # Reprocess all parks, overwrite existing
   %(prog)s --delay 2.0                  # Use 2 second delays between API calls
   %(prog)s --test-limit 5 --force-refresh  # Test mode with forced refresh
-        """
+        """,
     )
-    
-    parser.add_argument('--test-limit', type=int, metavar='N',
-                       help='Limit processing to first N parks (for development/testing)')
-    parser.add_argument('--force-refresh', action='store_true',
-                       help='Reprocess all parks, overwriting existing data')
-    parser.add_argument('--delay', type=float, default=1.0, metavar='SECONDS',
-                       help='Delay between API calls in seconds (default: 1.0)')
-    parser.add_argument('--input-csv', default='parks.csv', metavar='FILE',
-                       help='Input CSV file with park data (default: parks.csv)')
-    parser.add_argument('--park-output', default='park_data_collected.csv', metavar='FILE',
-                       help='Output CSV file for park data (default: park_data_collected.csv)')
-    parser.add_argument('--boundary-output', default='park_boundaries_collected.gpkg', metavar='FILE',
-                       help='Output GPKG file for boundary data (default: park_boundaries_collected.gpkg)')
-    
+
+    parser.add_argument(
+        "--test-limit",
+        type=int,
+        metavar="N",
+        help="Limit processing to first N parks (for development/testing)",
+    )
+    parser.add_argument(
+        "--force-refresh",
+        action="store_true",
+        help="Reprocess all parks, overwriting existing data",
+    )
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=1.0,
+        metavar="SECONDS",
+        help="Delay between API calls in seconds (default: 1.0)",
+    )
+    parser.add_argument(
+        "--input-csv",
+        default="parks.csv",
+        metavar="FILE",
+        help="Input CSV file with park data (default: parks.csv)",
+    )
+    parser.add_argument(
+        "--park-output",
+        default="park_data_collected.csv",
+        metavar="FILE",
+        help="Output CSV file for park data (default: park_data_collected.csv)",
+    )
+    parser.add_argument(
+        "--boundary-output",
+        default="park_boundaries_collected.gpkg",
+        metavar="FILE",
+        help="Output GPKG file for boundary data (default: park_boundaries_collected.gpkg)",
+    )
+
     args = parser.parse_args()
-    
+
     try:
         # Load environment variables from .env file
         load_dotenv()
-        
+
         # Get API key with validation
-        api_key = os.getenv('NPS_API_KEY')
+        api_key = os.getenv("NPS_API_KEY")
         if not api_key:
-            raise ValueError("NPS_API_KEY not found in environment variables. Please check your .env file.")
-        
+            raise ValueError(
+                "NPS_API_KEY not found in environment variables. Please check your .env file."
+            )
+
         # Initialize our data collector
         collector = NPSDataCollector(api_key)
-        
+
         # Check that input file exists before starting
         if not os.path.exists(args.input_csv):
-            raise FileNotFoundError(f"Input file '{args.input_csv}' not found. Please create this file with your park data.")
-        
+            raise FileNotFoundError(
+                f"Input file '{args.input_csv}' not found. Please create this file with your park data."
+            )
+
         # STAGE 1: Collect basic park data
         logger.info("=" * 60)
         logger.info("STAGE 1: COLLECTING BASIC PARK DATA")
         logger.info("=" * 60)
-        
+
         if args.force_refresh:
             logger.info("Force refresh mode: Will reprocess all parks")
         elif os.path.exists(args.park_output):
-            logger.info(f"Incremental mode: Will skip parks already in {args.park_output}")
+            logger.info(
+                f"Incremental mode: Will skip parks already in {args.park_output}"
+            )
         else:
             logger.info("No existing data found: Will process all parks")
-        
+
         park_data = collector.process_park_data(
-            csv_path=args.input_csv, 
+            csv_path=args.input_csv,
             delay_seconds=args.delay,
             limit_for_testing=args.test_limit,
             force_refresh=args.force_refresh,
-            output_path=args.park_output
+            output_path=args.park_output,
         )
-        
+
         # Save park data results
         collector.save_park_results(park_data, args.park_output)
-        
+
         # STAGE 2: Collect boundary data using park codes from stage 1
         logger.info("=" * 60)
         logger.info("STAGE 2: COLLECTING PARK BOUNDARY DATA")
         logger.info("=" * 60)
-        
+
         # Initialize boundary_data to handle cases where it might not get created
         boundary_data = gpd.GeoDataFrame()
-        
+
         # Extract valid park codes from successful park data collection
         valid_park_codes = collector._extract_valid_park_codes(park_data)
-        
+
         if valid_park_codes:
             if args.force_refresh:
                 logger.info("Force refresh mode: Will reprocess all boundaries")
             elif os.path.exists(args.boundary_output):
-                logger.info(f"Incremental mode: Will skip boundaries already in {args.boundary_output}")
+                logger.info(
+                    f"Incremental mode: Will skip boundaries already in {args.boundary_output}"
+                )
             else:
-                logger.info("No existing boundary data found: Will process all boundaries")
-                
+                logger.info(
+                    "No existing boundary data found: Will process all boundaries"
+                )
+
             # Process boundary data
             boundary_data = collector.process_park_boundaries(
-                park_codes=valid_park_codes, 
+                park_codes=valid_park_codes,
                 delay_seconds=args.delay,
                 limit_for_testing=args.test_limit,
                 force_refresh=args.force_refresh,
-                output_path=args.boundary_output
+                output_path=args.boundary_output,
             )
-            
+
             # Save boundary results
             if not boundary_data.empty:
                 collector.save_boundary_results(boundary_data, args.boundary_output)
             else:
                 logger.warning("No boundary data was successfully collected")
         else:
-            logger.warning("Skipping boundary collection - no valid park codes available")
-        
+            logger.warning(
+                "Skipping boundary collection - no valid park codes available"
+            )
+
         # Print comprehensive summary information
-        collector._print_collection_summary(park_data, boundary_data, args.park_output, args.boundary_output)
-        
+        collector._print_collection_summary(
+            park_data, boundary_data, args.park_output, args.boundary_output
+        )
+
         logger.info("NPS data collection pipeline completed successfully")
-        
+
     except Exception as e:
         logger.error(f"Pipeline execution failed: {str(e)}")
         print(f"\nERROR: {str(e)}")
         print("Check the log file 'nps_collector.log' for detailed error information.")
         return 1
-    
+
     return 0
 
 
