@@ -50,17 +50,20 @@ class NPSDataCollector:
         Initialize the collector with API credentials.
         
         Args:
-            api_key (str): Your NPS API key from the environment
+            api_key (str): NPS API key from the environment
         """
         self.api_key = api_key
         self.base_url = "https://developer.nps.gov/api/v1"
         self.rate_limit_warning_threshold = 50
         self.session = requests.Session()  # Reuse connections for efficiency
         
+        # Load user email from environment variable with fallback
+        user_email = os.getenv('NPS_USER_EMAIL', 'unknown@example.com')
+        
         # Set up session headers that will be used for all requests
         self.session.headers.update({
             'X-Api-Key': self.api_key,
-            'User-Agent': 'Python-NPS-Collector/1.0 (sean.angiolillo@gmail.com)'
+            'User-Agent': f'Python-NPS-Collector/1.0 ({user_email})'
         })
         
         logger.info("NPS Data Collector initialized successfully")
