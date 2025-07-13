@@ -68,6 +68,10 @@ class NPSDataCollector:
 
         logger.info("NPS Data Collector initialized successfully")
 
+    # ====================================
+    # STAGE 1: BASIC PARK DATA COLLECTION
+    # ====================================
+
     def load_parks_from_csv(self, csv_path: str) -> pd.DataFrame:
         """
         Load the list of parks to process from a CSV file.
@@ -227,200 +231,6 @@ class NPSDataCollector:
 
         return None
 
-    def _find_best_park_match(
-        self, park_results: List[Dict], search_query: str, original_park_name: str
-    ) -> Optional[Dict]:
-        """
-        Find the best matching park from API results using a tiered approach.
-
-        Strategy:
-        1. Look for exact fullName match with search query
-        2. If no exact match, take the first result (highest relevance due to sorting)
-        3. Log the matching decision for debugging
-
-        Args:
-            park_results (List[Dict]): List of park results from the API (pre-sorted by relevance)
-            search_query (str): The actual query string sent to API
-            original_park_name (str): Original park name from CSV for logging
-
-        Returns:
-            Optional[Dict]: Best matching park or None if no results
-        """
-        if not park_results:
-            logger.warning(f"No results returned for '{original_park_name}'")
-            return None
-
-        # Strategy 1: Look for exact fullName match
-        for park in park_results:
-            park_full_name = park.get("fullName", "")
-            if park_full_name == search_query:
-                logger.info(
-                    f"Found exact match for '{original_park_name}': '{park_full_name}'"
-                )
-                return park
-
-        # Strategy 2: No exact match, so take the first result (highest relevance)
-        best_park = park_results[0]
-        best_score = best_park.get("relevanceScore", "N/A")
-        best_name = best_park.get("fullName", "Unknown")
-
-        logger.info(
-            f"No exact match for '{original_park_name}'. Using highest relevance: '{best_name}' (score: {best_score})"
-        )
-
-        # Log other top candidates for debugging
-        if len(park_results) > 1:
-            logger.debug(f"Other candidates for '{original_park_name}':")
-            for i, park in enumerate(park_results[1:4], 2):  # Show next 3 candidates
-                candidate_name = park.get("fullName", "Unknown")
-                candidate_score = park.get("relevanceScore", "N/A")
-                logger.debug(f"  {i}. {candidate_name} (score: {candidate_score})")
-
-        return best_park
-
-    def _extract_valid_park_codes(self, park_data: pd.DataFrame) -> List[str]:
-        """
-        Extract valid, unique park codes from park data for boundary collection.
-
-        This method safely extracts park codes, removes duplicates to avoid
-        redundant API calls, and provides logging about the extraction process.
-
-        Args:
-            park_data (pd.DataFrame): DataFrame containing park data with park_code column
-
-        Returns:
-            List[str]: List of unique, valid park codes ready for boundary collection
-        """
-        if park_data.empty:
-            logger.warning("Park data is empty - no park codes available")
-            return []
-
-        if "park_code" not in park_data.columns:
-            logger.warning(
-                "Park data missing 'park_code' column - no park codes available"
-            )
-            return []
-
-        # Get valid park codes (non-empty, non-null)
-        valid_mask = park_data["park_code"].notna() & (park_data["park_code"] != "")
-        total_parks_with_codes = valid_mask.sum()
-
-        if total_parks_with_codes == 0:
-            logger.warning("No valid park codes found in park data")
-            return []
-
-        # Remove duplicates to avoid redundant API calls
-        unique_park_codes = (
-            park_data[valid_mask]["park_code"].drop_duplicates().tolist()
-        )
-
-        # Log extraction results
-        logger.info(
-            f"Found {len(unique_park_codes)} unique park codes for boundary collection"
-        )
-
-        if total_parks_with_codes > len(unique_park_codes):
-            duplicates_removed = total_parks_with_codes - len(unique_park_codes)
-            logger.info(
-                f"Removed {duplicates_removed} duplicate park codes to avoid redundant API calls"
-            )
-
-        return unique_park_codes
-
-    def _print_collection_summary(
-        self,
-        park_data: pd.DataFrame,
-        boundary_data: gpd.GeoDataFrame,
-        park_output_csv: str,
-        boundary_output_gpkg: str,
-    ) -> None:
-        """
-        Print comprehensive summary of the data collection results.
-
-        Args:
-            park_data (pd.DataFrame): Collected park data
-            boundary_data (gpd.GeoDataFrame): Collected boundary data
-            park_output_csv (str): Path where park data was saved
-            boundary_output_gpkg (str): Path where boundary data was saved
-        """
-        print("\n" + "=" * 60)
-        print("COLLECTION SUMMARY")
-        print("=" * 60)
-
-        # Park data summary
-        print(f"Basic park data:")
-        print(f"  Parks processed: {len(park_data)}")
-        print(f"  Output saved to: {park_output_csv}")
-
-        # Boundary data summary
-        if not boundary_data.empty:
-            print(f"Boundary data:")
-            print(f"  Boundaries processed: {len(boundary_data)}")
-            print(f"  Output saved to: {boundary_output_gpkg}")
-            print(f"  CRS: {boundary_data.crs}")
-        else:
-            print(f"Boundary data: No boundaries collected")
-
-        # Show sample of park data
-        print(f"\nFirst few rows of park data:")
-        print(park_data.head().to_string())
-
-        # Show sample of boundary data if available
-        if not boundary_data.empty:
-            print(f"\nFirst few rows of boundary data:")
-            # Create a display version without geometry column to avoid terminal clutter
-            boundary_display = boundary_data.drop(columns=["geometry"]).head()
-            print(boundary_display.to_string())
-            print(
-                f"   (Geometry data excluded from display - {len(boundary_data)} total boundaries)"
-            )
-
-    def _validate_coordinates(
-        self, lat_value: str, lon_value: str, park_name: str
-    ) -> Tuple[Optional[float], Optional[float]]:
-        """
-        Validate and convert coordinate values to proper floats.
-
-        This method handles the common issues with geographic coordinate data:
-        conversion errors, invalid ranges, and missing values.
-
-        Args:
-            lat_value (str): Raw latitude value from API
-            lon_value (str): Raw longitude value from API
-            park_name (str): Park name for error logging context
-
-        Returns:
-            Tuple[Optional[float], Optional[float]]: Validated lat/lon or (None, None) if invalid
-        """
-        try:
-            # Convert to float
-            lat_float = float(lat_value)
-            lon_float = float(lon_value)
-
-            # Validate geographic ranges
-            if not (-90 <= lat_float <= 90):
-                logger.warning(
-                    f"Invalid latitude {lat_float} for {park_name} (must be between -90 and 90)"
-                )
-                return None, None
-
-            if not (-180 <= lon_float <= 180):
-                logger.warning(
-                    f"Invalid longitude {lon_float} for {park_name} (must be between -180 and 180)"
-                )
-                return None, None
-
-            logger.debug(
-                f"Valid coordinates for {park_name}: ({lat_float}, {lon_float})"
-            )
-            return lat_float, lon_float
-
-        except (ValueError, TypeError) as e:
-            logger.warning(
-                f"Could not parse coordinates for {park_name}: lat='{lat_value}', lon='{lon_value}' - {str(e)}"
-            )
-            return None, None
-
     def extract_park_data(self, park_api_data: Dict, original_data: pd.Series) -> Dict:
         """
         Extract the specific fields needed from the API response.
@@ -472,6 +282,186 @@ class NPSDataCollector:
 
         return extracted_data
 
+    def process_park_data(
+        self,
+        csv_path: str,
+        delay_seconds: float = 1.0,
+        limit_for_testing: Optional[int] = None,
+        force_refresh: bool = False,
+        output_path: str = "park_data_collected.csv",
+    ) -> pd.DataFrame:
+        """
+        Main orchestration method that processes all parks and builds the final dataset.
+
+        This method includes complete error tracking and incremental processing
+        to avoid unnecessary API calls for existing data.
+
+        Args:
+            csv_path (str): Path to the CSV file with park names
+            delay_seconds (float): Delay between API calls to be respectful
+            limit_for_testing (Optional[int]): For development/testing - limit to first N parks.
+                                              None processes all parks (production default).
+            force_refresh (bool): If True, reprocess all parks. If False, skip existing data.
+            output_path (str): Path to output CSV file (used for incremental processing)
+
+        Returns:
+            pd.DataFrame: Complete dataset with all park information, including error records
+        """
+        logger.info("Starting park data collection process")
+
+        # Load park list
+        parks_df = self.load_parks_from_csv(csv_path)
+
+        # FOR TESTING: Limit to specified number of parks
+        if limit_for_testing is not None:
+            parks_df = parks_df.head(limit_for_testing)
+            logger.info(f"TESTING MODE: Limited to first {limit_for_testing} parks")
+
+        # Handle incremental processing
+        existing_data = pd.DataFrame()
+        parks_to_process = parks_df.copy()
+
+        if not force_refresh and os.path.exists(output_path):
+            try:
+                existing_data = pd.read_csv(output_path)
+                logger.info(f"Found existing data with {len(existing_data)} records")
+
+                # Identify parks that still need processing
+                if not existing_data.empty and "park_name" in existing_data.columns:
+                    existing_park_names = set(existing_data["park_name"].tolist())
+                    parks_to_process = parks_df[
+                        ~parks_df["park_name"].isin(existing_park_names)
+                    ]
+
+                    skipped_count = len(parks_df) - len(parks_to_process)
+                    if skipped_count > 0:
+                        logger.info(
+                            f"Incremental processing: Skipping {skipped_count} parks already collected"
+                        )
+                        logger.info(
+                            f"Processing {len(parks_to_process)} new/missing parks"
+                        )
+                    else:
+                        logger.info(
+                            "All parks already collected, no new processing needed"
+                        )
+
+            except Exception as e:
+                logger.warning(f"Could not load existing data from {output_path}: {e}")
+                logger.info("Proceeding with full processing")
+                existing_data = pd.DataFrame()
+                parks_to_process = parks_df.copy()
+        elif force_refresh:
+            logger.info("Force refresh mode: Processing all parks")
+        else:
+            logger.info("No existing data found: Processing all parks")
+
+        total_parks = len(parks_to_process)
+
+        if total_parks == 0:
+            logger.info("No parks to process")
+            return existing_data if not existing_data.empty else pd.DataFrame()
+
+        # Track all results including failures
+        new_results = []
+
+        # Process each park with progress tracking
+        for index, (_, park_row) in enumerate(parks_to_process.iterrows()):
+            park_name = park_row["park_name"]
+            progress = f"({index + 1}/{total_parks})"
+
+            logger.info(f"Processing {progress}: {park_name}")
+
+            # Query the API for this park
+            park_data = self.query_park_api(park_name)
+
+            if park_data:
+                # Extract the data needed
+                extracted = self.extract_park_data(park_data, park_row)
+                new_results.append(extracted)
+                logger.info(f"✓ Successfully processed {park_name}")
+            else:
+                # Create error record to maintain complete dataset
+                error_record = {
+                    "park_name": park_row["park_name"],
+                    "visit_month": park_row["month"],
+                    "visit_year": park_row["year"],
+                    "park_code": "",
+                    "full_name": "",
+                    "states": "",
+                    "url": "",
+                    "latitude": None,
+                    "longitude": None,
+                    "description": "",
+                    "error_message": "Failed to retrieve park data - see logs for details",
+                    "collection_status": "failed",
+                }
+                new_results.append(error_record)
+                logger.error(f"✗ Failed to process {park_name}")
+
+            # Be respectful to the API with rate limiting
+            if index < total_parks - 1:  # Don't delay after the last request
+                time.sleep(delay_seconds)
+
+        # Combine existing data with new results
+        if not existing_data.empty and new_results:
+            # Combine existing and new data
+            new_results_df = pd.DataFrame(new_results)
+            combined_df = pd.concat([existing_data, new_results_df], ignore_index=True)
+            logger.info(
+                f"Combined {len(existing_data)} existing records with {len(new_results)} new records"
+            )
+        elif new_results:
+            # Only new data
+            combined_df = pd.DataFrame(new_results)
+        else:
+            # Only existing data (no new processing)
+            combined_df = existing_data
+
+        # Report final statistics for new processing
+        if new_results:
+            new_results_df = pd.DataFrame(new_results)
+            successful_count = len(
+                new_results_df[new_results_df["collection_status"] == "success"]
+            )
+            failed_count = len(
+                new_results_df[new_results_df["collection_status"] == "failed"]
+            )
+
+            logger.info(
+                f"New park collection complete: {successful_count} successful, {failed_count} failed"
+            )
+
+            if failed_count > 0:
+                failed_parks = new_results_df[
+                    new_results_df["collection_status"] == "failed"
+                ]["park_name"].tolist()
+                logger.warning(f"Failed park collection for: {', '.join(failed_parks)}")
+
+        return combined_df
+
+    def save_park_results(self, df: pd.DataFrame, output_path: str) -> None:
+        """
+        Save the collected data to a CSV file with proper error handling.
+
+        Args:
+            df (pd.DataFrame): The dataset to save
+            output_path (str): Where to save the CSV file
+        """
+        try:
+            df.to_csv(output_path, index=False)
+            logger.info(f"Results saved to: {output_path}")
+            logger.info(
+                f"Dataset contains {len(df)} parks with {len(df.columns)} columns"
+            )
+        except Exception as e:
+            logger.error(f"Failed to save results: {str(e)}")
+            raise
+
+    # ==================================
+    # STAGE 2: BOUNDARY DATA COLLECTION
+    # ==================================
+    
     def query_park_boundaries_api(
         self, park_code: str, max_retries: int = 3, retry_delay: float = 5.0
     ) -> Optional[Dict]:
@@ -886,181 +876,203 @@ class NPSDataCollector:
             logger.error(f"Failed to save boundary results: {str(e)}")
             raise
 
-    def process_park_data(
-        self,
-        csv_path: str,
-        delay_seconds: float = 1.0,
-        limit_for_testing: Optional[int] = None,
-        force_refresh: bool = False,
-        output_path: str = "park_data_collected.csv",
-    ) -> pd.DataFrame:
-        """
-        Main orchestration method that processes all parks and builds the final dataset.
+    # ===============
+    # UTILITY METHODS
+    # ===============
 
-        This method includes complete error tracking and incremental processing
-        to avoid unnecessary API calls for existing data.
+    def _find_best_park_match(
+        self, park_results: List[Dict], search_query: str, original_park_name: str
+    ) -> Optional[Dict]:
+        """
+        Find the best matching park from API results using a tiered approach.
+
+        Strategy:
+        1. Look for exact fullName match with search query
+        2. If no exact match, take the first result (highest relevance due to sorting)
+        3. Log the matching decision for debugging
 
         Args:
-            csv_path (str): Path to the CSV file with park names
-            delay_seconds (float): Delay between API calls to be respectful
-            limit_for_testing (Optional[int]): For development/testing - limit to first N parks.
-                                              None processes all parks (production default).
-            force_refresh (bool): If True, reprocess all parks. If False, skip existing data.
-            output_path (str): Path to output CSV file (used for incremental processing)
+            park_results (List[Dict]): List of park results from the API (pre-sorted by relevance)
+            search_query (str): The actual query string sent to API
+            original_park_name (str): Original park name from CSV for logging
 
         Returns:
-            pd.DataFrame: Complete dataset with all park information, including error records
+            Optional[Dict]: Best matching park or None if no results
         """
-        logger.info("Starting park data collection process")
+        if not park_results:
+            logger.warning(f"No results returned for '{original_park_name}'")
+            return None
 
-        # Load park list
-        parks_df = self.load_parks_from_csv(csv_path)
+        # Strategy 1: Look for exact fullName match
+        for park in park_results:
+            park_full_name = park.get("fullName", "")
+            if park_full_name == search_query:
+                logger.info(
+                    f"Found exact match for '{original_park_name}': '{park_full_name}'"
+                )
+                return park
 
-        # FOR TESTING: Limit to specified number of parks
-        if limit_for_testing is not None:
-            parks_df = parks_df.head(limit_for_testing)
-            logger.info(f"TESTING MODE: Limited to first {limit_for_testing} parks")
+        # Strategy 2: No exact match, so take the first result (highest relevance)
+        best_park = park_results[0]
+        best_score = best_park.get("relevanceScore", "N/A")
+        best_name = best_park.get("fullName", "Unknown")
 
-        # Handle incremental processing
-        existing_data = pd.DataFrame()
-        parks_to_process = parks_df.copy()
+        logger.info(
+            f"No exact match for '{original_park_name}'. Using highest relevance: '{best_name}' (score: {best_score})"
+        )
 
-        if not force_refresh and os.path.exists(output_path):
-            try:
-                existing_data = pd.read_csv(output_path)
-                logger.info(f"Found existing data with {len(existing_data)} records")
+        # Log other top candidates for debugging
+        if len(park_results) > 1:
+            logger.debug(f"Other candidates for '{original_park_name}':")
+            for i, park in enumerate(park_results[1:4], 2):  # Show next 3 candidates
+                candidate_name = park.get("fullName", "Unknown")
+                candidate_score = park.get("relevanceScore", "N/A")
+                logger.debug(f"  {i}. {candidate_name} (score: {candidate_score})")
 
-                # Identify parks that still need processing
-                if not existing_data.empty and "park_name" in existing_data.columns:
-                    existing_park_names = set(existing_data["park_name"].tolist())
-                    parks_to_process = parks_df[
-                        ~parks_df["park_name"].isin(existing_park_names)
-                    ]
+        return best_park
 
-                    skipped_count = len(parks_df) - len(parks_to_process)
-                    if skipped_count > 0:
-                        logger.info(
-                            f"Incremental processing: Skipping {skipped_count} parks already collected"
-                        )
-                        logger.info(
-                            f"Processing {len(parks_to_process)} new/missing parks"
-                        )
-                    else:
-                        logger.info(
-                            "All parks already collected, no new processing needed"
-                        )
-
-            except Exception as e:
-                logger.warning(f"Could not load existing data from {output_path}: {e}")
-                logger.info("Proceeding with full processing")
-                existing_data = pd.DataFrame()
-                parks_to_process = parks_df.copy()
-        elif force_refresh:
-            logger.info("Force refresh mode: Processing all parks")
-        else:
-            logger.info("No existing data found: Processing all parks")
-
-        total_parks = len(parks_to_process)
-
-        if total_parks == 0:
-            logger.info("No parks to process")
-            return existing_data if not existing_data.empty else pd.DataFrame()
-
-        # Track all results including failures
-        new_results = []
-
-        # Process each park with progress tracking
-        for index, (_, park_row) in enumerate(parks_to_process.iterrows()):
-            park_name = park_row["park_name"]
-            progress = f"({index + 1}/{total_parks})"
-
-            logger.info(f"Processing {progress}: {park_name}")
-
-            # Query the API for this park
-            park_data = self.query_park_api(park_name)
-
-            if park_data:
-                # Extract the data needed
-                extracted = self.extract_park_data(park_data, park_row)
-                new_results.append(extracted)
-                logger.info(f"✓ Successfully processed {park_name}")
-            else:
-                # Create error record to maintain complete dataset
-                error_record = {
-                    "park_name": park_row["park_name"],
-                    "visit_month": park_row["month"],
-                    "visit_year": park_row["year"],
-                    "park_code": "",
-                    "full_name": "",
-                    "states": "",
-                    "url": "",
-                    "latitude": None,
-                    "longitude": None,
-                    "description": "",
-                    "error_message": "Failed to retrieve park data - see logs for details",
-                    "collection_status": "failed",
-                }
-                new_results.append(error_record)
-                logger.error(f"✗ Failed to process {park_name}")
-
-            # Be respectful to the API with rate limiting
-            if index < total_parks - 1:  # Don't delay after the last request
-                time.sleep(delay_seconds)
-
-        # Combine existing data with new results
-        if not existing_data.empty and new_results:
-            # Combine existing and new data
-            new_results_df = pd.DataFrame(new_results)
-            combined_df = pd.concat([existing_data, new_results_df], ignore_index=True)
-            logger.info(
-                f"Combined {len(existing_data)} existing records with {len(new_results)} new records"
-            )
-        elif new_results:
-            # Only new data
-            combined_df = pd.DataFrame(new_results)
-        else:
-            # Only existing data (no new processing)
-            combined_df = existing_data
-
-        # Report final statistics for new processing
-        if new_results:
-            new_results_df = pd.DataFrame(new_results)
-            successful_count = len(
-                new_results_df[new_results_df["collection_status"] == "success"]
-            )
-            failed_count = len(
-                new_results_df[new_results_df["collection_status"] == "failed"]
-            )
-
-            logger.info(
-                f"New park collection complete: {successful_count} successful, {failed_count} failed"
-            )
-
-            if failed_count > 0:
-                failed_parks = new_results_df[
-                    new_results_df["collection_status"] == "failed"
-                ]["park_name"].tolist()
-                logger.warning(f"Failed park collection for: {', '.join(failed_parks)}")
-
-        return combined_df
-
-    def save_park_results(self, df: pd.DataFrame, output_path: str) -> None:
+    def _extract_valid_park_codes(self, park_data: pd.DataFrame) -> List[str]:
         """
-        Save the collected data to a CSV file with proper error handling.
+        Extract valid, unique park codes from park data for boundary collection.
+
+        This method safely extracts park codes, removes duplicates to avoid
+        redundant API calls, and provides logging about the extraction process.
 
         Args:
-            df (pd.DataFrame): The dataset to save
-            output_path (str): Where to save the CSV file
+            park_data (pd.DataFrame): DataFrame containing park data with park_code column
+
+        Returns:
+            List[str]: List of unique, valid park codes ready for boundary collection
+        """
+        if park_data.empty:
+            logger.warning("Park data is empty - no park codes available")
+            return []
+
+        if "park_code" not in park_data.columns:
+            logger.warning(
+                "Park data missing 'park_code' column - no park codes available"
+            )
+            return []
+
+        # Get valid park codes (non-empty, non-null)
+        valid_mask = park_data["park_code"].notna() & (park_data["park_code"] != "")
+        total_parks_with_codes = valid_mask.sum()
+
+        if total_parks_with_codes == 0:
+            logger.warning("No valid park codes found in park data")
+            return []
+
+        # Remove duplicates to avoid redundant API calls
+        unique_park_codes = (
+            park_data[valid_mask]["park_code"].drop_duplicates().tolist()
+        )
+
+        # Log extraction results
+        logger.info(
+            f"Found {len(unique_park_codes)} unique park codes for boundary collection"
+        )
+
+        if total_parks_with_codes > len(unique_park_codes):
+            duplicates_removed = total_parks_with_codes - len(unique_park_codes)
+            logger.info(
+                f"Removed {duplicates_removed} duplicate park codes to avoid redundant API calls"
+            )
+
+        return unique_park_codes
+
+    def _validate_coordinates(
+        self, lat_value: str, lon_value: str, park_name: str
+    ) -> Tuple[Optional[float], Optional[float]]:
+        """
+        Validate and convert coordinate values to proper floats.
+
+        This method handles the common issues with geographic coordinate data:
+        conversion errors, invalid ranges, and missing values.
+
+        Args:
+            lat_value (str): Raw latitude value from API
+            lon_value (str): Raw longitude value from API
+            park_name (str): Park name for error logging context
+
+        Returns:
+            Tuple[Optional[float], Optional[float]]: Validated lat/lon or (None, None) if invalid
         """
         try:
-            df.to_csv(output_path, index=False)
-            logger.info(f"Results saved to: {output_path}")
-            logger.info(
-                f"Dataset contains {len(df)} parks with {len(df.columns)} columns"
+            # Convert to float
+            lat_float = float(lat_value)
+            lon_float = float(lon_value)
+
+            # Validate geographic ranges
+            if not (-90 <= lat_float <= 90):
+                logger.warning(
+                    f"Invalid latitude {lat_float} for {park_name} (must be between -90 and 90)"
+                )
+                return None, None
+
+            if not (-180 <= lon_float <= 180):
+                logger.warning(
+                    f"Invalid longitude {lon_float} for {park_name} (must be between -180 and 180)"
+                )
+                return None, None
+
+            logger.debug(
+                f"Valid coordinates for {park_name}: ({lat_float}, {lon_float})"
             )
-        except Exception as e:
-            logger.error(f"Failed to save results: {str(e)}")
-            raise
+            return lat_float, lon_float
+
+        except (ValueError, TypeError) as e:
+            logger.warning(
+                f"Could not parse coordinates for {park_name}: lat='{lat_value}', lon='{lon_value}' - {str(e)}"
+            )
+            return None, None
+
+    def _print_collection_summary(
+        self,
+        park_data: pd.DataFrame,
+        boundary_data: gpd.GeoDataFrame,
+        park_output_csv: str,
+        boundary_output_gpkg: str,
+    ) -> None:
+        """
+        Print comprehensive summary of the data collection results.
+
+        Args:
+            park_data (pd.DataFrame): Collected park data
+            boundary_data (gpd.GeoDataFrame): Collected boundary data
+            park_output_csv (str): Path where park data was saved
+            boundary_output_gpkg (str): Path where boundary data was saved
+        """
+        print("\n" + "=" * 60)
+        print("COLLECTION SUMMARY")
+        print("=" * 60)
+
+        # Park data summary
+        print(f"Basic park data:")
+        print(f"  Parks processed: {len(park_data)}")
+        print(f"  Output saved to: {park_output_csv}")
+
+        # Boundary data summary
+        if not boundary_data.empty:
+            print(f"Boundary data:")
+            print(f"  Boundaries processed: {len(boundary_data)}")
+            print(f"  Output saved to: {boundary_output_gpkg}")
+            print(f"  CRS: {boundary_data.crs}")
+        else:
+            print(f"Boundary data: No boundaries collected")
+
+        # Show sample of park data
+        print(f"\nFirst few rows of park data:")
+        print(park_data.head().to_string())
+
+        # Show sample of boundary data if available
+        if not boundary_data.empty:
+            print(f"\nFirst few rows of boundary data:")
+            # Create a display version without geometry column to avoid terminal clutter
+            boundary_display = boundary_data.drop(columns=["geometry"]).head()
+            print(boundary_display.to_string())
+            print(
+                f"   (Geometry data excluded from display - {len(boundary_data)} total boundaries)"
+            )
 
 
 def main():
