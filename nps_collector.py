@@ -8,6 +8,7 @@ structured datasets with comprehensive park information.
 
 import requests
 import pandas as pd
+import geopandas as gpd
 import os
 import time
 import logging
@@ -15,6 +16,7 @@ import argparse
 from logging.handlers import RotatingFileHandler
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
+from shapely.geometry import shape, Point
 
 # Set up rotating log files
 file_handler = RotatingFileHandler(
@@ -284,16 +286,16 @@ class NPSDataCollector:
         
         return unique_park_codes
     
-    def _print_collection_summary(self, park_data: pd.DataFrame, boundary_data: pd.DataFrame, 
-                                 park_output_csv: str, boundary_output_csv: str) -> None:
+    def _print_collection_summary(self, park_data: pd.DataFrame, boundary_data: gpd.GeoDataFrame, 
+                                 park_output_csv: str, boundary_output_gpkg: str) -> None:
         """
         Print comprehensive summary of the data collection results.
         
         Args:
             park_data (pd.DataFrame): Collected park data
-            boundary_data (pd.DataFrame): Collected boundary data  
+            boundary_data (gpd.GeoDataFrame): Collected boundary data  
             park_output_csv (str): Path where park data was saved
-            boundary_output_csv (str): Path where boundary data was saved
+            boundary_output_gpkg (str): Path where boundary data was saved
         """
         print("\n" + "=" * 60)
         print("COLLECTION SUMMARY")
@@ -308,7 +310,8 @@ class NPSDataCollector:
         if not boundary_data.empty:
             print(f"Boundary data:")
             print(f"  Boundaries processed: {len(boundary_data)}")
-            print(f"  Output saved to: {boundary_output_csv}")
+            print(f"  Output saved to: {boundary_output_gpkg}")
+            print(f"  CRS: {boundary_data.crs}")
         else:
             print(f"Boundary data: No boundaries collected")
         
@@ -318,13 +321,11 @@ class NPSDataCollector:
         
         # Show sample of boundary data if available
         if not boundary_data.empty:
-            print(f"\nFirst few rows of boundary data (geometry truncated):")
-            boundary_display = boundary_data.copy()
-            if 'geometry' in boundary_display.columns:
-                boundary_display['geometry'] = boundary_display['geometry'].apply(
-                    lambda x: f"{str(x)[:50]}..." if x is not None else None
-                )
-            print(boundary_display.head().to_string())
+            print(f"\nFirst few rows of boundary data:")
+            # Create a display version without geometry column to avoid terminal clutter
+            boundary_display = boundary_data.drop(columns=['geometry']).head()
+            print(boundary_display.to_string())
+            print(f"   (Geometry data excluded from display - {len(boundary_data)} total boundaries)")
 
     def _validate_coordinates(self, lat_value: str, lon_value: str, park_name: str) -> Tuple[Optional[float], Optional[float]]:
             """
@@ -578,12 +579,12 @@ class NPSDataCollector:
     def process_park_boundaries(self, park_codes: List[str], delay_seconds: float = 1.0, 
                                limit_for_testing: Optional[int] = None,
                                force_refresh: bool = False,
-                               output_path: str = 'park_boundaries_collected.csv') -> pd.DataFrame:
+                               output_path: str = 'park_boundaries_collected.gpkg') -> gpd.GeoDataFrame:
         """
         Process boundary data for a list of park codes.
         
         This method queries the boundaries endpoint for each park code and
-        builds a structured dataset of spatial boundary information. Includes
+        builds a structured GeoDataFrame of spatial boundary information. Includes
         incremental processing to avoid re-processing existing boundary data.
         
         Args:
@@ -591,10 +592,10 @@ class NPSDataCollector:
             delay_seconds (float): Delay between API calls to be respectful
             limit_for_testing (Optional[int]): Limit processing to first N codes for testing
             force_refresh (bool): If True, reprocess all boundaries. If False, skip existing data.
-            output_path (str): Path to output CSV file (used for incremental processing)
+            output_path (str): Path to output GPKG file (used for incremental processing)
             
         Returns:
-            pd.DataFrame: Dataset with boundary information for each park, including error records
+            gpd.GeoDataFrame: GeoDataFrame with boundary information for each park, including error records
         """
         logger.info("Starting park boundary data collection process")
         
@@ -604,12 +605,12 @@ class NPSDataCollector:
             logger.info(f"TESTING MODE: Limited to first {limit_for_testing} park codes")
         
         # Handle incremental processing
-        existing_data = pd.DataFrame()
+        existing_data = gpd.GeoDataFrame()
         codes_to_process = park_codes.copy()
         
         if not force_refresh and os.path.exists(output_path):
             try:
-                existing_data = pd.read_csv(output_path)
+                existing_data = gpd.read_file(output_path)
                 logger.info(f"Found existing boundary data with {len(existing_data)} records")
                 
                 # Identify park codes that still need processing
@@ -627,7 +628,7 @@ class NPSDataCollector:
             except Exception as e:
                 logger.warning(f"Could not load existing boundary data from {output_path}: {e}")
                 logger.info("Proceeding with full boundary processing")
-                existing_data = pd.DataFrame()
+                existing_data = gpd.GeoDataFrame()
                 codes_to_process = park_codes.copy()
         elif force_refresh:
             logger.info("Force refresh mode: Processing all boundaries")
@@ -638,7 +639,7 @@ class NPSDataCollector:
         
         if total_parks == 0:
             logger.info("No boundaries to process")
-            return existing_data if not existing_data.empty else pd.DataFrame()
+            return existing_data if not existing_data.empty else gpd.GeoDataFrame()
         
         # Track all results including failures
         new_results = []
@@ -674,55 +675,70 @@ class NPSDataCollector:
             if index < total_parks - 1:  # Don't delay after the last request
                 time.sleep(delay_seconds)
         
-        # Combine existing data with new results
-        if not existing_data.empty and new_results:
-            # Combine existing and new data
-            new_results_df = pd.DataFrame(new_results)
-            combined_df = pd.concat([existing_data, new_results_df], ignore_index=True)
-            logger.info(f"Combined {len(existing_data)} existing boundary records with {len(new_results)} new records")
-        elif new_results:
-            # Only new data
-            combined_df = pd.DataFrame(new_results)
-        else:
-            # Only existing data (no new processing)
-            combined_df = existing_data
-        
-        # Report final statistics for new processing
+        # Convert results to GeoDataFrame
         if new_results:
-            new_results_df = pd.DataFrame(new_results)
-            successful_count = len(new_results_df[new_results_df['collection_status'] == 'success'])
-            failed_count = len(new_results_df[new_results_df['collection_status'] == 'failed'])
+            # Convert GeoJSON geometries to Shapely objects
+            geometries = []
+            for result in new_results:
+                if result['geometry']:
+                    try:
+                        geom = shape(result['geometry'])  # Convert GeoJSON to Shapely
+                        geometries.append(geom)
+                    except Exception as e:
+                        logger.warning(f"Invalid geometry for {result['park_code']}: {e}")
+                        geometries.append(None)
+                else:
+                    # Use empty geometry for failed records
+                    geometries.append(None)
+            
+            # Create GeoDataFrame from results
+            new_results_gdf = gpd.GeoDataFrame(
+                data=[{k: v for k, v in result.items() if k != 'geometry'} for result in new_results],
+                geometry=geometries,
+                crs='EPSG:4326'
+            )
+            
+            # Report statistics for new processing
+            successful_count = len(new_results_gdf[new_results_gdf['collection_status'] == 'success'])
+            failed_count = len(new_results_gdf[new_results_gdf['collection_status'] == 'failed'])
             
             logger.info(f"New boundary collection complete: {successful_count} successful, {failed_count} failed")
             
             if failed_count > 0:
-                failed_codes = new_results_df[new_results_df['collection_status'] == 'failed']['park_code'].tolist()
+                failed_codes = new_results_gdf[new_results_gdf['collection_status'] == 'failed']['park_code'].tolist()
                 logger.warning(f"Failed boundary collection for: {', '.join(failed_codes)}")
+        else:
+            new_results_gdf = gpd.GeoDataFrame()
         
-        return combined_df
+        # Combine existing data with new results
+        if not existing_data.empty and not new_results_gdf.empty:
+            # Combine existing and new data - ensure result is GeoDataFrame
+            combined_gdf = gpd.GeoDataFrame(pd.concat([existing_data, new_results_gdf], ignore_index=True))
+            logger.info(f"Combined {len(existing_data)} existing boundary records with {len(new_results_gdf)} new records")
+        elif not new_results_gdf.empty:
+            # Only new data
+            combined_gdf = new_results_gdf
+        else:
+            # Only existing data (no new processing)
+            combined_gdf = existing_data
+        
+        return combined_gdf
     
-    def save_boundary_results(self, df: pd.DataFrame, output_path: str) -> None:
+    def save_boundary_results(self, gdf: gpd.GeoDataFrame, output_path: str) -> None:
         """
-        Save the collected boundary data to a CSV file with proper error handling.
+        Save the collected boundary data to a GPKG file with proper error handling.
         
-        Note: This saves geometry data as JSON strings. For production use,
-        consider specialized formats like GeoJSON or database storage.
+        This saves the GeoDataFrame directly to GeoPackage format, preserving
+        the spatial geometry data and coordinate reference system.
         
         Args:
-            df (pd.DataFrame): The boundary dataset to save
-            output_path (str): Where to save the CSV file
+            gdf (gpd.GeoDataFrame): The boundary dataset to save
+            output_path (str): Where to save the GPKG file
         """
         try:
-            # Convert geometry objects to JSON strings for CSV storage
-            df_to_save = df.copy()
-            if 'geometry' in df_to_save.columns:
-                df_to_save['geometry'] = df_to_save['geometry'].apply(
-                    lambda x: str(x) if x is not None else None
-                )
-            
-            df_to_save.to_csv(output_path, index=False)
+            gdf.to_file(output_path, driver='GPKG')
             logger.info(f"Boundary results saved to: {output_path}")
-            logger.info(f"Boundary dataset contains {len(df)} parks with {len(df.columns)} columns")
+            logger.info(f"GeoDataFrame contains {len(gdf)} parks with CRS: {gdf.crs}")
         except Exception as e:
             logger.error(f"Failed to save boundary results: {str(e)}")
             raise
@@ -914,8 +930,8 @@ Examples:
                        help='Input CSV file with park data (default: parks.csv)')
     parser.add_argument('--park-output', default='park_data_collected.csv', metavar='FILE',
                        help='Output CSV file for park data (default: park_data_collected.csv)')
-    parser.add_argument('--boundary-output', default='park_boundaries_collected.csv', metavar='FILE',
-                       help='Output CSV file for boundary data (default: park_boundaries_collected.csv)')
+    parser.add_argument('--boundary-output', default='park_boundaries_collected.gpkg', metavar='FILE',
+                       help='Output GPKG file for boundary data (default: park_boundaries_collected.gpkg)')
     
     args = parser.parse_args()
     
@@ -964,7 +980,7 @@ Examples:
         logger.info("=" * 60)
         
         # Initialize boundary_data to handle cases where it might not get created
-        boundary_data = pd.DataFrame()
+        boundary_data = gpd.GeoDataFrame()
         
         # Extract valid park codes from successful park data collection
         valid_park_codes = collector._extract_valid_park_codes(park_data)
