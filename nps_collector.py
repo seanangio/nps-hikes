@@ -508,11 +508,11 @@ class NPSDataCollector:
         
         return None
     
-    def extract_boundary_data(self, boundary_api_data: Dict, park_code: str) -> Dict:
+    def transform_boundary_data(self, boundary_api_data: Dict, park_code: str) -> Dict:
         """
-        Extract the specific boundary fields needed from the API response.
+        Transform the specific boundary fields needed from the API response.
         
-        This method safely extracts geometric and metadata information from
+        This method safely transforms geometric and metadata information from
         the park boundaries API response.
         
         Args:
@@ -575,19 +575,19 @@ class NPSDataCollector:
         
         return extracted_data
     
-    def collect_park_boundaries(self, park_codes: List[str], delay_seconds: float = 1.0, 
+    def process_park_boundaries(self, park_codes: List[str], delay_seconds: float = 1.0, 
                                limit_for_testing: Optional[int] = None,
                                force_refresh: bool = False,
                                output_path: str = 'park_boundaries_collected.csv') -> pd.DataFrame:
         """
-        Collect boundary data for a list of park codes.
+        Process boundary data for a list of park codes.
         
         This method queries the boundaries endpoint for each park code and
         builds a structured dataset of spatial boundary information. Includes
-        incremental processing to avoid re-collecting existing boundary data.
+        incremental processing to avoid re-processing existing boundary data.
         
         Args:
-            park_codes (List[str]): List of NPS park codes to collect boundaries for
+            park_codes (List[str]): List of NPS park codes to process boundaries for
             delay_seconds (float): Delay between API calls to be respectful
             limit_for_testing (Optional[int]): Limit processing to first N codes for testing
             force_refresh (bool): If True, reprocess all boundaries. If False, skip existing data.
@@ -653,8 +653,8 @@ class NPSDataCollector:
             boundary_data = self.query_park_boundaries_api(park_code)
             
             if boundary_data:
-                # Extract the boundary data we need
-                extracted = self.extract_boundary_data(boundary_data, park_code)
+                # Transform the boundary data we need
+                extracted = self.transform_boundary_data(boundary_data, park_code)
                 new_results.append(extracted)
                 logger.info(f"✓ Successfully processed boundary for {park_code}")
             else:
@@ -727,7 +727,7 @@ class NPSDataCollector:
             logger.error(f"Failed to save boundary results: {str(e)}")
             raise
     
-    def collect_park_data(self, csv_path: str, delay_seconds: float = 1.0, 
+    def process_park_data(self, csv_path: str, delay_seconds: float = 1.0, 
                          limit_for_testing: Optional[int] = None, 
                          force_refresh: bool = False,
                          output_path: str = 'park_data_collected.csv') -> pd.DataFrame:
@@ -947,7 +947,7 @@ Examples:
         else:
             logger.info("No existing data found: Will process all parks")
         
-        park_data = collector.collect_park_data(
+        park_data = collector.process_park_data(
             csv_path=args.input_csv, 
             delay_seconds=args.delay,
             limit_for_testing=args.test_limit,
@@ -977,8 +977,8 @@ Examples:
             else:
                 logger.info("No existing boundary data found: Will process all boundaries")
                 
-            # Collect boundary data
-            boundary_data = collector.collect_park_boundaries(
+            # Process boundary data
+            boundary_data = collector.process_park_boundaries(
                 park_codes=valid_park_codes, 
                 delay_seconds=args.delay,
                 limit_for_testing=args.test_limit,
