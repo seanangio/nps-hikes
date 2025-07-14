@@ -6,3 +6,6 @@ gspread
 geopandas>=0.12.0
 shapely>=1.8.0
 matplotlib
+psycopg2-binary
+sqlalchemy
+geoalchemy2
