@@ -17,6 +17,12 @@ from logging.handlers import RotatingFileHandler
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 from shapely.geometry import shape, Point
+from nps_db_writer import (
+    get_postgres_engine,
+    save_park_results_to_db,
+    save_boundary_results_to_db,
+    truncate_tables,
+)
 
 # Set up rotating log files
 file_handler = RotatingFileHandler(
@@ -447,7 +453,7 @@ class NPSDataCollector:
     # ==================================
     # STAGE 2: BOUNDARY DATA COLLECTION
     # ==================================
-    
+
     def query_park_boundaries_api(
         self, park_code: str, max_retries: int = 3, retry_delay: float = 5.0
     ) -> Optional[Dict]:
@@ -921,7 +927,7 @@ class NPSDataCollector:
         """
         Extract valid, unique park codes from park data for boundary collection.
 
-        This method safely extracts park codes, defensively removes duplicates to avoid potential for 
+        This method safely extracts park codes, defensively removes duplicates to avoid potential for
         redundant API calls, and provides logging about the extraction process.
         """
         if park_data.empty:
@@ -943,7 +949,9 @@ class NPSDataCollector:
             return []
 
         # Remove duplicates to avoid redundant API calls
-        unique_park_codes = pd.Series(park_data[valid_mask]["park_code"]).drop_duplicates().tolist()
+        unique_park_codes = (
+            pd.Series(park_data[valid_mask]["park_code"]).drop_duplicates().tolist()
+        )
 
         # Log extraction results
         logger.info(
@@ -1020,24 +1028,28 @@ class NPSDataCollector:
         API calls and processing) and at the end of the pipeline (as a safety net to
         guarantee output integrity).
         """
-        if df.empty or 'park_code' not in df.columns:
+        if df.empty or "park_code" not in df.columns:
             if isinstance(df, pd.DataFrame):
                 return df
             else:
                 return pd.DataFrame([df])
         # Drop rows with missing or empty park_code
-        df = df[df['park_code'].notna() & (df['park_code'] != '')]
+        df = df[df["park_code"].notna() & (df["park_code"] != "")]
+
         def join_unique(series):
-            return ' / '.join(sorted(set(x for x in series if pd.notnull(x) and str(x).strip() != '')))
+            return " / ".join(
+                sorted(set(x for x in series if pd.notnull(x) and str(x).strip() != ""))
+            )
+
         agg_dict = {}
         for col in df.columns:
-            if col in ['park_code']:
+            if col in ["park_code"]:
                 continue
-            elif col in ['park_name', 'full_name']:
+            elif col in ["park_name", "full_name"]:
                 agg_dict[col] = join_unique
             else:
-                agg_dict[col] = 'first'
-        result = df.groupby('park_code', as_index=False).agg(agg_dict)
+                agg_dict[col] = "first"
+        result = df.groupby("park_code", as_index=False).agg(agg_dict)
         if isinstance(result, pd.DataFrame):
             return result
         else:
@@ -1113,6 +1125,9 @@ Examples:
   %(prog)s --force-refresh              # Reprocess all parks, overwrite existing
   %(prog)s --delay 2.0                  # Use 2 second delays between API calls
   %(prog)s --test-limit 5 --force-refresh  # Test mode with forced refresh
+  %(prog)s --write-db                   # Write results directly to PostgreSQL/PostGIS database
+  %(prog)s --truncate-db                # Truncate parks and park_boundaries tables in DB before writing (for testing)
+  %(prog)s --db-name my_database       # Override the database name for PostgreSQL/PostGIS connection (default: use POSTGRES_DB env var or .env)
         """,
     )
 
@@ -1152,8 +1167,28 @@ Examples:
         metavar="FILE",
         help="Output GPKG file for boundary data (default: park_boundaries_collected.gpkg)",
     )
+    parser.add_argument(
+        "--write-db",
+        action="store_true",
+        help="Write results directly to PostgreSQL/PostGIS database (optional)",
+    )
+    parser.add_argument(
+        "--truncate-db",
+        action="store_true",
+        help="Truncate (clear) parks and park_boundaries tables in the DB before writing (for testing)",
+    )
+    parser.add_argument(
+        "--db-name",
+        default=None,
+        help="Override the database name for PostgreSQL/PostGIS connection (default: use POSTGRES_DB env var or .env)",
+    )
 
     args = parser.parse_args()
+
+    # Optionally override the database name via CLI
+    if args.db_name:
+        os.environ["POSTGRES_DB"] = args.db_name
+        logger.info(f"Overriding POSTGRES_DB to '{args.db_name}' via --db-name flag.")
 
     try:
         # Load environment variables from .env file
@@ -1246,6 +1281,20 @@ Examples:
         collector._print_collection_summary(
             park_data, boundary_data, args.park_output, args.boundary_output
         )
+
+        # Optional: Write to database if flag is set
+        if args.write_db:
+            logger.info(
+                "Writing results to PostgreSQL/PostGIS database (via --write-db flag)..."
+            )
+            engine = get_postgres_engine()
+            if args.truncate_db:
+                logger.info("Truncating parks and park_boundaries tables before DB write (via --truncate-db flag)...")
+                truncate_tables(engine, ["parks", "park_boundaries"])
+            save_park_results_to_db(park_data, engine)
+            if not boundary_data.empty:
+                save_boundary_results_to_db(boundary_data, engine)
+            logger.info("Database write complete.")
 
         logger.info("NPS data collection pipeline completed successfully")
 
