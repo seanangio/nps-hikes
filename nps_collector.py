@@ -312,6 +312,10 @@ class NPSDataCollector:
         # Load park list
         parks_df = self.load_parks_from_csv(csv_path)
 
+        # EARLY DEDUPLICATION: Remove duplicate parks by park_code immediately after loading CSV.
+        # Aggregate park_name/full_name and take the first for other fields.
+        parks_df = self._deduplicate_and_aggregate_parks(parks_df)
+
         # FOR TESTING: Limit to specified number of parks
         if limit_for_testing is not None:
             parks_df = parks_df.head(limit_for_testing)
@@ -328,7 +332,7 @@ class NPSDataCollector:
 
                 # Identify parks that still need processing
                 if not existing_data.empty and "park_name" in existing_data.columns:
-                    existing_park_names = set(existing_data["park_name"].tolist())
+                    existing_park_names = list(existing_data["park_name"].tolist())
                     parks_to_process = parks_df[
                         ~parks_df["park_name"].isin(existing_park_names)
                     ]
@@ -418,26 +422,8 @@ class NPSDataCollector:
             # Only existing data (no new processing)
             combined_df = existing_data
 
-        # Report final statistics for new processing
-        if new_results:
-            new_results_df = pd.DataFrame(new_results)
-            successful_count = len(
-                new_results_df[new_results_df["collection_status"] == "success"]
-            )
-            failed_count = len(
-                new_results_df[new_results_df["collection_status"] == "failed"]
-            )
-
-            logger.info(
-                f"New park collection complete: {successful_count} successful, {failed_count} failed"
-            )
-
-            if failed_count > 0:
-                failed_parks = new_results_df[
-                    new_results_df["collection_status"] == "failed"
-                ]["park_name"].tolist()
-                logger.warning(f"Failed park collection for: {', '.join(failed_parks)}")
-
+        # FINAL DEDUPLICATION: As a safety net, deduplicate and aggregate again at the end for output integrity.
+        combined_df = self._deduplicate_and_aggregate_parks(combined_df)
         return combined_df
 
     def save_park_results(self, df: pd.DataFrame, output_path: str) -> None:
@@ -935,14 +921,8 @@ class NPSDataCollector:
         """
         Extract valid, unique park codes from park data for boundary collection.
 
-        This method safely extracts park codes, removes duplicates to avoid
+        This method safely extracts park codes, defensively removes duplicates to avoid potential for 
         redundant API calls, and provides logging about the extraction process.
-
-        Args:
-            park_data (pd.DataFrame): DataFrame containing park data with park_code column
-
-        Returns:
-            List[str]: List of unique, valid park codes ready for boundary collection
         """
         if park_data.empty:
             logger.warning("Park data is empty - no park codes available")
@@ -963,9 +943,7 @@ class NPSDataCollector:
             return []
 
         # Remove duplicates to avoid redundant API calls
-        unique_park_codes = (
-            park_data[valid_mask]["park_code"].drop_duplicates().tolist()
-        )
+        unique_park_codes = pd.Series(park_data[valid_mask]["park_code"]).drop_duplicates().tolist()
 
         # Log extraction results
         logger.info(
@@ -1025,6 +1003,45 @@ class NPSDataCollector:
                 f"Could not parse coordinates for {park_name}: lat='{lat_value}', lon='{lon_value}' - {str(e)}"
             )
             return None, None
+
+    def _deduplicate_and_aggregate_parks(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Deduplicate and aggregate park records by park_code.
+
+        Guidelines for writing this utility function:
+        - Group by 'park_code'.
+        - For 'park_name' and 'full_name', join unique non-null values with ' / '.
+        - For all other columns (except 'error_message' and 'collection_status'), take the first non-null value.
+        - For 'error_message' and 'collection_status', also take the first (these are status fields).
+        - Return a DataFrame with one row per park_code.
+        - If 'park_code' is missing or empty, drop those rows.
+
+        This function is used both immediately after loading the CSV (to avoid redundant
+        API calls and processing) and at the end of the pipeline (as a safety net to
+        guarantee output integrity).
+        """
+        if df.empty or 'park_code' not in df.columns:
+            if isinstance(df, pd.DataFrame):
+                return df
+            else:
+                return pd.DataFrame([df])
+        # Drop rows with missing or empty park_code
+        df = df[df['park_code'].notna() & (df['park_code'] != '')]
+        def join_unique(series):
+            return ' / '.join(sorted(set(x for x in series if pd.notnull(x) and str(x).strip() != '')))
+        agg_dict = {}
+        for col in df.columns:
+            if col in ['park_code']:
+                continue
+            elif col in ['park_name', 'full_name']:
+                agg_dict[col] = join_unique
+            else:
+                agg_dict[col] = 'first'
+        result = df.groupby('park_code', as_index=False).agg(agg_dict)
+        if isinstance(result, pd.DataFrame):
+            return result
+        else:
+            return pd.DataFrame(result)
 
     def _print_collection_summary(
         self,
