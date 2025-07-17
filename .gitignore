@@ -2,6 +2,7 @@
 park_data_collected.csv
 park_boundaries_collected.gpkg
 test_results.xml
+profiling_results/*
 scratch*
 
 # Byte-compiled / optimized / DLL files

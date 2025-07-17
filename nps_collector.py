@@ -1128,6 +1128,7 @@ Examples:
   %(prog)s --write-db                   # Write results directly to PostgreSQL/PostGIS database
   %(prog)s --truncate-db                # Truncate parks and park_boundaries tables in DB before writing (for testing)
   %(prog)s --db-name my_database       # Override the database name for PostgreSQL/PostGIS connection (default: use POSTGRES_DB env var or .env)
+  %(prog)s --write-db --profile-data   # Write to DB and run data profiling queries
         """,
     )
 
@@ -1181,6 +1182,11 @@ Examples:
         "--db-name",
         default=None,
         help="Override the database name for PostgreSQL/PostGIS connection (default: use POSTGRES_DB env var or .env)",
+    )
+    parser.add_argument(
+        "--profile-data",
+        action="store_true",
+        help="Run data profiling queries after collection (requires database connection)",
     )
 
     args = parser.parse_args()
@@ -1295,6 +1301,18 @@ Examples:
             if not boundary_data.empty:
                 save_boundary_results_to_db(boundary_data, engine)
             logger.info("Database write complete.")
+
+        # Optional: Run data profiling if flag is set
+        if args.profile_data:
+            logger.info("Running data profiling queries (via --profile-data flag)...")
+            try:
+                from profiling.basic_stats import run_all_basic_stats
+                run_all_basic_stats()
+                logger.info("Data profiling complete.")
+            except Exception as e:
+                logger.error(f"Data profiling failed: {str(e)}")
+                print(f"WARNING: Data profiling failed - {str(e)}")
+                print("Profiling requires database connection and data to be written to DB.")
 
         logger.info("NPS data collection pipeline completed successfully")
 
