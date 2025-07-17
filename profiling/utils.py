@@ -20,7 +20,12 @@ def get_db_connection():
     """
     return get_postgres_engine()
 
-
+def load_sql_query(filename):
+    """Load SQL query from file."""
+    query_path = os.path.join(os.path.dirname(__file__), 'queries', filename)
+    with open(query_path, 'r') as f:
+        return f.read().strip()
+        
 def run_query(engine, query, params=None):
     """
     Execute a query and return results as DataFrame.
