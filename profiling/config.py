@@ -41,9 +41,7 @@ PROFILING_MODULES = {
     "visualization": {
         "enabled": True,
         "description": "Data visualization and maps",
-        "queries": [
-            "park_map.sql"  # Placeholder - actual visualization is in Python
-        ],
+        "queries": [],  # visualization is done in Python
         "dependencies": [],
         "output_prefix": "visualization",
     },

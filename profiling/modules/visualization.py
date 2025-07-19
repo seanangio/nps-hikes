@@ -95,30 +95,67 @@ class VisualizationProfiler:
         self.logger.info(f"Map saved to: {output_path}")
     
     def _add_park_labels(self, ax, parks_df):
-        """Add park name labels with leader lines to avoid overlap."""
+        """Add park name labels with smart positioning to reduce overlap."""
         import numpy as np
         
         # Get current axis limits for positioning
         x_min, x_max = ax.get_xlim()
         y_min, y_max = ax.get_ylim()
         
-        # Calculate offset for labels (small percentage of axis range)
+        # Calculate base offset (small percentage of axis range)
         x_offset = (x_max - x_min) * 0.02
         y_offset = (y_max - y_min) * 0.02
+        
+        # Track placed label positions to avoid overlap
+        placed_labels = []
+        
+        # Sort parks by latitude (north to south) to prioritize northern parks
+        parks_df = parks_df.sort_values('latitude', ascending=False)
         
         for idx, row in parks_df.iterrows():
             lon, lat = row['longitude'], row['latitude']
             park_name = row['park_name']
             
-            # Position label to the right and slightly above the point
-            label_x = lon + x_offset
-            label_y = lat + y_offset
+            # Define multiple possible positions around the point
+            positions = [
+                (lon + x_offset, lat + y_offset),      # Right and up
+                (lon - x_offset, lat + y_offset),      # Left and up
+                (lon + x_offset, lat - y_offset),      # Right and down
+                (lon - x_offset, lat - y_offset),      # Left and down
+                (lon + x_offset * 1.5, lat),           # Further right
+                (lon - x_offset * 1.5, lat),           # Further left
+                (lon, lat + y_offset * 1.5),           # Further up
+                (lon, lat - y_offset * 1.5),           # Further down
+            ]
+            
+            # Find position with least overlap
+            best_pos = positions[0]
+            min_overlap = float('inf')
+            
+            for pos in positions:
+                # Check overlap with already placed labels
+                overlap_count = 0
+                for placed in placed_labels:
+                    # Calculate distance between positions
+                    dist_x = abs(pos[0] - placed[0])
+                    dist_y = abs(pos[1] - placed[1])
+                    
+                    # Consider it overlap if labels are too close
+                    if dist_x < x_offset * 2 and dist_y < y_offset * 2:
+                        overlap_count += 1
+                
+                if overlap_count < min_overlap:
+                    min_overlap = overlap_count
+                    best_pos = pos
+            
+            label_x, label_y = best_pos
+            placed_labels.append((label_x, label_y))
             
             # Add leader line from point to label
             ax.plot([lon, label_x], [lat, label_y], 
                    color='black', linewidth=0.5, alpha=0.7)
             
-            # Add label
+            # Add label with white background for better readability
             ax.annotate(park_name, 
                        xy=(label_x, label_y),
                        xytext=(5, 5), textcoords='offset points',
