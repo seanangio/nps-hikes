@@ -1128,7 +1128,7 @@ Examples:
   %(prog)s --write-db                   # Write results directly to PostgreSQL/PostGIS database
   %(prog)s --truncate-db                # Truncate parks and park_boundaries tables in DB before writing (for testing)
   %(prog)s --db-name my_database       # Override the database name for PostgreSQL/PostGIS connection (default: use POSTGRES_DB env var or .env)
-  %(prog)s --write-db --profile-data   # Write to DB and run data profiling queries
+  %(prog)s --write-db --profile-data   # Write to DB and run all profiling modules
         """,
     )
 
@@ -1306,8 +1306,8 @@ Examples:
         if args.profile_data:
             logger.info("Running data profiling queries (via --profile-data flag)...")
             try:
-                from profiling.basic_stats import run_all_basic_stats
-                run_all_basic_stats()
+                from profiling.orchestrator import run_all_profiling
+                run_all_profiling()
                 logger.info("Data profiling complete.")
             except Exception as e:
                 logger.error(f"Data profiling failed: {str(e)}")

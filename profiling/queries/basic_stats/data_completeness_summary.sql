@@ -1,3 +1,4 @@
+-- Data completeness summary
 SELECT 
     COUNT(*) as total_parks,
     COUNT(CASE WHEN park_code IS NOT NULL AND park_code != '' THEN 1 END) as parks_with_codes,
@@ -8,4 +9,4 @@ SELECT
     ROUND(COUNT(CASE WHEN park_code IS NOT NULL AND park_code != '' THEN 1 END) * 100.0 / COUNT(*), 1) as code_completeness_pct,
     ROUND(COUNT(CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL THEN 1 END) * 100.0 / COUNT(*), 1) as coord_completeness_pct,
     ROUND(COUNT(CASE WHEN description IS NOT NULL AND description != '' THEN 1 END) * 100.0 / COUNT(*), 1) as desc_completeness_pct
-FROM parks
+FROM parks; 

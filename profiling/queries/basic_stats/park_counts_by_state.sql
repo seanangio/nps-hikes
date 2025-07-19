@@ -1,3 +1,4 @@
+-- Park counts by individual state with coordinate coverage
 SELECT 
     TRIM(unnest(string_to_array(states, ','))) as individual_state,
     COUNT(*) as park_count,
@@ -10,4 +11,4 @@ WHERE states IS NOT NULL
     AND states != '' 
     AND states != 'null'
 GROUP BY TRIM(unnest(string_to_array(states, ',')))
-ORDER BY park_count DESC
+ORDER BY park_count DESC; 
