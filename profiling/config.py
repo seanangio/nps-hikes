@@ -38,6 +38,15 @@ PROFILING_MODULES = {
         "dependencies": [],
         "output_prefix": "quality",
     },
+    "visualization": {
+        "enabled": True,
+        "description": "Data visualization and maps",
+        "queries": [
+            "park_map.sql"  # Placeholder - actual visualization is in Python
+        ],
+        "dependencies": [],
+        "output_prefix": "visualization",
+    },
 }
 
 # Global profiling settings
