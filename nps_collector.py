@@ -6,17 +6,27 @@ to collect basic park information and spatial boundary data, then creates
 structured datasets with comprehensive park information.
 """
 
-import requests
-import pandas as pd
-import geopandas as gpd
+# Standard library imports
 import os
+import sys
 import time
 import logging
 import argparse
 from logging.handlers import RotatingFileHandler
 from typing import Dict, List, Optional, Tuple
-from dotenv import load_dotenv
+
+# Third-party imports
+import requests
+import pandas as pd
+import geopandas as gpd
 from shapely.geometry import shape, Point
+from dotenv import load_dotenv
+
+# Load .env before local imports that need env vars
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+
+# Local application imports
+from config.settings import config
 from nps_db_writer import (
     get_postgres_engine,
     save_park_results_to_db,
@@ -24,16 +34,17 @@ from nps_db_writer import (
     truncate_tables,
 )
 
+
 # Set up rotating log files
 file_handler = RotatingFileHandler(
-    "nps_collector.log",
-    maxBytes=5 * 1024 * 1024,  # 5MB per file
-    backupCount=3,  # Keep 3 old files
+    config.LOG_FILE,
+    maxBytes=config.LOG_MAX_BYTES,
+    backupCount=config.LOG_BACKUP_COUNT,
 )
 
 # Configure logging for debugging and monitoring
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, config.LOG_LEVEL),
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[file_handler, logging.StreamHandler()],
 )
@@ -49,26 +60,28 @@ class NPSDataCollector:
     spatial boundary data.
     """
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str = None):
         """
         Initialize the collector with API credentials.
 
         Args:
-            api_key (str): NPS API key from the environment
+            api_key (str): NPS API key from the environment (optional, will use config if not provided)
         """
-        self.api_key = api_key
-        self.base_url = "https://developer.nps.gov/api/v1"
-        self.rate_limit_warning_threshold = 50
-        self.session = requests.Session()  # Reuse connections for efficiency
+        self.api_key = api_key or config.API_KEY
+        if not self.api_key:
+            raise ValueError(
+                "API key is required. Set NPS_API_KEY environment variable or pass api_key parameter."
+            )
 
-        # Load user email from environment variable with fallback
-        user_email = os.getenv("NPS_USER_EMAIL", "unknown@example.com")
+        self.base_url = config.API_BASE_URL
+        self.rate_limit_warning_threshold = config.RATE_LIMIT_WARNING_THRESHOLD
+        self.session = requests.Session()  # Reuse connections for efficiency
 
         # Set up session headers that will be used for all requests
         self.session.headers.update(
             {
                 "X-Api-Key": self.api_key,
-                "User-Agent": f"Python-NPS-Collector/1.0 ({user_email})",
+                "User-Agent": f"Python-NPS-Collector/1.0 ({config.USER_EMAIL})",
             }
         )
 
@@ -123,7 +136,7 @@ class NPSDataCollector:
             raise
 
     def query_park_api(
-        self, park_name: str, max_retries: int = 2, retry_delay: float = 3.0
+        self, park_name: str, max_retries: int = None, retry_delay: float = None
     ) -> Optional[Dict]:
         """
         Query the NPS API for a specific park using fuzzy matching with retry logic.
@@ -139,12 +152,16 @@ class NPSDataCollector:
         Returns:
             Optional[Dict]: Park data if found, None if not found or error occurred
         """
+        # Use config defaults if not provided
+        max_retries = max_retries or config.PARK_SEARCH_MAX_RETRIES
+        retry_delay = retry_delay or config.PARK_SEARCH_RETRY_DELAY
+
         # Build the API endpoint URL and parameters once
         endpoint = f"{self.base_url}/parks"
         search_query = f"{park_name} National Park"
         params = {
             "q": search_query,
-            "limit": 10,  # Get multiple results to find the best match
+            "limit": config.API_RESULT_LIMIT,  # Get multiple results to find the best match
             "sort": "-relevanceScore",
             "fields": "addresses,contacts,description,directionsInfo,latitude,longitude,name,parkCode,states,url,fullName",
         }
@@ -162,7 +179,9 @@ class NPSDataCollector:
                 )
 
                 # Make the API request with timeout for reliability
-                response = self.session.get(endpoint, params=params, timeout=30)
+                response = self.session.get(
+                    endpoint, params=params, timeout=config.REQUEST_TIMEOUT
+                )
 
                 # Check if the request was successful
                 response.raise_for_status()
@@ -291,10 +310,10 @@ class NPSDataCollector:
     def process_park_data(
         self,
         csv_path: str,
-        delay_seconds: float = 1.0,
+        delay_seconds: float = None,
         limit_for_testing: Optional[int] = None,
         force_refresh: bool = False,
-        output_path: str = "park_data_collected.csv",
+        output_path: str = None,
     ) -> pd.DataFrame:
         """
         Main orchestration method that processes all parks and builds the final dataset.
@@ -313,6 +332,10 @@ class NPSDataCollector:
         Returns:
             pd.DataFrame: Complete dataset with all park information, including error records
         """
+        # Use config defaults if not provided
+        delay_seconds = delay_seconds or config.DEFAULT_DELAY_SECONDS
+        output_path = output_path or config.DEFAULT_OUTPUT_CSV
+
         logger.info("Starting park data collection process")
 
         # Load park list
@@ -455,7 +478,7 @@ class NPSDataCollector:
     # ==================================
 
     def query_park_boundaries_api(
-        self, park_code: str, max_retries: int = 3, retry_delay: float = 5.0
+        self, park_code: str, max_retries: int = None, retry_delay: float = None
     ) -> Optional[Dict]:
         """
         Query the NPS API for park boundary spatial data with retry logic.
@@ -472,6 +495,10 @@ class NPSDataCollector:
         Returns:
             Optional[Dict]: Boundary data if found, None if not found or error occurred
         """
+        # Use config defaults if not provided
+        max_retries = max_retries or config.BOUNDARY_MAX_RETRIES
+        retry_delay = retry_delay or config.BOUNDARY_RETRY_DELAY
+
         endpoint = f"{self.base_url}/mapdata/parkboundaries/{park_code}"
 
         for attempt in range(max_retries + 1):  # +1 for initial attempt
@@ -487,7 +514,7 @@ class NPSDataCollector:
                 )
 
                 # Make the API request with timeout for reliability
-                response = self.session.get(endpoint, timeout=30)
+                response = self.session.get(endpoint, timeout=config.REQUEST_TIMEOUT)
 
                 # Check if the request was successful
                 response.raise_for_status()
@@ -502,7 +529,7 @@ class NPSDataCollector:
                     )
 
                     # Warn if getting close to the limit
-                    if int(rate_limit_remaining) < 50:
+                    if int(rate_limit_remaining) < config.RATE_LIMIT_WARNING_THRESHOLD:
                         logger.warning(
                             f"Approaching rate limit! Only {rate_limit_remaining} requests remaining"
                         )
@@ -667,10 +694,10 @@ class NPSDataCollector:
     def process_park_boundaries(
         self,
         park_codes: List[str],
-        delay_seconds: float = 1.0,
+        delay_seconds: float = None,
         limit_for_testing: Optional[int] = None,
         force_refresh: bool = False,
-        output_path: str = "park_boundaries_collected.gpkg",
+        output_path: str = None,
     ) -> gpd.GeoDataFrame:
         """
         Process boundary data for a list of park codes.
@@ -689,6 +716,10 @@ class NPSDataCollector:
         Returns:
             gpd.GeoDataFrame: GeoDataFrame with boundary information for each park, including error records
         """
+        # Use config defaults if not provided
+        delay_seconds = delay_seconds or config.DEFAULT_DELAY_SECONDS
+        output_path = output_path or config.DEFAULT_OUTPUT_GPKG
+
         logger.info("Starting park boundary data collection process")
 
         # FOR TESTING: Limit to specified number of park codes
@@ -806,7 +837,7 @@ class NPSDataCollector:
                     for result in new_results
                 ],
                 geometry=geometries,
-                crs="EPSG:4326",
+                crs=config.DEFAULT_CRS,
             )
 
             # Report statistics for new processing
@@ -1132,27 +1163,27 @@ Examples:
     parser.add_argument(
         "--delay",
         type=float,
-        default=1.0,
+        default=config.DEFAULT_DELAY_SECONDS,
         metavar="SECONDS",
-        help="Delay between API calls in seconds (default: 1.0)",
+        help=f"Delay between API calls in seconds (default: {config.DEFAULT_DELAY_SECONDS})",
     )
     parser.add_argument(
         "--input-csv",
-        default="parks.csv",
+        default=config.DEFAULT_INPUT_CSV,
         metavar="FILE",
-        help="Input CSV file with park data (default: parks.csv)",
+        help=f"Input CSV file with park data (default: {config.DEFAULT_INPUT_CSV})",
     )
     parser.add_argument(
         "--park-output",
-        default="park_data_collected.csv",
+        default=config.DEFAULT_OUTPUT_CSV,
         metavar="FILE",
-        help="Output CSV file for park data (default: park_data_collected.csv)",
+        help=f"Output CSV file for park data (default: {config.DEFAULT_OUTPUT_CSV})",
     )
     parser.add_argument(
         "--boundary-output",
-        default="park_boundaries_collected.gpkg",
+        default=config.DEFAULT_OUTPUT_GPKG,
         metavar="FILE",
-        help="Output GPKG file for boundary data (default: park_boundaries_collected.gpkg)",
+        help=f"Output GPKG file for boundary data (default: {config.DEFAULT_OUTPUT_GPKG})",
     )
     parser.add_argument(
         "--write-db",
@@ -1186,15 +1217,8 @@ Examples:
         # Load environment variables from .env file
         load_dotenv()
 
-        # Get API key with validation
-        api_key = os.getenv("NPS_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "NPS_API_KEY not found in environment variables. Please check your .env file."
-            )
-
-        # Initialize our data collector
-        collector = NPSDataCollector(api_key)
+        # Initialize our data collector (API key will be loaded from config)
+        collector = NPSDataCollector()
 
         # Check that input file exists before starting
         if not os.path.exists(args.input_csv):

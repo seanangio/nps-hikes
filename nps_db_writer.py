@@ -19,36 +19,19 @@ import pandas as pd
 import geopandas as gpd
 import shapely.geometry
 
+from config.settings import config
+
 
 def get_postgres_engine():
     """
-    Create a SQLAlchemy engine for PostgreSQL/PostGIS using environment variables.
+    Create a SQLAlchemy engine for PostgreSQL/PostGIS using configuration.
     Returns:
         sqlalchemy.engine.Engine: SQLAlchemy engine instance
     Raises:
-        ValueError: If any required environment variable is missing
+        ValueError: If any required configuration is missing
     """
-    host = os.getenv("POSTGRES_HOST")
-    port = os.getenv("POSTGRES_PORT")
-    db = os.getenv("POSTGRES_DB")
-    user = os.getenv("POSTGRES_USER")
-    password = os.getenv("POSTGRES_PASSWORD")
-    missing = [
-        k
-        for k, v in {
-            "POSTGRES_HOST": host,
-            "POSTGRES_PORT": port,
-            "POSTGRES_DB": db,
-            "POSTGRES_USER": user,
-            "POSTGRES_PASSWORD": password,
-        }.items()
-        if not v
-    ]
-    if missing:
-        raise ValueError(
-            f"Missing required environment variables: {', '.join(missing)}"
-        )
-    conn_str = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}"
+    # Use config values (which are already validated)
+    conn_str = config.get_database_url()
     return create_engine(conn_str)
 
 
