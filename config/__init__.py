@@ -1,1 +1,1 @@
-# Configuration package for NPS Hikes project 
+# Configuration package for NPS Hikes project

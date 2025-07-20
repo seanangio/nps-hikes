@@ -23,7 +23,7 @@ from shapely.geometry import shape, Point
 from dotenv import load_dotenv
 
 # Load .env before local imports that need env vars
-load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 # Local application imports
 from config.settings import config

@@ -41,10 +41,11 @@ def _check_primary_key(engine, table_name, pk_column):
     Raises a ValueError with a clear message if the PK is missing.
     """
     from sqlalchemy import inspect
+
     inspector = inspect(engine)
     if table_name in inspector.get_table_names():
         pk = inspector.get_pk_constraint(table_name)
-        pk_cols = pk.get('constrained_columns', [])
+        pk_cols = pk.get("constrained_columns", [])
         if pk_column not in pk_cols:
             raise ValueError(
                 f"Table '{table_name}' exists but does not have '{pk_column}' as a primary key. "
@@ -87,8 +88,7 @@ def save_park_results_to_db(df: pd.DataFrame, engine, table_name: str = "parks")
             stmt = insert(parks_table).values(**row)
             update_cols = {col: stmt.excluded[col] for col in row if col != "park_code"}
             stmt = stmt.on_conflict_do_update(
-                index_elements=["park_code"],
-                set_=update_cols
+                index_elements=["park_code"], set_=update_cols
             )
             result = conn.execute(stmt)
         print(f"✅ Park data upserted to table '{table_name}' in database.")
@@ -124,7 +124,9 @@ def save_boundary_results_to_db(
         for i, (_, row) in enumerate(gdf.iterrows()):
             geom_wkt = None
             geom = row["geometry"]
-            if geom is not None and isinstance(geom, shapely.geometry.base.BaseGeometry):
+            if geom is not None and isinstance(
+                geom, shapely.geometry.base.BaseGeometry
+            ):
                 geom_wkt = geom.wkt
             values = {
                 "park_code": row["park_code"],
@@ -135,10 +137,11 @@ def save_boundary_results_to_db(
                 "collection_status": row.get("collection_status"),
             }
             stmt = insert(boundaries_table).values(**values)
-            update_cols = {col: stmt.excluded[col] for col in values if col != "park_code"}
+            update_cols = {
+                col: stmt.excluded[col] for col in values if col != "park_code"
+            }
             stmt = stmt.on_conflict_do_update(
-                index_elements=["park_code"],
-                set_=update_cols
+                index_elements=["park_code"], set_=update_cols
             )
             result = conn.execute(stmt)
         print(f"✅ Boundary data upserted to table '{table_name}' in database.")
@@ -152,6 +155,7 @@ def truncate_tables(engine, table_names):
         table_names (list of str): List of table names to truncate
     """
     from sqlalchemy import text
+
     with engine.begin() as conn:
         for table in table_names:
             try:
