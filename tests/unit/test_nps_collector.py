@@ -1,15 +1,9 @@
 import pytest
 import pandas as pd
 from unittest.mock import Mock, patch
-from nps_collector import NPSDataCollector
 
 
 class TestNPSDataCollector:
-
-    @pytest.fixture
-    def collector(self):
-        """Create a collector instance for testing."""
-        return NPSDataCollector("test_api_key")
 
     def test_validate_coordinates_valid_input(self, collector):
         """Test coordinate validation with valid inputs."""
@@ -68,7 +62,7 @@ class TestNPSDataCollector:
         assert match["parkCode"] == "other"
         assert match["relevanceScore"] == 100
 
-    def test_extract_park_data_complete_data(self, collector):
+    def test_extract_park_data_complete_data(self, collector, sample_csv_row):
         """Test data extraction with complete API response."""
         mock_api_data = {
             "parkCode": "zion",
@@ -80,9 +74,7 @@ class TestNPSDataCollector:
             "description": "Test description",
         }
 
-        mock_csv_row = pd.Series({"park_name": "Zion", "month": "June", "year": 2024})
-
-        result = collector.extract_park_data(mock_api_data, mock_csv_row)
+        result = collector.extract_park_data(mock_api_data, sample_csv_row)
 
         assert result["park_name"] == "Zion"
         assert result["visit_month"] == "June"
@@ -92,7 +84,7 @@ class TestNPSDataCollector:
         assert result["latitude"] == 37.2982022
         assert result["longitude"] == -113.026505
 
-    def test_extract_park_data_missing_coordinates(self, collector):
+    def test_extract_park_data_missing_coordinates(self, collector, sample_csv_row):
         """Test data extraction when coordinates are missing."""
         mock_api_data = {
             "parkCode": "test",
@@ -103,9 +95,7 @@ class TestNPSDataCollector:
             # No latitude/longitude
         }
 
-        mock_csv_row = pd.Series({"park_name": "Test", "month": "June", "year": 2024})
-
-        result = collector.extract_park_data(mock_api_data, mock_csv_row)
+        result = collector.extract_park_data(mock_api_data, sample_csv_row)
 
         assert result["latitude"] is None
         assert result["longitude"] is None
