@@ -120,6 +120,7 @@ class NPSDataCollector:
             # Remove any rows with missing park names
             original_count = len(df)
             df = df.dropna(subset=["park_name"])
+            df = df[df["park_name"].str.strip() != ""]
 
             if len(df) < original_count:
                 logger.warning(
