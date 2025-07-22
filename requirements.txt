@@ -68,7 +68,9 @@ fqdn==1.5.1
 geoalchemy2==0.17.1
     # via -r requirements.in
 geopandas==1.1.1
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   osmnx
 google-auth==2.40.2
     # via
     #   google-auth-oauthlib
@@ -196,6 +198,8 @@ nbformat==5.10.4
     #   nbconvert
 nest-asyncio==1.6.0
     # via ipykernel
+networkx==3.5
+    # via osmnx
 notebook==7.4.3
     # via jupyter
 notebook-shim==0.2.4
@@ -207,11 +211,14 @@ numpy==2.2.6
     #   contourpy
     #   geopandas
     #   matplotlib
+    #   osmnx
     #   pandas
     #   pyogrio
     #   shapely
 oauthlib==3.2.2
     # via requests-oauthlib
+osmnx==2.0.5
+    # via -r requirements.in
 overrides==7.7.0
     # via jupyter-server
 packaging==25.0
@@ -230,6 +237,7 @@ pandas==2.2.3
     # via
     #   -r requirements.in
     #   geopandas
+    #   osmnx
 pandocfilters==1.5.1
     # via nbconvert
 parso==0.8.4
@@ -305,6 +313,7 @@ requests==2.32.3
     # via
     #   -r requirements.in
     #   jupyterlab-server
+    #   osmnx
     #   requests-oauthlib
 requests-oauthlib==2.0.0
     # via google-auth-oauthlib
@@ -328,6 +337,7 @@ shapely==2.1.1
     # via
     #   -r requirements.in
     #   geopandas
+    #   osmnx
 six==1.17.0
     # via
     #   python-dateutil

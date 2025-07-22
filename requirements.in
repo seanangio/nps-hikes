@@ -9,3 +9,4 @@ matplotlib
 psycopg2-binary
 sqlalchemy
 geoalchemy2
+osmnx
