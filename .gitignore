@@ -5,6 +5,9 @@ test_results.xml
 profiling_results/*
 scratch*
 
+# osmnx cache
+cache/
+
 # macOS system files
 .DS_Store
 
