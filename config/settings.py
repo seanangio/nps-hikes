@@ -50,6 +50,32 @@ class Config:
     DEFAULT_OUTPUT_GPKG: str = "park_boundaries_collected.gpkg"
     LOG_FILE: str = "nps_collector.log"
 
+    # OSM Collection Settings
+    OSM_DEFAULT_OUTPUT_GPKG: str = "park_hikes.gpkg"
+    OSM_DEFAULT_RATE_LIMIT: float = 1.0
+    OSM_LENGTH_CRS: str = "EPSG:5070"  # NAD83 / Conus Albers for length calculations
+    OSM_TRAIL_TAGS: dict = {"highway": ["path", "footway"]}
+    OSM_LOG_FILE: str = "osm_collector.log"
+    OSM_REQUIRED_COLUMNS: list = [
+        "osm_id",
+        "park_code", 
+        "highway",
+        "geometry",
+        "geometry_type",
+        "length_mi",
+    ]
+    OSM_ALL_COLUMNS: list = [
+        "osm_id",
+        "park_code",
+        "highway", 
+        "name",
+        "source",
+        "length_mi",
+        "geometry_type",
+        "geometry",
+        "timestamp",
+    ]
+
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_MAX_BYTES: int = 5 * 1024 * 1024  # 5MB
