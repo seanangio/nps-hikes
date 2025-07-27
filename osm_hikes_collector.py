@@ -33,10 +33,10 @@ integrity and providing progress feedback.
 Example Usage:
     # Process all parks and write to database
     python osm_hikes_collector.py --write-db
-    
+
     # Test with specific parks only
     python osm_hikes_collector.py --parks YELL,GRCA --test-limit 2
-    
+
     # Resume interrupted collection
     python osm_hikes_collector.py --write-db  # Automatically skips completed parks
 
@@ -57,7 +57,7 @@ import geopandas as gpd
 import osmnx as ox
 import pandas as pd
 from shapely.geometry import Polygon, MultiPolygon
-from sqlalchemy import text, Engine
+from sqlalchemy import Engine
 from dotenv import load_dotenv
 
 # Load .env before local imports that need env vars
@@ -65,10 +65,11 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 # Local application imports
 from config.settings import config
-from nps_db_writer import get_postgres_engine
+from db_writer import get_postgres_engine, DatabaseWriter
 
 # Import centralized logging utility
 from utils.logging import setup_osm_collector_logging
+
 
 class OSMHikesCollector:
     """
@@ -119,8 +120,14 @@ class OSMHikesCollector:
         # Always create engine for reading from DB, but only write if write_db is True
         self.engine: Engine = get_postgres_engine()
         self.timestamp: str = datetime.now(timezone.utc).isoformat()
+        # Initialize database writer for write operations
+        self.db_writer: Optional[DatabaseWriter] = (
+            DatabaseWriter(self.engine, self.logger) if write_db else None
+        )
         # Track completed parks for resumability - enables restarting interrupted collections
-        self.completed_parks: Set[str] = self.get_completed_parks() if write_db else set()
+        self.completed_parks: Set[str] = (
+            self.get_completed_parks() if write_db else set()
+        )
 
     def load_park_boundaries(self) -> gpd.GeoDataFrame:
         """
@@ -137,7 +144,9 @@ class OSMHikesCollector:
         """
         self.logger.info("Loading park boundaries from DB...")
         sql = "SELECT park_code, geometry FROM park_boundaries"
-        gdf = gpd.read_postgis(sql, self.engine, geom_col="geometry", crs=config.DEFAULT_CRS)
+        gdf = gpd.read_postgis(
+            sql, self.engine, geom_col="geometry", crs=config.DEFAULT_CRS
+        )
         if self.parks:
             gdf = gdf[gdf["park_code"].isin(self.parks)]
         if self.test_limit:
@@ -148,36 +157,29 @@ class OSMHikesCollector:
     def get_completed_parks(self) -> Set[str]:
         """
         Get set of park codes that have already been processed.
-        
+
         This method queries the park_hikes table to find which parks already have
         trail data, enabling resumable collection runs. If the table doesn't exist
         or there's an error accessing it, returns an empty set.
-        
+
         Returns:
             Set[str]: Set of park codes (e.g., {'YELL', 'GRCA'}) that already have
                      trail data in the database. Empty set if no data exists or
                      if write_db is False.
-                     
+
         Note:
             This method only runs when write_db=True. When write_db=False, the
             collector doesn't need to check for completed parks since it's not
             writing to the database.
         """
-        if not self.write_db or self.engine is None:
+        if not self.write_db or self.db_writer is None:
             return set()
-        
-        try:
-            sql = "SELECT DISTINCT park_code FROM park_hikes"
-            result = pd.read_sql(sql, self.engine)
-            completed = set(result['park_code'].tolist())
-            if completed:
-                self.logger.info(f"Found {len(completed)} parks with existing trail data: {sorted(completed)}")
-            return completed
-        except Exception as e:
-            self.logger.warning(f"Could not check completed parks: {e}")
-            return set()
-    
-    def query_osm_trails(self, polygon: Union[Polygon, MultiPolygon]) -> gpd.GeoDataFrame:
+
+        return self.db_writer.get_completed_records("park_hikes", "park_code")
+
+    def query_osm_trails(
+        self, polygon: Union[Polygon, MultiPolygon]
+    ) -> gpd.GeoDataFrame:
         """
         Query OpenStreetMap for hiking trails within a given polygon boundary.
 
@@ -186,21 +188,23 @@ class OSMHikesCollector:
         The query respects OSM's usage policies and includes rate limiting.
 
         Args:
-            polygon (Union[Polygon, MultiPolygon]): Shapely geometry object defining 
+            polygon (Union[Polygon, MultiPolygon]): Shapely geometry object defining
                                                    the park boundary search area
 
         Returns:
             gpd.GeoDataFrame: GeoDataFrame containing trail geometries and OSM attributes
                              including osm_id, highway type, name, and geometry. Returns
                              empty GeoDataFrame if no trails found or if the query fails.
-                             
+
         Note:
             This method may take several seconds to complete for large parks due to
             OSM API response times. Network timeouts or OSM server issues will result
             in an empty GeoDataFrame being returned with an error logged.
         """
         try:
-            trails = ox.features.features_from_polygon(polygon, tags=config.OSM_TRAIL_TAGS)
+            trails = ox.features.features_from_polygon(
+                polygon, tags=config.OSM_TRAIL_TAGS
+            )
             if trails.empty:
                 return trails
             trails = trails.reset_index()  # Expose OSM index columns
@@ -212,50 +216,64 @@ class OSMHikesCollector:
             self.logger.error(f"OSM query failed: {e}")
             return gpd.GeoDataFrame()
 
-    def validate_trails(self, trails: gpd.GeoDataFrame, park_code: str) -> gpd.GeoDataFrame:
+    def validate_trails(
+        self, trails: gpd.GeoDataFrame, park_code: str
+    ) -> gpd.GeoDataFrame:
         """
         Validate and clean trail data.
-        
+
         Args:
             trails (gpd.GeoDataFrame): Raw trail data
             park_code (str): Park code for logging context
-            
+
         Returns:
             gpd.GeoDataFrame: Validated trail data
         """
         if trails.empty:
             return trails
-            
+
         initial_count = len(trails)
-        
+
         # Remove trails with invalid geometries
         valid_geom = trails.geometry.is_valid
         trails = trails[valid_geom]
         if not valid_geom.all():
-            self.logger.warning(f"Removed {(~valid_geom).sum()} trails with invalid geometries for {park_code}")
-        
+            self.logger.warning(
+                f"Removed {(~valid_geom).sum()} trails with invalid geometries for {park_code}"
+            )
+
         # Remove trails with unrealistic lengths (< 0.01 miles or > 50 miles)
-        if 'length_mi' in trails.columns:
-            reasonable_length = (trails['length_mi'] >= 0.01) & (trails['length_mi'] <= 50.0)
+        if "length_mi" in trails.columns:
+            reasonable_length = (trails["length_mi"] >= 0.01) & (
+                trails["length_mi"] <= 50.0
+            )
             trails = trails[reasonable_length]
             if not reasonable_length.all():
-                self.logger.warning(f"Removed {(~reasonable_length).sum()} trails with unrealistic lengths for {park_code}")
-        
+                self.logger.warning(
+                    f"Removed {(~reasonable_length).sum()} trails with unrealistic lengths for {park_code}"
+                )
+
         # Remove duplicate OSM IDs within this park
-        if 'osm_id' in trails.columns:
+        if "osm_id" in trails.columns:
             before_dedup = len(trails)
-            trails = trails.drop_duplicates(subset=['osm_id'], keep='first')
+            trails = trails.drop_duplicates(subset=["osm_id"], keep="first")
             if len(trails) < before_dedup:
-                self.logger.warning(f"Removed {before_dedup - len(trails)} duplicate OSM IDs for {park_code}")
-        
+                self.logger.warning(
+                    f"Removed {before_dedup - len(trails)} duplicate OSM IDs for {park_code}"
+                )
+
         # Log validation summary
         final_count = len(trails)
         if final_count < initial_count:
-            self.logger.info(f"Validation for {park_code}: {initial_count} → {final_count} trails ({initial_count - final_count} removed)")
-        
+            self.logger.info(
+                f"Validation for {park_code}: {initial_count} → {final_count} trails ({initial_count - final_count} removed)"
+            )
+
         return trails
-    
-    def process_trails(self, park_code: str, polygon: Union[Polygon, MultiPolygon]) -> gpd.GeoDataFrame:
+
+    def process_trails(
+        self, park_code: str, polygon: Union[Polygon, MultiPolygon]
+    ) -> gpd.GeoDataFrame:
         """
         Process and clean hiking trail data for a specific park.
 
@@ -279,7 +297,7 @@ class OSMHikesCollector:
                              osm_id, park_code, highway, name, source, length_mi,
                              geometry_type, geometry, and timestamp. Returns empty
                              GeoDataFrame if no valid trails found after processing.
-                             
+
         Note:
             Only trails with names are included in the results, as unnamed paths are
             often service roads or informal tracks rather than established hiking trails.
@@ -289,28 +307,28 @@ class OSMHikesCollector:
         if trails.empty:
             self.logger.warning(f"No trails found for park {park_code}.")
             return gpd.GeoDataFrame(columns=config.OSM_ALL_COLUMNS)
-            
+
         # Filter for linestrings
         trails = trails[trails.geometry.type.isin(["LineString", "MultiLineString"])]
-        
+
         # Filter for named trails
         trails = trails[trails["name"].notnull() & (trails["name"].str.strip() != "")]
-        
+
         # Add geometry_type
         trails["geometry_type"] = trails.geometry.type
-        
+
         # Compute length in miles
         trails_proj = trails.to_crs(config.OSM_LENGTH_CRS)
         trails["length_mi"] = trails_proj.geometry.length / 1609.34
-        
+
         # Add park_code and timestamp
         trails["park_code"] = park_code
         trails["timestamp"] = self.timestamp
-        
+
         # Add source (from OSM tag if present)
         if "source" not in trails.columns:
             trails["source"] = None
-            
+
         # Keep only required columns
         trails = trails[
             [
@@ -325,7 +343,7 @@ class OSMHikesCollector:
                 "timestamp",
             ]
         ]
-        
+
         # Drop rows with any required column missing
         before = len(trails)
         trails = trails.dropna(subset=config.OSM_REQUIRED_COLUMNS)
@@ -334,10 +352,10 @@ class OSMHikesCollector:
             self.logger.warning(
                 f"Dropped {before - after} trails with missing required fields for park {park_code}."
             )
-            
+
         # Validate the data
         trails = self.validate_trails(trails, park_code)
-        
+
         return trails
 
     def collect_all_trails(self) -> gpd.GeoDataFrame:
@@ -362,14 +380,14 @@ class OSMHikesCollector:
                              actual persistent data is written to files and database
                              during processing. Returns empty GeoDataFrame if no trails
                              were collected from any park.
-                             
+
         Note:
             This method can run for hours when processing all parks. Progress is logged
             regularly, and the process can be safely interrupted and resumed later when
             write_db=True, as completed parks will be automatically skipped.
         """
         park_gdf = self.load_park_boundaries()
-        
+
         # Filter out already completed parks for resumability
         if self.completed_parks:
             initial_count = len(park_gdf)
@@ -377,39 +395,42 @@ class OSMHikesCollector:
             skipped_count = initial_count - len(park_gdf)
             if skipped_count > 0:
                 self.logger.info(f"Skipping {skipped_count} already completed parks")
-        
+
         if park_gdf.empty:
             self.logger.info("No parks to process (all completed)")
             return gpd.GeoDataFrame(columns=config.OSM_ALL_COLUMNS)
-        
+
         total_trails_collected = 0
         all_trails_for_summary = []
-        
+
         for _, row in park_gdf.iterrows():
             park_code = row["park_code"]
             polygon = row["geometry"]
             self.logger.info(f"Processing park {park_code}...")
-            
+
             trails = self.process_trails(park_code, polygon)
-            
+
             if not trails.empty:
                 # Save immediately to both GPKG and DB
                 self.save_to_gpkg(trails, append=True)
-                if self.write_db:
-                    self.save_to_db(trails)
-                
+                if self.db_writer:
+                    self.db_writer.write_park_hikes(trails, mode="append")
+
                 total_trails_collected += len(trails)
                 all_trails_for_summary.append(trails)
                 self.logger.info(f"✓ Processed {park_code}: {len(trails)} trails")
             else:
                 self.logger.info(f"No valid trails for park {park_code}.")
-            
+
             # Rate limiting
             import time
+
             time.sleep(self.rate_limit)
-        
-        self.logger.info(f"Collection complete: {total_trails_collected} total trails collected")
-        
+
+        self.logger.info(
+            f"Collection complete: {total_trails_collected} total trails collected"
+        )
+
         # Return combined data for summary purposes
         if all_trails_for_summary:
             result = pd.concat(all_trails_for_summary, ignore_index=True)
@@ -444,7 +465,7 @@ class OSMHikesCollector:
         if gdf.empty:
             self.logger.warning("No data to save to GPKG.")
             return
-        
+
         # Check if file exists and we want to append
         if append and os.path.exists(self.output_gpkg):
             # Read existing data and concatenate
@@ -452,105 +473,18 @@ class OSMHikesCollector:
                 existing = gpd.read_file(self.output_gpkg)
                 combined = pd.concat([existing, gdf], ignore_index=True)
                 combined.to_file(self.output_gpkg, driver="GPKG")
-                self.logger.info(f"Appended {len(gdf)} trails to {self.output_gpkg} (total: {len(combined)})")
+                self.logger.info(
+                    f"Appended {len(gdf)} trails to {self.output_gpkg} (total: {len(combined)})"
+                )
             except Exception as e:
-                self.logger.error(f"Failed to append to GPKG: {e}. Overwriting instead.")
+                self.logger.error(
+                    f"Failed to append to GPKG: {e}. Overwriting instead."
+                )
                 gdf.to_file(self.output_gpkg, driver="GPKG")
                 self.logger.info(f"Saved {len(gdf)} trails to {self.output_gpkg}")
         else:
             gdf.to_file(self.output_gpkg, driver="GPKG")
             self.logger.info(f"Saved {len(gdf)} trails to {self.output_gpkg}")
-
-    def create_db_table(self) -> None:
-        """
-        Create the park_hikes table in the database if it doesn't exist.
-
-        This method sets up the database schema for storing hiking trail data with
-        proper PostGIS geometry support and relational constraints. The table design
-        includes:
-        - Composite primary key (park_code, osm_id) to prevent duplicates
-        - PostGIS LINESTRING geometry column with EPSG:4326 CRS
-        - Foreign key relationship to park_boundaries table
-        - Proper indexing for spatial and attribute queries
-        - TIMESTAMPTZ for timezone-aware timestamps
-
-        The table creation is idempotent - running this multiple times is safe and
-        will not cause errors or data loss.
-
-        Raises:
-            SQLAlchemyError: If table creation fails due to database connection issues,
-                           permission problems, or schema conflicts
-            
-        Note:
-            This method requires that the park_boundaries table already exists in the
-            database, as it creates a foreign key constraint referencing that table.
-        """
-        sql = f"""
-        CREATE TABLE IF NOT EXISTS park_hikes (
-            osm_id BIGINT NOT NULL,
-            park_code VARCHAR NOT NULL,
-            highway VARCHAR NOT NULL,
-            name VARCHAR,
-            source VARCHAR,
-            length_mi DOUBLE PRECISION NOT NULL,
-            geometry_type VARCHAR NOT NULL,
-            geometry geometry(LINESTRING, 4326) NOT NULL,
-            timestamp TIMESTAMPTZ NOT NULL,
-            PRIMARY KEY (park_code, osm_id),
-            FOREIGN KEY (park_code) REFERENCES park_boundaries(park_code)
-        );
-        """
-        with self.engine.begin() as conn:
-            conn.execute(text(sql))
-        self.logger.info("Ensured park_hikes table exists in DB.")
-
-    def save_to_db(self, gdf: gpd.GeoDataFrame) -> None:
-        """
-        Save trail data to the PostgreSQL database using proper PostGIS integration.
-
-        This method handles the complete database storage workflow including table
-        creation and data insertion. It uses geopandas' built-in PostGIS support
-        to ensure geometries are properly handled and spatial indexes are maintained.
-        
-        The process includes:
-        1. Ensure park_hikes table exists with proper schema
-        2. Insert trail data using geopandas.to_postgis() for optimal geometry handling
-        3. Append mode prevents overwriting existing data from other parks
-        4. Automatic handling of spatial reference systems and data types
-
-        Args:
-            gdf (gpd.GeoDataFrame): Trail data to save, must contain standardized columns
-                                   matching the park_hikes table schema including geometry,
-                                   park_code, osm_id, and other required fields
-
-        Raises:
-            SQLAlchemyError: If database operations fail due to connection issues,
-                           permission problems, or data constraint violations
-            ValueError: If gdf contains invalid data that violates table constraints
-            
-        Note:
-            This method uses 'append' mode to add new data without affecting existing
-            records. Duplicate records (same park_code + osm_id) will cause constraint
-            violations and should be filtered out before calling this method.
-        """
-        if gdf.empty:
-            self.logger.warning("No data to save to DB.")
-            return
-            
-        self.create_db_table()
-        
-        try:
-            # Use geopandas to_postgis for proper PostGIS integration
-            gdf.to_postgis(
-                "park_hikes", 
-                self.engine, 
-                if_exists="append", 
-                index=False
-            )
-            self.logger.info(f"Saved {len(gdf)} trails to park_hikes table in DB.")
-        except Exception as e:
-            self.logger.error(f"Failed to save trails to database: {e}")
-            raise
 
     def run(self) -> None:
         """
@@ -559,7 +493,7 @@ class OSMHikesCollector:
         This is the main entry point that orchestrates the entire collection process
         from start to finish. It handles initialization, processing, and cleanup
         while providing comprehensive logging and error handling.
-        
+
         The complete workflow includes:
         1. Initialize output files (remove existing if not resuming)
         2. Process all specified parks sequentially with rate limiting
@@ -569,25 +503,27 @@ class OSMHikesCollector:
 
         The method is designed to be robust for long-running operations and provides
         detailed progress information throughout the collection process.
-        
+
         Note:
             This method can run for several hours when processing all parks. The
             process logs detailed progress and can be safely interrupted and resumed
             when write_db=True, as completed parks will be automatically skipped.
         """
         self.logger.info("Starting OSM hiking trails collection...")
-        
+
         # Initialize output file if not appending
         if os.path.exists(self.output_gpkg) and not self.completed_parks:
             self.logger.info(f"Removing existing output file: {self.output_gpkg}")
             os.remove(self.output_gpkg)
-        
+
         # Collect all trails (writes per-park internally)
         summary_gdf = self.collect_all_trails()
-        
+
         # Log final summary
         if not summary_gdf.empty:
-            self.logger.info(f"Collection summary: {len(summary_gdf)} trails across {summary_gdf['park_code'].nunique()} parks")
+            self.logger.info(
+                f"Collection summary: {len(summary_gdf)} trails across {summary_gdf['park_code'].nunique()} parks"
+            )
             self.logger.info(f"Output saved to: {self.output_gpkg}")
             if self.write_db:
                 self.logger.info("Data also saved to database")
@@ -625,10 +561,10 @@ def main() -> None:
     Example Usage:
         # Process all parks and write to database
         python osm_hikes_collector.py --write-db
-        
+
         # Test with just 3 parks
         python osm_hikes_collector.py --test-limit 3 --log-level DEBUG
-        
+
         # Process specific parks only
         python osm_hikes_collector.py --parks YELL,GRCA --write-db
     """
@@ -637,7 +573,9 @@ def main() -> None:
         "--write-db", action="store_true", help="Write results to the database"
     )
     parser.add_argument(
-        "--output-gpkg", default=config.OSM_DEFAULT_OUTPUT_GPKG, help="Output GeoPackage file path"
+        "--output-gpkg",
+        default=config.OSM_DEFAULT_OUTPUT_GPKG,
+        help="Output GeoPackage file path",
     )
     parser.add_argument(
         "--rate-limit",

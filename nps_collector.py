@@ -25,7 +25,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 # Local application imports
 from config.settings import config
-from nps_db_writer import (
+from db_writer import (
     get_postgres_engine,
     save_park_results_to_db,
     save_boundary_results_to_db,
@@ -34,7 +34,9 @@ from nps_db_writer import (
 
 # Configure logging using centralized utility
 from utils.logging import setup_nps_collector_logging
+
 logger = setup_nps_collector_logging()
+
 
 class NPSDataCollector:
     """
@@ -1320,7 +1322,9 @@ Examples:
     except Exception as e:
         logger.error(f"Pipeline execution failed: {str(e)}")
         print(f"\nERROR: {str(e)}")
-        print("Check the log file 'logs/nps_collector.log' for detailed error information.")
+        print(
+            "Check the log file 'logs/nps_collector.log' for detailed error information."
+        )
         return 1
 
     return 0

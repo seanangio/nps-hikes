@@ -7,7 +7,7 @@ import pandas as pd
 from sqlalchemy import text
 from dotenv import load_dotenv
 from config.settings import config
-from nps_db_writer import get_postgres_engine
+from db_writer import get_postgres_engine
 
 # Load environment variables
 load_dotenv()

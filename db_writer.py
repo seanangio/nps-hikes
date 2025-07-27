@@ -1,0 +1,593 @@
+"""
+Unified Database Writer for NPS Hikes Project
+
+This module provides a comprehensive database writing solution that consolidates
+all database operations for the NPS Hikes project. It supports multiple data
+types, storage patterns, and provides both generic and specialized methods for
+different collection workflows.
+
+Key Features:
+- Unified interface for all database operations
+- Support for both DataFrame and GeoDataFrame data
+- Configurable upsert vs append operations
+- Automatic table creation with proper schemas
+- PostGIS geometry handling for spatial data
+- Completion tracking for resumable workflows
+- Comprehensive error handling and logging
+- Connection management and transaction safety
+
+The module is designed to be used by all data collectors in the project:
+- NPS park metadata and boundary collection
+- OSM hiking trail data collection
+- Future data collection modules
+
+Example Usage:
+    # Initialize writer
+    engine = get_postgres_engine()
+    writer = DatabaseWriter(engine, logger)
+
+    # Write park metadata (with upserts)
+    writer.write_parks(parks_df, mode='upsert')
+
+    # Write park boundaries (with upserts)
+    writer.write_park_boundaries(boundaries_gdf, mode='upsert')
+
+    # Write trail data (append only)
+    writer.write_park_hikes(trails_gdf, mode='append')
+
+    # Check completion status
+    completed_parks = writer.get_completed_records('park_hikes', 'park_code')
+
+Author: NPS Hikes Project
+Dependencies: sqlalchemy, geopandas, pandas, geoalchemy2, shapely
+"""
+
+import logging
+import os
+from typing import Set, Optional, Union, Dict, Any, List
+import pandas as pd
+import geopandas as gpd
+import shapely.geometry
+from sqlalchemy import (
+    create_engine,
+    Table,
+    MetaData,
+    Column,
+    String,
+    Float,
+    Text,
+    text,
+    Engine,
+    inspect,
+)
+from sqlalchemy.dialects.postgresql import insert
+from geoalchemy2 import Geometry
+from sqlalchemy.exc import SQLAlchemyError
+
+# Try to import config, but handle gracefully if it fails
+try:
+    from config.settings import config
+
+    CONFIG_AVAILABLE = True
+except Exception:
+    CONFIG_AVAILABLE = False
+    config = None
+
+
+def get_postgres_engine() -> Engine:
+    """
+    Create a SQLAlchemy engine for PostgreSQL/PostGIS using configuration.
+
+    This function creates a database connection using the configuration settings
+    and returns a SQLAlchemy engine that can be used for all database operations.
+
+    Returns:
+        Engine: SQLAlchemy engine instance configured for PostgreSQL/PostGIS
+
+    Raises:
+        ValueError: If any required configuration is missing
+        SQLAlchemyError: If database connection cannot be established
+    """
+    if not CONFIG_AVAILABLE or config is None:
+        raise ValueError("Configuration not available. Cannot create database engine.")
+
+    conn_str = config.get_database_url()
+    return create_engine(conn_str)
+
+
+class DatabaseWriter:
+    """
+    Unified database writer for all NPS Hikes project data.
+
+    This class provides a consistent interface for writing different types of data
+    to the PostgreSQL/PostGIS database. It handles table creation, data validation,
+    and supports both upsert and append operations depending on the data type.
+
+    The writer is designed to be stateless and thread-safe, with all state
+    managed through the database connection and transaction handling.
+    """
+
+    def __init__(self, engine: Engine, logger: Optional[logging.Logger] = None):
+        """
+        Initialize the database writer.
+
+        Args:
+            engine (Engine): SQLAlchemy engine for database connections
+            logger (Optional[logging.Logger]): Logger instance for operation tracking.
+                                             If None, creates a default logger.
+        """
+        self.engine = engine
+        self.logger = logger or logging.getLogger(__name__)
+        self.metadata = MetaData()
+
+        # Table schemas - defined once and reused
+        self._define_table_schemas()
+
+    def _define_table_schemas(self) -> None:
+        """
+        Define all table schemas used by the project.
+
+        This method sets up SQLAlchemy Table objects for all known tables,
+        which are used for both table creation and data operations.
+        """
+        # Parks metadata table
+        self.parks_table = Table(
+            "parks",
+            self.metadata,
+            Column("park_code", String, primary_key=True),
+            Column("park_name", Text),
+            Column("visit_month", String),
+            Column("visit_year", String),
+            Column("full_name", Text),
+            Column("states", String),
+            Column("url", Text),
+            Column("latitude", Float),
+            Column("longitude", Float),
+            Column("description", Text),
+            Column("error_message", Text),
+            Column("collection_status", String),
+            extend_existing=True,
+        )
+
+        # Park boundaries table
+        self.park_boundaries_table = Table(
+            "park_boundaries",
+            self.metadata,
+            Column("park_code", String, primary_key=True),
+            Column("geometry", Geometry(geometry_type="MULTIPOLYGON", srid=4326)),
+            Column("geometry_type", String),
+            Column("boundary_source", String),
+            Column("error_message", Text),
+            Column("collection_status", String),
+            extend_existing=True,
+        )
+
+    def _check_primary_key(self, table_name: str, pk_column: str) -> None:
+        """
+        Check if the given table exists and if pk_column is a primary key.
+
+        This validation ensures data integrity by confirming that required
+        primary key constraints are in place before attempting data operations.
+
+        Args:
+            table_name (str): Name of the table to check
+            pk_column (str): Name of the column that should be a primary key
+
+        Raises:
+            ValueError: If the table exists but doesn't have the expected primary key
+        """
+        inspector = inspect(self.engine)
+        if table_name in inspector.get_table_names():
+            pk = inspector.get_pk_constraint(table_name)
+            pk_cols = pk.get("constrained_columns", [])
+            if pk_column not in pk_cols:
+                raise ValueError(
+                    f"Table '{table_name}' exists but does not have '{pk_column}' as a primary key. "
+                    "Please fix the schema before proceeding."
+                )
+
+    def _create_park_hikes_table(self) -> None:
+        """
+        Create the park_hikes table for OSM trail data if it doesn't exist.
+
+        This method creates the specialized table for hiking trail data with
+        a composite primary key and proper PostGIS geometry support. The table
+        design supports the OSM data collection workflow.
+
+        Raises:
+            SQLAlchemyError: If table creation fails
+        """
+        sql = """
+        CREATE TABLE IF NOT EXISTS park_hikes (
+            osm_id BIGINT NOT NULL,
+            park_code VARCHAR NOT NULL,
+            highway VARCHAR NOT NULL,
+            name VARCHAR,
+            source VARCHAR,
+            length_mi DOUBLE PRECISION NOT NULL,
+            geometry_type VARCHAR NOT NULL,
+            geometry geometry(LINESTRING, 4326) NOT NULL,
+            timestamp TIMESTAMPTZ NOT NULL,
+            PRIMARY KEY (park_code, osm_id),
+            FOREIGN KEY (park_code) REFERENCES park_boundaries(park_code)
+        );
+        """
+        with self.engine.begin() as conn:
+            conn.execute(text(sql))
+        self.logger.info("Ensured park_hikes table exists in database")
+
+    def ensure_table_exists(self, table_name: str) -> None:
+        """
+        Ensure that the specified table exists in the database.
+
+        This method creates tables based on predefined schemas and handles
+        special cases like the park_hikes table that requires custom SQL.
+
+        Args:
+            table_name (str): Name of the table to create
+
+        Raises:
+            ValueError: If table_name is not recognized
+            SQLAlchemyError: If table creation fails
+        """
+        if table_name == "park_hikes":
+            self._create_park_hikes_table()
+        elif table_name in ["parks", "park_boundaries"]:
+            # Use SQLAlchemy table definitions
+            self.metadata.create_all(
+                self.engine,
+                tables=[getattr(self, f"{table_name}_table")],
+                checkfirst=True,
+            )
+            self.logger.info(f"Ensured {table_name} table exists in database")
+        else:
+            raise ValueError(f"Unknown table name: {table_name}")
+
+    def get_completed_records(self, table_name: str, key_column: str) -> Set[str]:
+        """
+        Get set of keys for records that already exist in the specified table.
+
+        This method enables resumable workflows by identifying which records
+        have already been processed and stored in the database.
+
+        Args:
+            table_name (str): Name of the table to query
+            key_column (str): Name of the column to use as the key
+
+        Returns:
+            Set[str]: Set of key values that already exist in the table.
+                     Empty set if table doesn't exist or query fails.
+        """
+        try:
+            sql = f"SELECT DISTINCT {key_column} FROM {table_name}"
+            result = pd.read_sql(sql, self.engine)
+            completed = set(result[key_column].tolist())
+            if completed:
+                self.logger.info(
+                    f"Found {len(completed)} existing records in {table_name}: {sorted(list(completed))[:10]}..."
+                )
+            return completed
+        except Exception as e:
+            self.logger.warning(
+                f"Could not check completed records in {table_name}: {e}"
+            )
+            return set()
+
+    def write_parks(
+        self, df: pd.DataFrame, mode: str = "upsert", table_name: str = "parks"
+    ) -> None:
+        """
+        Write park metadata to the parks table.
+
+        This method handles park metadata with upsert capabilities to prevent
+        duplicates while allowing updates to existing records.
+
+        Args:
+            df (pd.DataFrame): Park metadata to write
+            mode (str): Write mode - 'upsert' (default) or 'append'
+            table_name (str): Target table name (default: 'parks')
+
+        Raises:
+            ValueError: If mode is not supported or primary key issues exist
+            SQLAlchemyError: If database operations fail
+        """
+        if df.empty:
+            self.logger.warning("No park data to save")
+            return
+
+        if mode not in ["upsert", "append"]:
+            raise ValueError(f"Unsupported mode '{mode}'. Use 'upsert' or 'append'")
+
+        # Ensure table exists and validate schema
+        self.ensure_table_exists(table_name)
+        if mode == "upsert":
+            self._check_primary_key(table_name, "park_code")
+
+        if mode == "upsert":
+            self._upsert_parks(df, table_name)
+        else:
+            self._append_dataframe(df, table_name)
+
+    def _upsert_parks(self, df: pd.DataFrame, table_name: str) -> None:
+        """
+        Perform upsert operation for parks data.
+
+        Args:
+            df (pd.DataFrame): Parks data to upsert
+            table_name (str): Target table name
+        """
+        with self.engine.begin() as conn:
+            for _, row in df.iterrows():
+                row_dict = row.to_dict()
+                stmt = insert(self.parks_table).values(**row_dict)
+                update_cols = {
+                    col: stmt.excluded[col] for col in row_dict if col != "park_code"
+                }
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["park_code"], set_=update_cols
+                )
+                conn.execute(stmt)
+
+        self.logger.info(f"Upserted {len(df)} park records to {table_name}")
+
+    def write_park_boundaries(
+        self,
+        gdf: gpd.GeoDataFrame,
+        mode: str = "upsert",
+        table_name: str = "park_boundaries",
+    ) -> None:
+        """
+        Write park boundary data to the park_boundaries table.
+
+        This method handles spatial boundary data with proper PostGIS geometry
+        handling and supports upsert operations for data updates.
+
+        Args:
+            gdf (gpd.GeoDataFrame): Boundary data to write
+            mode (str): Write mode - 'upsert' (default) or 'append'
+            table_name (str): Target table name (default: 'park_boundaries')
+
+        Raises:
+            ValueError: If mode is not supported or primary key issues exist
+            SQLAlchemyError: If database operations fail
+        """
+        if gdf.empty:
+            self.logger.warning("No boundary data to save")
+            return
+
+        if mode not in ["upsert", "append"]:
+            raise ValueError(f"Unsupported mode '{mode}'. Use 'upsert' or 'append'")
+
+        # Ensure table exists and validate schema
+        self.ensure_table_exists(table_name)
+        if mode == "upsert":
+            self._check_primary_key(table_name, "park_code")
+
+        if mode == "upsert":
+            self._upsert_park_boundaries(gdf, table_name)
+        else:
+            self._append_geodataframe(gdf, table_name)
+
+    def _upsert_park_boundaries(self, gdf: gpd.GeoDataFrame, table_name: str) -> None:
+        """
+        Perform upsert operation for park boundaries data.
+
+        Args:
+            gdf (gpd.GeoDataFrame): Boundary data to upsert
+            table_name (str): Target table name
+        """
+        with self.engine.begin() as conn:
+            for _, row in gdf.iterrows():
+                geom_wkt = None
+                geom = row["geometry"]
+                if geom is not None and isinstance(
+                    geom, shapely.geometry.base.BaseGeometry
+                ):
+                    geom_wkt = geom.wkt
+
+                values = {
+                    "park_code": row["park_code"],
+                    "geometry": geom_wkt,
+                    "geometry_type": row.get("geometry_type"),
+                    "boundary_source": row.get("boundary_source"),
+                    "error_message": row.get("error_message"),
+                    "collection_status": row.get("collection_status"),
+                }
+
+                stmt = insert(self.park_boundaries_table).values(**values)
+                update_cols = {
+                    col: stmt.excluded[col] for col in values if col != "park_code"
+                }
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["park_code"], set_=update_cols
+                )
+                conn.execute(stmt)
+
+        self.logger.info(f"Upserted {len(gdf)} boundary records to {table_name}")
+
+    def write_park_hikes(
+        self,
+        gdf: gpd.GeoDataFrame,
+        mode: str = "append",
+        table_name: str = "park_hikes",
+    ) -> None:
+        """
+        Write hiking trail data to the park_hikes table.
+
+        This method handles OSM trail data using geopandas' optimized PostGIS
+        integration. Trail data typically uses append-only operations since
+        each trail has a unique OSM ID within each park.
+
+        Args:
+            gdf (gpd.GeoDataFrame): Trail data to write with required columns:
+                                   osm_id, park_code, highway, name, source,
+                                   length_mi, geometry_type, geometry, timestamp
+            mode (str): Write mode - 'append' (default) or 'upsert'
+            table_name (str): Target table name (default: 'park_hikes')
+
+        Raises:
+            ValueError: If mode is not supported
+            SQLAlchemyError: If database operations fail
+        """
+        if gdf.empty:
+            self.logger.warning("No trail data to save")
+            return
+
+        if mode not in ["append", "upsert"]:
+            raise ValueError(f"Unsupported mode '{mode}'. Use 'append' or 'upsert'")
+
+        # Ensure table exists
+        self.ensure_table_exists(table_name)
+
+        if mode == "append":
+            self._append_geodataframe(gdf, table_name)
+        else:
+            # Upsert for park_hikes would need custom implementation
+            # due to composite primary key (park_code, osm_id)
+            raise NotImplementedError(
+                "Upsert mode not implemented for park_hikes table"
+            )
+
+    def _append_dataframe(self, df: pd.DataFrame, table_name: str) -> None:
+        """
+        Append DataFrame to table using pandas to_sql.
+
+        Args:
+            df (pd.DataFrame): Data to append
+            table_name (str): Target table name
+        """
+        try:
+            df.to_sql(table_name, self.engine, if_exists="append", index=False)
+            self.logger.info(f"Appended {len(df)} records to {table_name}")
+        except Exception as e:
+            self.logger.error(f"Failed to append data to {table_name}: {e}")
+            raise
+
+    def _append_geodataframe(self, gdf: gpd.GeoDataFrame, table_name: str) -> None:
+        """
+        Append GeoDataFrame to table using geopandas to_postgis.
+
+        Args:
+            gdf (gpd.GeoDataFrame): Spatial data to append
+            table_name (str): Target table name
+        """
+        try:
+            gdf.to_postgis(table_name, self.engine, if_exists="append", index=False)
+            self.logger.info(f"Appended {len(gdf)} spatial records to {table_name}")
+        except Exception as e:
+            self.logger.error(f"Failed to append spatial data to {table_name}: {e}")
+            raise
+
+    def truncate_tables(self, table_names: List[str]) -> None:
+        """
+        Truncate (delete all rows from) the specified tables.
+
+        This method is useful for resetting data during development or
+        when performing complete data refreshes.
+
+        Args:
+            table_names (List[str]): List of table names to truncate
+
+        Note:
+            This operation is irreversible and will delete all data in the
+            specified tables. Use with caution.
+        """
+        with self.engine.begin() as conn:
+            for table in table_names:
+                try:
+                    self.logger.info(f"Truncating table '{table}'...")
+                    conn.execute(
+                        text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;")
+                    )
+                    self.logger.info(f"Table '{table}' truncated")
+                except Exception as e:
+                    self.logger.error(f"Failed to truncate table '{table}': {e}")
+
+    def get_table_info(self, table_name: str) -> Dict[str, Any]:
+        """
+        Get information about a table including row count and schema.
+
+        Args:
+            table_name (str): Name of the table to inspect
+
+        Returns:
+            Dict[str, Any]: Dictionary containing table information including
+                           row_count, columns, and primary_keys
+        """
+        inspector = inspect(self.engine)
+
+        info = {
+            "exists": table_name in inspector.get_table_names(),
+            "row_count": 0,
+            "columns": [],
+            "primary_keys": [],
+        }
+
+        if info["exists"]:
+            try:
+                # Get row count
+                with self.engine.connect() as conn:
+                    result = conn.execute(text(f"SELECT COUNT(*) FROM {table_name}"))
+                    info["row_count"] = result.scalar()
+
+                # Get column info
+                info["columns"] = [
+                    col["name"] for col in inspector.get_columns(table_name)
+                ]
+
+                # Get primary key info
+                pk_constraint = inspector.get_pk_constraint(table_name)
+                info["primary_keys"] = pk_constraint.get("constrained_columns", [])
+
+            except Exception as e:
+                self.logger.warning(
+                    f"Could not get complete info for table {table_name}: {e}"
+                )
+
+        return info
+
+
+# Backward compatibility functions for existing code
+def save_park_results_to_db(
+    df: pd.DataFrame, engine: Engine, table_name: str = "parks"
+) -> None:
+    """
+    Backward compatibility function for NPS collector.
+
+    Args:
+        df (pd.DataFrame): Park data
+        engine (Engine): SQLAlchemy engine
+        table_name (str): Name of the table to write to
+    """
+    logger = logging.getLogger(__name__)
+    writer = DatabaseWriter(engine, logger)
+    writer.write_parks(df, mode="upsert", table_name=table_name)
+
+
+def save_boundary_results_to_db(
+    gdf: gpd.GeoDataFrame, engine: Engine, table_name: str = "park_boundaries"
+) -> None:
+    """
+    Backward compatibility function for NPS collector.
+
+    Args:
+        gdf (gpd.GeoDataFrame): Boundary data
+        engine (Engine): SQLAlchemy engine
+        table_name (str): Name of the table to write to
+    """
+    logger = logging.getLogger(__name__)
+    writer = DatabaseWriter(engine, logger)
+    writer.write_park_boundaries(gdf, mode="upsert", table_name=table_name)
+
+
+def truncate_tables(engine: Engine, table_names: List[str]) -> None:
+    """
+    Backward compatibility function for truncating tables.
+
+    Args:
+        engine (Engine): SQLAlchemy engine
+        table_names (List[str]): List of table names to truncate
+    """
+    logger = logging.getLogger(__name__)
+    writer = DatabaseWriter(engine, logger)
+    writer.truncate_tables(table_names)
