@@ -1,29 +1,63 @@
 """
 OpenStreetMap Hiking Trails Collector for National Parks
 
-This script collects hiking trail data from OpenStreetMap (OSM) for National Parks
-by querying OSM's Overpass API within park boundary polygons. It downloads trail
-geometries tagged as 'path' or 'footway', processes them to extract relevant
-attributes, and saves the results to both GeoPackage files and PostgreSQL database.
+This module provides a comprehensive solution for collecting hiking trail data from
+OpenStreetMap (OSM) within National Park boundaries. It queries OSM's Overpass API
+to download trail geometries, processes and validates the data, and stores results
+in both file and database formats.
 
-The collector focuses on named hiking trails and computes trail lengths in miles
-using proper geographic projections. It includes rate limiting to be respectful
-to OSM servers and comprehensive error handling for robust data collection.
+Key Features:
+- Automated trail discovery using OSM's rich trail tagging system
+- Spatial filtering within precise park boundary polygons
+- Data quality validation and standardization
+- Resumable collection runs for large datasets
+- Rate limiting to respect OSM server policies
+- Comprehensive logging and progress tracking
+- Dual output: GeoPackage files and PostgreSQL/PostGIS database
+
+Data Processing Pipeline:
+1. Load park boundaries from database
+2. Query OSM Overpass API for trail features within each park
+3. Filter for linear geometries (LineString/MultiLineString)
+4. Filter for named trails to focus on established hiking routes
+5. Calculate accurate trail lengths using projected coordinate systems
+6. Validate data quality and remove invalid/unrealistic records
+7. Add metadata (park codes, timestamps, source attribution)
+8. Write to both GeoPackage and database with proper spatial indexing
+
+The collector is designed for production use with large datasets, supporting
+resumable operations, comprehensive error handling, and detailed logging.
+It can process hundreds of parks over several hours while maintaining data
+integrity and providing progress feedback.
+
+Example Usage:
+    # Process all parks and write to database
+    python osm_hikes_collector.py --write-db
+    
+    # Test with specific parks only
+    python osm_hikes_collector.py --parks YELL,GRCA --test-limit 2
+    
+    # Resume interrupted collection
+    python osm_hikes_collector.py --write-db  # Automatically skips completed parks
+
+Author: NPS Hikes Project
+License: [License information]
+Dependencies: geopandas, osmnx, sqlalchemy, shapely, pandas
 """
 
 # Standard library imports
 import argparse
 import os
-import sys
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Set, Union
+import logging
 
 # Third-party imports
 import geopandas as gpd
 import osmnx as ox
 import pandas as pd
-from sqlalchemy import create_engine, text
-from sqlalchemy.exc import SQLAlchemyError
+from shapely.geometry import Polygon, MultiPolygon
+from sqlalchemy import text, Engine
 from dotenv import load_dotenv
 
 # Load .env before local imports that need env vars
@@ -53,29 +87,40 @@ class OSMHikesCollector:
         test_limit: Optional[int],
         log_level: str,
         write_db: bool,
-    ):
+    ) -> None:
         """
         Initialize the OSM hikes collector with configuration parameters.
 
+        This constructor sets up logging, database connections, and tracks completion state
+        for resumable collection runs. The collector can process all parks or be limited
+        to specific parks for testing purposes.
+
         Args:
-            output_gpkg (str): Path to output GeoPackage file
-            rate_limit (float): Seconds to sleep between OSM API requests
-            parks (Optional[List[str]]): List of specific park codes to process, or None for all parks
-            test_limit (Optional[int]): Maximum number of parks to process for testing, or None for no limit
-            log_level (str): Logging level (e.g., 'INFO', 'DEBUG', 'WARNING')
-            write_db (bool): Whether to write results to the database in addition to file output
+            output_gpkg (str): Path to output GeoPackage file where trail data will be saved
+            rate_limit (float): Seconds to sleep between OSM API requests to respect server limits
+            parks (Optional[List[str]]): List of specific park codes to process (e.g., ['YELL', 'GRCA']),
+                                       or None to process all parks in the database
+            test_limit (Optional[int]): Maximum number of parks to process for testing purposes,
+                                      or None for no limit (processes all specified parks)
+            log_level (str): Logging verbosity level (e.g., 'INFO', 'DEBUG', 'WARNING', 'ERROR')
+            write_db (bool): Whether to write results to PostgreSQL database in addition to file output.
+                           If False, only writes to the GeoPackage file.
+
+        Raises:
+            SQLAlchemyError: If database connection cannot be established
+            ValueError: If invalid log_level is provided
         """
-        self.logger = setup_osm_collector_logging(log_level)
-        self.output_gpkg = output_gpkg
-        self.rate_limit = rate_limit
-        self.parks = parks
-        self.test_limit = test_limit
-        self.write_db = write_db
+        self.logger: logging.Logger = setup_osm_collector_logging(log_level)
+        self.output_gpkg: str = output_gpkg
+        self.rate_limit: float = rate_limit
+        self.parks: Optional[List[str]] = parks
+        self.test_limit: Optional[int] = test_limit
+        self.write_db: bool = write_db
         # Always create engine for reading from DB, but only write if write_db is True
-        self.engine = get_postgres_engine()
-        self.timestamp = datetime.now(timezone.utc).isoformat()
-        # Track completed parks for resumability
-        self.completed_parks = self.get_completed_parks() if write_db else set()
+        self.engine: Engine = get_postgres_engine()
+        self.timestamp: str = datetime.now(timezone.utc).isoformat()
+        # Track completed parks for resumability - enables restarting interrupted collections
+        self.completed_parks: Set[str] = self.get_completed_parks() if write_db else set()
 
     def load_park_boundaries(self) -> gpd.GeoDataFrame:
         """
@@ -100,12 +145,23 @@ class OSMHikesCollector:
         self.logger.info(f"Loaded {len(gdf)} park boundaries.")
         return gdf
 
-    def get_completed_parks(self) -> set:
+    def get_completed_parks(self) -> Set[str]:
         """
         Get set of park codes that have already been processed.
         
+        This method queries the park_hikes table to find which parks already have
+        trail data, enabling resumable collection runs. If the table doesn't exist
+        or there's an error accessing it, returns an empty set.
+        
         Returns:
-            set: Set of park codes with existing trail data
+            Set[str]: Set of park codes (e.g., {'YELL', 'GRCA'}) that already have
+                     trail data in the database. Empty set if no data exists or
+                     if write_db is False.
+                     
+        Note:
+            This method only runs when write_db=True. When write_db=False, the
+            collector doesn't need to check for completed parks since it's not
+            writing to the database.
         """
         if not self.write_db or self.engine is None:
             return set()
@@ -121,19 +177,27 @@ class OSMHikesCollector:
             self.logger.warning(f"Could not check completed parks: {e}")
             return set()
     
-    def query_osm_trails(self, polygon) -> gpd.GeoDataFrame:
+    def query_osm_trails(self, polygon: Union[Polygon, MultiPolygon]) -> gpd.GeoDataFrame:
         """
         Query OpenStreetMap for hiking trails within a given polygon boundary.
 
         Uses the osmnx library to query OSM's Overpass API for features tagged
         as 'path' or 'footway' (common hiking trail tags) within the polygon.
+        The query respects OSM's usage policies and includes rate limiting.
 
         Args:
-            polygon: Shapely polygon or similar geometry object defining the search area
+            polygon (Union[Polygon, MultiPolygon]): Shapely geometry object defining 
+                                                   the park boundary search area
 
         Returns:
-            gpd.GeoDataFrame: GeoDataFrame containing trail geometries and OSM attributes,
-                             or empty GeoDataFrame if no trails found or query fails
+            gpd.GeoDataFrame: GeoDataFrame containing trail geometries and OSM attributes
+                             including osm_id, highway type, name, and geometry. Returns
+                             empty GeoDataFrame if no trails found or if the query fails.
+                             
+        Note:
+            This method may take several seconds to complete for large parks due to
+            OSM API response times. Network timeouts or OSM server issues will result
+            in an empty GeoDataFrame being returned with an error logged.
         """
         try:
             trails = ox.features.features_from_polygon(polygon, tags=config.OSM_TRAIL_TAGS)
@@ -191,21 +255,35 @@ class OSMHikesCollector:
         
         return trails
     
-    def process_trails(self, park_code: str, polygon) -> gpd.GeoDataFrame:
+    def process_trails(self, park_code: str, polygon: Union[Polygon, MultiPolygon]) -> gpd.GeoDataFrame:
         """
         Process and clean hiking trail data for a specific park.
 
-        Downloads trails from OSM, filters for linear geometries and named trails,
-        calculates trail lengths in miles, and adds metadata including park code
-        and timestamp. Removes any records missing required fields.
+        This is the main processing pipeline that downloads trails from OSM, applies
+        filtering and validation rules, calculates metrics, and standardizes the data
+        format for storage. The process includes:
+        1. Query OSM for trail features within park boundary
+        2. Filter for linear geometries (LineString/MultiLineString)
+        3. Filter for named trails only
+        4. Calculate trail lengths in miles using appropriate projection
+        5. Add metadata (park code, timestamp, geometry type)
+        6. Validate data quality and remove invalid records
 
         Args:
-            park_code (str): National Park Service park code (e.g., 'YELL', 'GRCA')
-            polygon: Shapely polygon defining the park boundary
+            park_code (str): National Park Service park code identifier (e.g., 'YELL', 'GRCA')
+            polygon (Union[Polygon, MultiPolygon]): Shapely geometry defining the park boundary
+                                                   used as the search area for OSM queries
 
         Returns:
-            gpd.GeoDataFrame: Processed trail data with standardized columns and metadata,
-                             or empty GeoDataFrame if no valid trails found
+            gpd.GeoDataFrame: Processed trail data with standardized columns including:
+                             osm_id, park_code, highway, name, source, length_mi,
+                             geometry_type, geometry, and timestamp. Returns empty
+                             GeoDataFrame if no valid trails found after processing.
+                             
+        Note:
+            Only trails with names are included in the results, as unnamed paths are
+            often service roads or informal tracks rather than established hiking trails.
+            Trail lengths are calculated using a projected coordinate system for accuracy.
         """
         trails = self.query_osm_trails(polygon)
         if trails.empty:
@@ -266,13 +344,29 @@ class OSMHikesCollector:
         """
         Collect hiking trails for all specified parks with per-park processing.
 
-        Iterates through all park boundaries, downloads and processes trails for each,
-        and writes results immediately to avoid memory issues. Includes rate limiting
-        between requests and resumability by skipping completed parks.
+        This is the main orchestration method that processes multiple parks sequentially.
+        It implements several important features:
+        - Resumability: Skips parks that already have data in the database
+        - Memory efficiency: Writes data per-park instead of accumulating in memory
+        - Rate limiting: Respects OSM server limits with configurable delays
+        - Progress tracking: Logs detailed progress for long-running collections
+        - Error isolation: Individual park failures don't stop the entire collection
+
+        The method loads park boundaries, filters for specified parks (if any), applies
+        test limits (if specified), and processes each park individually. Results are
+        written immediately to both file and database to prevent data loss.
 
         Returns:
-            gpd.GeoDataFrame: Final combined trail data for reporting purposes,
-                             or empty GeoDataFrame if no trails collected
+            gpd.GeoDataFrame: Combined trail data from all processed parks for final
+                             reporting and statistics. This is a summary view - the
+                             actual persistent data is written to files and database
+                             during processing. Returns empty GeoDataFrame if no trails
+                             were collected from any park.
+                             
+        Note:
+            This method can run for hours when processing all parks. Progress is logged
+            regularly, and the process can be safely interrupted and resumed later when
+            write_db=True, as completed parks will be automatically skipped.
         """
         park_gdf = self.load_park_boundaries()
         
@@ -327,11 +421,25 @@ class OSMHikesCollector:
 
     def save_to_gpkg(self, gdf: gpd.GeoDataFrame, append: bool = False) -> None:
         """
-        Save trail data to a GeoPackage file.
+        Save trail data to a GeoPackage file with append capability.
+
+        This method handles writing trail data to the output GeoPackage file, with
+        support for both creating new files and appending to existing ones. When
+        appending, it reads the existing data, combines it with new data, and
+        writes the complete dataset back to the file.
 
         Args:
-            gdf (gpd.GeoDataFrame): Trail data to save
-            append (bool): If True, append to existing file, otherwise overwrite
+            gdf (gpd.GeoDataFrame): Trail data to save, containing standardized columns
+                                   including geometry, park_code, trail names, etc.
+            append (bool): If True, append to existing file by reading current data
+                          and combining with new data. If False, overwrite any existing
+                          file. Defaults to False.
+
+        Note:
+            GeoPackage format is used because it's an open standard, supports large
+            datasets efficiently, and maintains spatial indexes automatically. The
+            append operation requires reading the entire existing file into memory,
+            so very large datasets may need alternative approaches.
         """
         if gdf.empty:
             self.logger.warning("No data to save to GPKG.")
@@ -357,11 +465,25 @@ class OSMHikesCollector:
         """
         Create the park_hikes table in the database if it doesn't exist.
 
-        Creates a table with proper PostGIS geometry columns and foreign key
-        constraints linking to the park_boundaries table.
+        This method sets up the database schema for storing hiking trail data with
+        proper PostGIS geometry support and relational constraints. The table design
+        includes:
+        - Composite primary key (park_code, osm_id) to prevent duplicates
+        - PostGIS LINESTRING geometry column with EPSG:4326 CRS
+        - Foreign key relationship to park_boundaries table
+        - Proper indexing for spatial and attribute queries
+        - TIMESTAMPTZ for timezone-aware timestamps
+
+        The table creation is idempotent - running this multiple times is safe and
+        will not cause errors or data loss.
 
         Raises:
-            SQLAlchemyError: If table creation fails
+            SQLAlchemyError: If table creation fails due to database connection issues,
+                           permission problems, or schema conflicts
+            
+        Note:
+            This method requires that the park_boundaries table already exists in the
+            database, as it creates a foreign key constraint referencing that table.
         """
         sql = f"""
         CREATE TABLE IF NOT EXISTS park_hikes (
@@ -386,14 +508,30 @@ class OSMHikesCollector:
         """
         Save trail data to the PostgreSQL database using proper PostGIS integration.
 
-        Creates the park_hikes table if needed and inserts trail data with proper
-        PostGIS geometry handling using geopandas.to_postgis().
+        This method handles the complete database storage workflow including table
+        creation and data insertion. It uses geopandas' built-in PostGIS support
+        to ensure geometries are properly handled and spatial indexes are maintained.
+        
+        The process includes:
+        1. Ensure park_hikes table exists with proper schema
+        2. Insert trail data using geopandas.to_postgis() for optimal geometry handling
+        3. Append mode prevents overwriting existing data from other parks
+        4. Automatic handling of spatial reference systems and data types
 
         Args:
-            gdf (gpd.GeoDataFrame): Trail data to save
+            gdf (gpd.GeoDataFrame): Trail data to save, must contain standardized columns
+                                   matching the park_hikes table schema including geometry,
+                                   park_code, osm_id, and other required fields
 
         Raises:
-            SQLAlchemyError: If database operations fail
+            SQLAlchemyError: If database operations fail due to connection issues,
+                           permission problems, or data constraint violations
+            ValueError: If gdf contains invalid data that violates table constraints
+            
+        Note:
+            This method uses 'append' mode to add new data without affecting existing
+            records. Duplicate records (same park_code + osm_id) will cause constraint
+            violations and should be filtered out before calling this method.
         """
         if gdf.empty:
             self.logger.warning("No data to save to DB.")
@@ -418,8 +556,24 @@ class OSMHikesCollector:
         """
         Execute the complete trail collection pipeline.
 
-        Orchestrates the full process: loads park boundaries, collects trails
-        from OSM with per-park writing for efficiency and resumability.
+        This is the main entry point that orchestrates the entire collection process
+        from start to finish. It handles initialization, processing, and cleanup
+        while providing comprehensive logging and error handling.
+        
+        The complete workflow includes:
+        1. Initialize output files (remove existing if not resuming)
+        2. Process all specified parks sequentially with rate limiting
+        3. Write data incrementally to prevent memory issues and data loss
+        4. Log comprehensive summary statistics and completion status
+        5. Handle both file and database output based on configuration
+
+        The method is designed to be robust for long-running operations and provides
+        detailed progress information throughout the collection process.
+        
+        Note:
+            This method can run for several hours when processing all parks. The
+            process logs detailed progress and can be safely interrupted and resumed
+            when write_db=True, as completed parks will be automatically skipped.
         """
         self.logger.info("Starting OSM hiking trails collection...")
         
@@ -442,21 +596,41 @@ class OSMHikesCollector:
 
 
 # --- CLI ---
-def main():
+def main() -> None:
     """
     Main function for command-line execution of the OSM hiking trails collector.
 
-    Parses command-line arguments to configure the collector and executes the
-    complete trail collection pipeline. Supports various options for customizing
-    the collection process including park filtering, rate limiting, and output formats.
+    This function provides the command-line interface for the OSM trails collector,
+    parsing arguments and configuring the collection process. It supports flexible
+    configuration options for different use cases from testing to production runs.
+
+    The function handles argument parsing, input validation, collector initialization,
+    and execution orchestration. It's designed to be the primary entry point for
+    both interactive use and automated/scripted execution.
 
     Command-line Arguments:
-        --write-db: Write results to the PostgreSQL database in addition to file output
-        --output-gpkg: Path for the output GeoPackage file (default: park_hikes.gpkg)
-        --rate-limit: Seconds to sleep between OSM API requests (default: 1.0)
-        --parks: Comma-separated list of park codes to process (optional)
-        --test-limit: Maximum number of parks to process for testing (optional)
-        --log-level: Logging verbosity level (default: INFO)
+        --write-db: Write results to the PostgreSQL database in addition to file output.
+                   When enabled, supports resumable collection runs.
+        --output-gpkg: Path for the output GeoPackage file (default from config).
+                      File will be created if it doesn't exist.
+        --rate-limit: Seconds to sleep between OSM API requests (default: 1.0).
+                     Higher values are more respectful to OSM servers but slower.
+        --parks: Comma-separated list of park codes to process (e.g., 'YELL,GRCA').
+                Optional - processes all parks if not specified.
+        --test-limit: Maximum number of parks to process for testing purposes.
+                     Useful for validating configuration before full runs.
+        --log-level: Logging verbosity level ('DEBUG', 'INFO', 'WARNING', 'ERROR').
+                    Controls both console and file logging output.
+
+    Example Usage:
+        # Process all parks and write to database
+        python osm_hikes_collector.py --write-db
+        
+        # Test with just 3 parks
+        python osm_hikes_collector.py --test-limit 3 --log-level DEBUG
+        
+        # Process specific parks only
+        python osm_hikes_collector.py --parks YELL,GRCA --write-db
     """
     parser = argparse.ArgumentParser(description="OSM Park Hikes Collector (Stage 3)")
     parser.add_argument(
