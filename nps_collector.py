@@ -62,13 +62,13 @@ class NPSDataCollector:
 
         self.base_url = config.API_BASE_URL
         self.rate_limit_warning_threshold = config.RATE_LIMIT_WARNING_THRESHOLD
-        self.session = requests.Session()  # Reuse connections for efficiency
+        self.session = requests.Session() 
 
         # Set up session headers that will be used for all requests
         self.session.headers.update(
             {
                 "X-Api-Key": self.api_key,
-                "User-Agent": f"Python-NPS-Collector/1.0 ({config.USER_EMAIL})",
+                "User-Agent": f"{config.APP_NAME}/{config.APP_VERSION} ({config.USER_EMAIL})",
             }
         )
 

@@ -18,6 +18,8 @@ class Config:
     """
 
     # API Configuration
+    APP_NAME: str = "Python-NPS-Collector"
+    APP_VERSION: str = "1.0"
     API_BASE_URL: str = "https://developer.nps.gov/api/v1"
     API_KEY: Optional[str] = None
     USER_EMAIL: str = "unknown@example.com"
