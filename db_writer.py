@@ -120,15 +120,16 @@ class DatabaseWriter:
         self.logger = logger or logging.getLogger(__name__)
         self.metadata = MetaData()
 
-        # Table schemas - defined once and reused
-        self._define_table_schemas()
+        # NPS table schemas - defined once and reused
+        self._define_nps_table_schemas()
 
-    def _define_table_schemas(self) -> None:
+    def _define_nps_table_schemas(self) -> None:
         """
-        Define all table schemas used by the project.
+        Define SQLAlchemy table schemas for NPS collector tables.
 
-        This method sets up SQLAlchemy Table objects for all known tables,
-        which are used for both table creation and data operations.
+        This method sets up Table objects for parks and park_boundaries tables
+        that use SQLAlchemy's declarative approach. Other tables like park_hikes
+        use raw SQL creation and are handled separately.
         """
         # Parks metadata table
         self.parks_table = Table(
@@ -220,14 +221,16 @@ class DatabaseWriter:
         """
         Ensure that the specified table exists in the database.
 
-        This method creates tables based on predefined schemas and handles
-        special cases like the park_hikes table that requires custom SQL.
+        Supports these tables:
+        - 'parks': NPS park metadata (created via SQLAlchemy)
+        - 'park_boundaries': NPS boundary data (created via SQLAlchemy)
+        - 'park_hikes': OSM trail data (created via raw SQL with composite PK)
 
         Args:
             table_name (str): Name of the table to create
 
         Raises:
-            ValueError: If table_name is not recognized
+            ValueError: If table_name is not in the supported list
             SQLAlchemyError: If table creation fails
         """
         if table_name == "park_hikes":
@@ -546,48 +549,3 @@ class DatabaseWriter:
 
         return info
 
-
-# Backward compatibility functions for existing code
-def save_park_results_to_db(
-    df: pd.DataFrame, engine: Engine, table_name: str = "parks"
-) -> None:
-    """
-    Backward compatibility function for NPS collector.
-
-    Args:
-        df (pd.DataFrame): Park data
-        engine (Engine): SQLAlchemy engine
-        table_name (str): Name of the table to write to
-    """
-    logger = logging.getLogger(__name__)
-    writer = DatabaseWriter(engine, logger)
-    writer.write_parks(df, mode="upsert", table_name=table_name)
-
-
-def save_boundary_results_to_db(
-    gdf: gpd.GeoDataFrame, engine: Engine, table_name: str = "park_boundaries"
-) -> None:
-    """
-    Backward compatibility function for NPS collector.
-
-    Args:
-        gdf (gpd.GeoDataFrame): Boundary data
-        engine (Engine): SQLAlchemy engine
-        table_name (str): Name of the table to write to
-    """
-    logger = logging.getLogger(__name__)
-    writer = DatabaseWriter(engine, logger)
-    writer.write_park_boundaries(gdf, mode="upsert", table_name=table_name)
-
-
-def truncate_tables(engine: Engine, table_names: List[str]) -> None:
-    """
-    Backward compatibility function for truncating tables.
-
-    Args:
-        engine (Engine): SQLAlchemy engine
-        table_names (List[str]): List of table names to truncate
-    """
-    logger = logging.getLogger(__name__)
-    writer = DatabaseWriter(engine, logger)
-    writer.truncate_tables(table_names)

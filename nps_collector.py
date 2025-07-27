@@ -25,12 +25,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 # Local application imports
 from config.settings import config
-from db_writer import (
-    get_postgres_engine,
-    save_park_results_to_db,
-    save_boundary_results_to_db,
-    truncate_tables,
-)
+from db_writer import get_postgres_engine, DatabaseWriter
 
 # Configure logging using centralized utility
 from utils.logging import setup_nps_collector_logging
@@ -1292,14 +1287,17 @@ Examples:
                 "Writing results to PostgreSQL/PostGIS database (via --write-db flag)..."
             )
             engine = get_postgres_engine()
+            db_writer = DatabaseWriter(engine, logger)
+            
             if args.truncate_db:
                 logger.info(
                     "Truncating parks and park_boundaries tables before DB write (via --truncate-db flag)..."
                 )
-                truncate_tables(engine, ["parks", "park_boundaries"])
-            save_park_results_to_db(park_data, engine)
+                db_writer.truncate_tables(["parks", "park_boundaries"])
+            
+            db_writer.write_parks(park_data, mode="upsert")
             if not boundary_data.empty:
-                save_boundary_results_to_db(boundary_data, engine)
+                db_writer.write_park_boundaries(boundary_data, mode="upsert")
             logger.info("Database write complete.")
 
         # Optional: Run data profiling if flag is set
