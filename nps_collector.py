@@ -1335,7 +1335,7 @@ Examples:
     except Exception as e:
         logger.error(f"Pipeline execution failed: {str(e)}")
         print(f"\nERROR: {str(e)}")
-        print("Check the log file 'nps_collector.log' for detailed error information.")
+        print("Check the log file 'logs/nps_collector.log' for detailed error information.")
         return 1
 
     return 0

@@ -48,14 +48,14 @@ class Config:
     DEFAULT_INPUT_CSV: str = "parks.csv"
     DEFAULT_OUTPUT_CSV: str = "park_data_collected.csv"
     DEFAULT_OUTPUT_GPKG: str = "park_boundaries_collected.gpkg"
-    LOG_FILE: str = "nps_collector.log"
+    LOG_FILE: str = "logs/nps_collector.log"
 
     # OSM Collection Settings
     OSM_DEFAULT_OUTPUT_GPKG: str = "park_hikes.gpkg"
     OSM_DEFAULT_RATE_LIMIT: float = 1.0
     OSM_LENGTH_CRS: str = "EPSG:5070"  # NAD83 / Conus Albers for length calculations
     OSM_TRAIL_TAGS: dict = {"highway": ["path", "footway"]}
-    OSM_LOG_FILE: str = "osm_collector.log"
+    OSM_LOG_FILE: str = "logs/osm_collector.log"
     OSM_REQUIRED_COLUMNS: list = [
         "osm_id",
         "park_code", 

@@ -9,6 +9,9 @@ scratch*
 # osmnx cache
 cache/
 
+# logs
+logs/
+
 # macOS system files
 .DS_Store
 

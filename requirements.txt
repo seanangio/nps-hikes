@@ -30,6 +30,8 @@ beautifulsoup4==4.13.4
     # via nbconvert
 bleach[css]==6.2.0
     # via nbconvert
+branca==0.8.1
+    # via folium
 cachetools==5.5.2
     # via google-auth
 certifi==2025.4.26
@@ -61,6 +63,8 @@ executing==2.2.0
     # via stack-data
 fastjsonschema==2.21.1
     # via nbformat
+folium==0.20.0
+    # via -r requirements.in
 fonttools==4.58.5
     # via matplotlib
 fqdn==1.5.1
@@ -111,6 +115,8 @@ jedi==0.19.2
     # via ipython
 jinja2==3.1.6
     # via
+    #   branca
+    #   folium
     #   jupyter-server
     #   jupyterlab
     #   jupyterlab-server
@@ -209,6 +215,7 @@ notebook-shim==0.2.4
 numpy==2.2.6
     # via
     #   contourpy
+    #   folium
     #   geopandas
     #   matplotlib
     #   osmnx
@@ -312,6 +319,7 @@ referencing==0.36.2
 requests==2.32.3
     # via
     #   -r requirements.in
+    #   folium
     #   jupyterlab-server
     #   osmnx
     #   requests-oauthlib
@@ -408,6 +416,8 @@ websocket-client==1.8.0
     # via jupyter-server
 widgetsnbextension==4.0.14
     # via ipywidgets
+xyzservices==2025.4.0
+    # via folium
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
