@@ -10,9 +10,7 @@ structured datasets with comprehensive park information.
 import os
 import sys
 import time
-import logging
 import argparse
-from logging.handlers import RotatingFileHandler
 from typing import Dict, List, Optional, Tuple
 
 # Third-party imports
@@ -34,22 +32,9 @@ from nps_db_writer import (
     truncate_tables,
 )
 
-
-# Set up rotating log files
-file_handler = RotatingFileHandler(
-    config.LOG_FILE,
-    maxBytes=config.LOG_MAX_BYTES,
-    backupCount=config.LOG_BACKUP_COUNT,
-)
-
-# Configure logging for debugging and monitoring
-logging.basicConfig(
-    level=getattr(logging, config.LOG_LEVEL),
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[file_handler, logging.StreamHandler()],
-)
-logger = logging.getLogger(__name__)
-
+# Configure logging using centralized utility
+from utils.logging import setup_nps_collector_logging
+logger = setup_nps_collector_logging()
 
 class NPSDataCollector:
     """
