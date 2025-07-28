@@ -165,20 +165,6 @@ class Config:
         """
         return f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-    def get_database_config(self) -> dict:
-        """
-        Get database configuration as a dictionary.
-
-        Returns:
-            dict: Database configuration parameters
-        """
-        return {
-            "POSTGRES_HOST": self.DB_HOST,
-            "POSTGRES_PORT": self.DB_PORT,
-            "POSTGRES_DB": self.DB_NAME,
-            "POSTGRES_USER": self.DB_USER,
-            "POSTGRES_PASSWORD": self.DB_PASSWORD,
-        }
 
 
 # Global configuration instance
