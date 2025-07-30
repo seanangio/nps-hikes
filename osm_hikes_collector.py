@@ -530,6 +530,8 @@ class OSMHikesCollector:
         else:
             self.logger.warning("No trails were collected")
 
+        self.logger.info("OSM hikes collection pipeline completed successfully")
+
 
 # --- CLI ---
 def main() -> None:
