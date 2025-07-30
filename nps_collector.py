@@ -1126,9 +1126,13 @@ Examples:
   %(prog)s --delay 2.0                  # Use 2 second delays between API calls
   %(prog)s --test-limit 5 --force-refresh  # Test mode with forced refresh
   %(prog)s --write-db                   # Write results directly to PostgreSQL/PostGIS database
-  %(prog)s --truncate-db                # Truncate parks and park_boundaries tables in DB before writing (for testing)
+  %(prog)s --truncate-parks             # Truncate parks table before writing to DB
+  %(prog)s --truncate-boundaries        # Truncate park_boundaries table before writing to DB
+  %(prog)s --truncate-hikes             # Truncate park_hikes table before writing to DB
+  %(prog)s --truncate-all               # Truncate all tables before writing to DB
   %(prog)s --db-name my_database       # Override the database name for PostgreSQL/PostGIS connection (default: use POSTGRES_DB env var or .env)
-  %(prog)s --write-db --profile-data   # Write to DB and run all profiling modules
+  %(prog)s --write-db --profile-data    # Write to DB and run all profiling modules
+  %(prog)s --write-db --truncate-all    # Clear all tables and write fresh data
         """,
     )
 
@@ -1174,9 +1178,24 @@ Examples:
         help="Write results directly to PostgreSQL/PostGIS database (optional)",
     )
     parser.add_argument(
-        "--truncate-db",
+        "--truncate-parks",
         action="store_true",
-        help="Truncate (clear) parks and park_boundaries tables in the DB before writing (for testing)",
+        help="Truncate parks table before writing to database",
+    )
+    parser.add_argument(
+        "--truncate-boundaries",
+        action="store_true",
+        help="Truncate park_boundaries table before writing to database",
+    )
+    parser.add_argument(
+        "--truncate-hikes",
+        action="store_true",
+        help="Truncate park_hikes table before writing to database",
+    )
+    parser.add_argument(
+        "--truncate-all",
+        action="store_true",
+        help="Truncate all tables (parks, park_boundaries, park_hikes) before writing to database",
     )
     parser.add_argument(
         "--db-name",
@@ -1200,7 +1219,7 @@ Examples:
         # Load environment variables from .env file
         load_dotenv()
 
-        # Initialize our data collector (API key will be loaded from config)
+        # Initialize NPS data collector (API key loaded from config)
         collector = NPSDataCollector()
 
         # Check that input file exists before starting
@@ -1289,11 +1308,24 @@ Examples:
             engine = get_postgres_engine()
             db_writer = DatabaseWriter(engine, logger)
             
-            if args.truncate_db:
-                logger.info(
-                    "Truncating parks and park_boundaries tables before DB write (via --truncate-db flag)..."
-                )
-                db_writer.truncate_tables(["parks", "park_boundaries"])
+            # Handle granular table truncation
+            tables_to_truncate = []
+            if args.truncate_all:
+                tables_to_truncate = ["parks", "park_boundaries", "park_hikes"]
+                logger.info("Truncating all tables before DB write (via --truncate-all flag)...")
+            else:
+                if args.truncate_parks:
+                    tables_to_truncate.append("parks")
+                if args.truncate_boundaries:
+                    tables_to_truncate.append("park_boundaries")
+                if args.truncate_hikes:
+                    tables_to_truncate.append("park_hikes")
+                
+                if tables_to_truncate:
+                    logger.info(f"Truncating tables: {', '.join(tables_to_truncate)}")
+            
+            if tables_to_truncate:
+                db_writer.truncate_tables(tables_to_truncate)
             
             db_writer.write_parks(park_data, mode="upsert")
             if not boundary_data.empty:
