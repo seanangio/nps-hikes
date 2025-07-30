@@ -1,7 +1,9 @@
 """
-Geographic analysis profiling module.
+NPS geography profiling module.
 
-This module provides geographic and spatial analysis queries for NPS park data.
+This module analyzes geographic and spatial data from the parks and park_boundaries tables 
+populated by nps_collector.py. It provides insights into regional distributions, coordinate 
+quality, and boundary coverage from NPS API sources.
 """
 
 from ..utils import (
@@ -15,18 +17,18 @@ from ..utils import (
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 
 
-class GeographicAnalysisProfiler:
-    """Geographic analysis profiling module."""
+class NPSGeographyProfiler:
+    """NPS geography profiling module."""
 
     def __init__(self):
-        self.config = PROFILING_MODULES["geographic_analysis"]
-        self.logger = ProfilingLogger("geographic_analysis")
+        self.config = PROFILING_MODULES["nps_geography"]
+        self.logger = ProfilingLogger("nps_geography")
         self.results = {}
 
     def run_regional_breakdown(self):
         """Run regional breakdown query."""
         try:
-            query = load_sql_query("geographic_analysis", "regional_breakdown.sql")
+            query = load_sql_query("nps_geography", "regional_breakdown.sql")
             engine = get_db_connection()
             results = run_query(engine, query)
 
@@ -52,7 +54,7 @@ class GeographicAnalysisProfiler:
     def run_coordinate_quality(self):
         """Run coordinate quality query."""
         try:
-            query = load_sql_query("geographic_analysis", "coordinate_quality.sql")
+            query = load_sql_query("nps_geography", "coordinate_quality.sql")
             engine = get_db_connection()
             results = run_query(engine, query)
 
@@ -78,7 +80,7 @@ class GeographicAnalysisProfiler:
     def run_boundary_coverage(self):
         """Run boundary coverage query."""
         try:
-            query = load_sql_query("geographic_analysis", "boundary_coverage.sql")
+            query = load_sql_query("nps_geography", "boundary_coverage.sql")
             engine = get_db_connection()
             results = run_query(engine, query)
 
@@ -117,11 +119,11 @@ class GeographicAnalysisProfiler:
 
 
 # Convenience function for external use
-def run_geographic_analysis():
-    """Convenience function to run geographic analysis profiling."""
-    profiler = GeographicAnalysisProfiler()
+def run_nps_geography():
+    """Convenience function to run NPS geography profiling."""
+    profiler = NPSGeographyProfiler()
     return profiler.run_all()
 
 
 if __name__ == "__main__":
-    run_geographic_analysis()
+    run_nps_geography()

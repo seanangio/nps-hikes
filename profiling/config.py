@@ -9,27 +9,27 @@ This centralizes all profiling configuration, making it easy to:
 """
 
 PROFILING_MODULES = {
-    "basic_stats": {
+    "nps_parks": {
         "enabled": True,
-        "description": "Basic park statistics and counts",
+        "description": "NPS park statistics and data analysis",
         "queries": [
             "park_counts_by_state.sql",
             "collection_status_summary.sql",
             "data_completeness_summary.sql",
         ],
         "dependencies": [],
-        "output_prefix": "basic_stats",
+        "output_prefix": "nps_parks",
     },
-    "geographic_analysis": {
+    "nps_geography": {
         "enabled": True,
-        "description": "Geographic and spatial analysis",
+        "description": "NPS geographic and spatial analysis",
         "queries": [
             "regional_breakdown.sql",
             "coordinate_quality.sql",
             "boundary_coverage.sql",
         ],
         "dependencies": [],
-        "output_prefix": "geographic",
+        "output_prefix": "nps_geography",
     },
     "data_quality": {
         "enabled": True,

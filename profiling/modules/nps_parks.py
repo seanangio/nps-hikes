@@ -1,11 +1,8 @@
 """
-Basic statistics profiling module.
+NPS parks profiling module.
 
-This module demonstrates the standard pattern for profiling modules:
-1. Load configuration
-2. Execute queries
-3. Save results
-4. Handle errors gracefully
+This module analyzes data from the parks and park_boundaries tables populated by nps_collector.py.
+It provides insights into park counts, collection status, and data completeness from NPS API sources.
 """
 
 from ..utils import (
@@ -19,18 +16,18 @@ from ..utils import (
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 
 
-class BasicStatsProfiler:
-    """Basic statistics profiling module."""
+class NPSParksProfiler:
+    """NPS parks profiling module."""
 
     def __init__(self):
-        self.config = PROFILING_MODULES["basic_stats"]
-        self.logger = ProfilingLogger("basic_stats")
+        self.config = PROFILING_MODULES["nps_parks"]
+        self.logger = ProfilingLogger("nps_parks")
         self.results = {}
 
     def run_park_counts_by_state(self):
         """Run park counts by state query."""
         try:
-            query = load_sql_query("basic_stats", "park_counts_by_state.sql")
+            query = load_sql_query("nps_parks", "park_counts_by_state.sql")
             engine = get_db_connection()
             results = run_query(engine, query)
 
@@ -56,7 +53,7 @@ class BasicStatsProfiler:
     def run_collection_status_summary(self):
         """Run collection status summary query."""
         try:
-            query = load_sql_query("basic_stats", "collection_status_summary.sql")
+            query = load_sql_query("nps_parks", "collection_status_summary.sql")
             engine = get_db_connection()
             results = run_query(engine, query)
 
@@ -82,7 +79,7 @@ class BasicStatsProfiler:
     def run_data_completeness_summary(self):
         """Run data completeness summary query."""
         try:
-            query = load_sql_query("basic_stats", "data_completeness_summary.sql")
+            query = load_sql_query("nps_parks", "data_completeness_summary.sql")
             engine = get_db_connection()
             results = run_query(engine, query)
 
@@ -121,11 +118,11 @@ class BasicStatsProfiler:
 
 
 # Convenience function for external use
-def run_basic_stats():
-    """Convenience function to run basic stats profiling."""
-    profiler = BasicStatsProfiler()
+def run_nps_parks():
+    """Convenience function to run NPS parks profiling."""
+    profiler = NPSParksProfiler()
     return profiler.run_all()
 
 
 if __name__ == "__main__":
-    run_basic_stats()
+    run_nps_parks()
