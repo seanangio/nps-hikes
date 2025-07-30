@@ -33,10 +33,15 @@ PROFILING_MODULES = {
     },
     "data_quality": {
         "enabled": True,
-        "description": "Data quality and validation checks",
-        "queries": ["missing_data.sql", "validation_checks.sql"],
+        "description": "Cross-table data quality and validation checks",
+        "queries": [
+            "referential_integrity.sql",
+            "data_consistency.sql", 
+            "missing_data_summary.sql",
+            "duplicate_detection.sql",
+        ],
         "dependencies": [],
-        "output_prefix": "quality",
+        "output_prefix": "data_quality",
     },
     "visualization": {
         "enabled": True,
