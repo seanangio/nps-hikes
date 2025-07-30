@@ -14,8 +14,10 @@ load_dotenv()
 
 
 def get_db_connection():
-    """Get database connection using existing environment setup."""
+    """Get database connection for profiling operations."""
     try:
+        # Validate database requirements (profiling only reads from database)
+        config.validate_for_database_operations()
         return get_postgres_engine()
     except ValueError as e:
         print(f"Database connection failed: {e}")

@@ -8,6 +8,11 @@ profiling operations.
 
 import sys
 from typing import List, Dict, Any
+from dotenv import load_dotenv
+
+# Load environment variables before importing config-dependent modules
+load_dotenv()
+
 from .config import PROFILING_MODULES, PROFILING_SETTINGS
 from .utils import ProfilingLogger
 

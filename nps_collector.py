@@ -1219,6 +1219,14 @@ Examples:
         # Load environment variables from .env file
         load_dotenv()
 
+        # Validate configuration based on operation type
+        if args.write_db:
+            # Need both API and database credentials when writing to DB
+            config.validate_for_api_and_database_operations()
+        else:
+            # Only need API credentials for CSV output
+            config.validate_for_api_operations()
+
         # Initialize NPS data collector (API key loaded from config)
         collector = NPSDataCollector()
 

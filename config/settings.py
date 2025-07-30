@@ -3,6 +3,13 @@ Configuration settings for the NPS Hikes project.
 
 This module centralizes all configuration values and provides a single source of truth for all
 configurable parameters.
+
+The configuration system uses context-aware validation to support different operational modes:
+- API operations (CSV output): Requires only NPS_API_KEY  
+- Database operations (profiling, OSM collection): Requires only database credentials
+- API + Database operations (--write-db flag): Requires both NPS_API_KEY and database credentials
+
+This design allows components to run independently without unnecessary dependencies.
 """
 
 import os
@@ -42,7 +49,7 @@ class Config:
     # Database Configuration
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
-    DB_NAME: str = "nps_data"
+    DB_NAME: str = "nps_hikes_db"
     DB_USER: str = "postgres"
     DB_PASSWORD: Optional[str] = None
 
@@ -86,7 +93,7 @@ class Config:
     def __init__(self):
         """Initialize configuration by loading from environment variables."""
         self._load_from_env()
-        self._validate()
+        # Removed global validation - now done contextually
 
     def _load_from_env(self):
         """Load configuration values from environment variables."""
@@ -137,24 +144,41 @@ class Config:
         if log_level:
             self.LOG_LEVEL = log_level
 
-    def _validate(self):
+    def validate_for_api_operations(self):
         """
-        Validate required configuration values.
-
+        Validate requirements for API-only operations (CSV output).
+        
         Raises:
-            ValueError: If required configuration is missing.
+            ValueError: If required configuration for API operations is missing.
         """
         if not self.API_KEY:
             raise ValueError(
-                "NPS_API_KEY environment variable is required. "
+                "NPS_API_KEY environment variable is required for API operations. "
                 "Please set it in your .env file or environment."
             )
-
+    
+    def validate_for_database_operations(self):
+        """
+        Validate requirements for database operations (profiling, OSM collection, etc).
+        
+        Raises:
+            ValueError: If required configuration for database operations is missing.
+        """
         if not self.DB_PASSWORD:
             raise ValueError(
-                "POSTGRES_PASSWORD environment variable is required. "
+                "POSTGRES_PASSWORD environment variable is required for database operations. "
                 "Please set it in your .env file or environment."
             )
+    
+    def validate_for_api_and_database_operations(self):
+        """
+        Validate requirements for API collection with database storage (--write-db flag).
+        
+        Raises:
+            ValueError: If required configuration for API + database operations is missing.
+        """
+        self.validate_for_api_operations()
+        self.validate_for_database_operations()
 
     def get_database_url(self) -> str:
         """

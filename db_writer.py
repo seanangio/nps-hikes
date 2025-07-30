@@ -91,6 +91,9 @@ def get_postgres_engine() -> Engine:
     if not CONFIG_AVAILABLE or config is None:
         raise ValueError("Configuration not available. Cannot create database engine.")
 
+    # Validate database requirements
+    config.validate_for_database_operations()
+    
     conn_str = config.get_database_url()
     return create_engine(conn_str)
 

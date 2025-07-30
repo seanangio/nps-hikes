@@ -596,6 +596,9 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    # Validate configuration for database operations (OSM collector doesn't use NPS API)
+    config.validate_for_database_operations()
+
     parks = args.parks.split(",") if args.parks else None
 
     collector = OSMHikesCollector(
