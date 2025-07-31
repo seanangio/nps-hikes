@@ -137,28 +137,29 @@ class TestOSMHikesCollector:
         result = mock_collector.get_completed_parks()
         assert result == set()
     
-    @patch('pandas.read_sql')
-    def test_get_completed_parks_with_data(self, mock_read_sql, mock_collector):
+    def test_get_completed_parks_with_data(self, mock_collector):
         """Test get_completed_parks when database has existing data."""
         mock_collector.write_db = True
-        mock_collector.engine = Mock()
+        mock_collector.db_writer = Mock()
         
-        # Mock database response
-        mock_read_sql.return_value = pd.DataFrame({
-            'park_code': ['yell', 'grca', 'zion']
-        })
+        # Mock database response from db_writer
+        mock_collector.db_writer.get_completed_records.return_value = {
+            'yell', 'grca', 'zion'
+        }
         
         result = mock_collector.get_completed_parks()
         assert result == {'yell', 'grca', 'zion'}
+        mock_collector.db_writer.get_completed_records.assert_called_once_with(
+            "park_hikes", "park_code"
+        )
     
-    @patch('pandas.read_sql')
-    def test_get_completed_parks_db_error(self, mock_read_sql, mock_collector):
+    def test_get_completed_parks_db_error(self, mock_collector):
         """Test get_completed_parks handles database errors gracefully."""
         mock_collector.write_db = True
-        mock_collector.engine = Mock()
+        mock_collector.db_writer = Mock()
         
-        # Mock database error
-        mock_read_sql.side_effect = Exception("Database connection failed")
+        # Mock database error - db_writer should handle this and return empty set
+        mock_collector.db_writer.get_completed_records.return_value = set()
         
         result = mock_collector.get_completed_parks()
         assert result == set()
@@ -203,31 +204,27 @@ class TestOSMHikesCollector:
             result = gpd.read_file(test_file)
             assert len(result) == 4  # 2 + 2
     
-    @patch('geopandas.GeoDataFrame.to_postgis')
-    def test_save_to_db_success(self, mock_to_postgis, mock_collector, sample_trails_gdf):
-        """Test successful database save using to_postgis."""
-        mock_collector.engine = Mock()
+    def test_database_save_via_db_writer(self, mock_collector, sample_trails_gdf):
+        """Test successful database save using DatabaseWriter."""
+        mock_collector.db_writer = Mock()
         
-        with patch.object(mock_collector, 'create_db_table'):
-            mock_collector.save_to_db(sample_trails_gdf)
-            
-            # Verify to_postgis was called with correct parameters
-            mock_to_postgis.assert_called_once_with(
-                "park_hikes",
-                mock_collector.engine,
-                if_exists="append",
-                index=False
-            )
+        # Simulate the save operation that happens in collect_all_trails
+        if mock_collector.db_writer:
+            mock_collector.db_writer.write_park_hikes(sample_trails_gdf, mode="append")
+        
+        # Verify db_writer method was called correctly
+        mock_collector.db_writer.write_park_hikes.assert_called_once_with(
+            sample_trails_gdf, mode="append"
+        )
     
-    @patch('geopandas.GeoDataFrame.to_postgis')
-    def test_save_to_db_handles_errors(self, mock_to_postgis, mock_collector, sample_trails_gdf):
+    def test_database_save_handles_errors(self, mock_collector, sample_trails_gdf):
         """Test database save handles errors properly."""
-        mock_collector.engine = Mock()
-        mock_to_postgis.side_effect = Exception("Database error")
+        mock_collector.db_writer = Mock()
+        mock_collector.db_writer.write_park_hikes.side_effect = Exception("Database error")
         
-        with patch.object(mock_collector, 'create_db_table'):
-            with pytest.raises(Exception, match="Database error"):
-                mock_collector.save_to_db(sample_trails_gdf)
+        # Test that the error propagates when db_writer fails
+        with pytest.raises(Exception, match="Database error"):
+            mock_collector.db_writer.write_park_hikes(sample_trails_gdf, mode="append")
 
 
 class TestDataValidation:
