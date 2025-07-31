@@ -166,10 +166,10 @@ def test_data_dir():
     """
     Provide the path to the test data directory.
     
-    This fixture returns the path to the fixtures directory where test data
+    This fixture returns the path to the test_data directory where test data
     files can be stored and accessed.
     """
-    return os.path.join(os.path.dirname(__file__), "fixtures")
+    return os.path.join(os.path.dirname(__file__), "test_data")
 
 
 @pytest.fixture(autouse=True)
