@@ -23,6 +23,7 @@ except Exception:
         LOG_BACKUP_COUNT = 3
         LOG_FILE = "logs/nps_collector.log"
         OSM_LOG_FILE = "logs/osm_collector.log"
+        TNM_LOG_FILE = "logs/tnm_collector.log"
     config = _FallbackConfig()
 
 
@@ -72,6 +73,8 @@ def setup_logging(
             log_file = config.LOG_FILE
         elif logger_name == 'osm_collector':
             log_file = config.OSM_LOG_FILE
+        elif logger_name == 'tnm_collector':
+            log_file = config.TNM_LOG_FILE
         else:
             log_file = f"logs/{logger_name or 'default'}.log"
     
@@ -152,4 +155,21 @@ def setup_osm_collector_logging(log_level: str = None) -> logging.Logger:
         log_level=log_level,
         log_file=config.OSM_LOG_FILE,
         logger_name='osm_collector'
+    )
+
+
+def setup_tnm_collector_logging(log_level: str = None) -> logging.Logger:
+    """
+    Convenience function to set up logging specifically for tnm_hikes_collector.py
+    
+    Args:
+        log_level (str, optional): Logging level. If None, uses config default
+        
+    Returns:
+        logging.Logger: Configured logger for TNM collector
+    """
+    return setup_logging(
+        log_level=log_level,
+        log_file=config.TNM_LOG_FILE,
+        logger_name='tnm_collector'
     )

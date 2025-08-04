@@ -85,6 +85,14 @@ class Config:
         "timestamp",
     ]
 
+    # TNM Collection Settings
+    TNM_API_BASE_URL: str = "https://cartowfs.nationalmap.gov/arcgis/rest/services/transportation/MapServer/8"
+    TNM_DEFAULT_OUTPUT_GPKG: str = "tnm_hikes.gpkg"
+    TNM_DEFAULT_RATE_LIMIT: float = 1.0
+    TNM_TRAIL_AGGREGATION_DISTANCE: float = 50.0  # meters for trail continuity
+    TNM_MIN_TRAIL_LENGTH_MI: float = 0.01  # minimum length after aggregation
+    TNM_LOG_FILE: str = "logs/tnm_collector.log"
+
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_MAX_BYTES: int = 5 * 1024 * 1024  # 5MB

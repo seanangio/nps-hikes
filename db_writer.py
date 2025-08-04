@@ -220,6 +220,56 @@ class DatabaseWriter:
             conn.execute(text(sql))
         self.logger.info("Ensured osm_hikes table exists in database")
 
+    def _create_tnm_hikes_table(self) -> None:
+        """
+        Create the tnm_hikes table for TNM trail data if it doesn't exist.
+        
+        This table stores hiking trail geometries and attributes from The National Map.
+        It uses permanentidentifier as the primary key since it's globally unique.
+        """
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS tnm_hikes (
+            permanentidentifier VARCHAR PRIMARY KEY,
+            park_code VARCHAR NOT NULL,
+            objectid INTEGER,
+            name VARCHAR,
+            namealternate VARCHAR,
+            trailnumber VARCHAR,
+            trailnumberalternate VARCHAR,
+            sourcefeatureid VARCHAR,
+            sourcedatasetid VARCHAR,
+            sourceoriginator VARCHAR,
+            loaddate BIGINT,
+            trailtype VARCHAR,
+            hikerpedestrian VARCHAR,
+            bicycle VARCHAR,
+            packsaddle VARCHAR,
+            atv VARCHAR,
+            motorcycle VARCHAR,
+            ohvover50inches VARCHAR,
+            snowshoe VARCHAR,
+            crosscountryski VARCHAR,
+            dogsled VARCHAR,
+            snowmobile VARCHAR,
+            nonmotorizedwatercraft VARCHAR,
+            motorizedwatercraft VARCHAR,
+            primarytrailmaintainer VARCHAR,
+            nationaltraildesignation VARCHAR,
+            lengthmiles DOUBLE PRECISION,
+            networklength DOUBLE PRECISION,
+            "shape_Length" DOUBLE PRECISION,
+            sourcedatadecscription VARCHAR,
+            globalid VARCHAR,
+            geometry_type VARCHAR NOT NULL,
+            geometry geometry(GEOMETRY, 4326) NOT NULL,
+            timestamp TIMESTAMPTZ NOT NULL,
+            FOREIGN KEY (park_code) REFERENCES park_boundaries(park_code)
+        );
+        """
+        with self.engine.begin() as conn:
+            conn.execute(text(create_table_sql))
+        self.logger.info("Ensured tnm_hikes table exists in database")
+
     def ensure_table_exists(self, table_name: str) -> None:
         """
         Ensure that the specified table exists in the database.
@@ -228,6 +278,7 @@ class DatabaseWriter:
         - 'parks': NPS park metadata (created via SQLAlchemy)
         - 'park_boundaries': NPS boundary data (created via SQLAlchemy)
         - 'osm_hikes': OSM trail data (created via raw SQL with composite PK)
+        - 'tnm_hikes': TNM trail data (created via raw SQL with single PK)
 
         Args:
             table_name (str): Name of the table to create
@@ -238,6 +289,8 @@ class DatabaseWriter:
         """
         if table_name == "osm_hikes":
             self._create_osm_hikes_table()
+        elif table_name == "tnm_hikes":
+            self._create_tnm_hikes_table()
         elif table_name in ["parks", "park_boundaries"]:
             # Use SQLAlchemy table definitions
             self.metadata.create_all(
@@ -410,6 +463,46 @@ class DatabaseWriter:
                 conn.execute(stmt)
 
         self.logger.info(f"Upserted {len(gdf)} boundary records to {table_name}")
+
+    def write_tnm_hikes(
+        self,
+        gdf: gpd.GeoDataFrame,
+        mode: str = "append",
+        table_name: str = "tnm_hikes",
+    ) -> None:
+        """
+        Write TNM hiking trail data to the tnm_hikes table.
+
+        This method handles TNM trail data using geopandas' optimized PostGIS
+        integration. It supports append mode for adding new records.
+
+        Args:
+            gdf (gpd.GeoDataFrame): GeoDataFrame containing TNM trail data
+            mode (str): Write mode - 'append' (default) or 'upsert'
+            table_name (str): Target table name (default: 'tnm_hikes')
+
+        Raises:
+            ValueError: If mode is not supported
+            NotImplementedError: If upsert mode is requested (not implemented)
+        """
+        if gdf.empty:
+            self.logger.warning("No trail data to save")
+            return
+
+        if mode not in ["append", "upsert"]:
+            raise ValueError(f"Unsupported mode '{mode}'. Use 'append' or 'upsert'")
+
+        # Ensure table exists
+        self.ensure_table_exists(table_name)
+
+        if mode == "append":
+            self._append_geodataframe(gdf, table_name)
+        else:
+            # Upsert for tnm_hikes would need custom implementation
+            # due to single primary key (permanentidentifier)
+            raise NotImplementedError(
+                "Upsert mode not implemented for tnm_hikes table"
+            )
 
     def write_osm_hikes(
         self,
