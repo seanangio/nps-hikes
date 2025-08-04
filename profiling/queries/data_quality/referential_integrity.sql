@@ -1,5 +1,5 @@
 -- Referential integrity checks between tables
--- Validates relationships between parks, park_boundaries, and park_hikes
+-- Validates relationships between parks, park_boundaries, and osm_hikes
 
 SELECT 'Parks without Boundaries' as check_type,
        COUNT(*)::varchar as count,
@@ -23,8 +23,8 @@ SELECT 'Parks without Trails' as check_type,
        END as details
 FROM parks p
 WHERE NOT EXISTS (
-    SELECT 1 FROM park_hikes ph 
-    WHERE ph.park_code = p.park_code
+    SELECT 1 FROM osm_hikes oh 
+    WHERE oh.park_code = p.park_code
 )
 
 UNION ALL
@@ -49,10 +49,10 @@ SELECT 'Orphaned Trails' as check_type,
            WHEN COUNT(*) > 0 THEN STRING_AGG(DISTINCT park_code, ', ')
            ELSE 'None'
        END as details
-FROM park_hikes ph
+FROM osm_hikes oh
 WHERE NOT EXISTS (
     SELECT 1 FROM parks p 
-    WHERE p.park_code = ph.park_code
+    WHERE p.park_code = oh.park_code
 )
 
 ORDER BY check_type;

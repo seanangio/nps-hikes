@@ -150,7 +150,7 @@ class TestOSMHikesCollector:
         result = mock_collector.get_completed_parks()
         assert result == {'yell', 'grca', 'zion'}
         mock_collector.db_writer.get_completed_records.assert_called_once_with(
-            "park_hikes", "park_code"
+            "osm_hikes", "park_code"
         )
     
     def test_get_completed_parks_db_error(self, mock_collector):
@@ -210,21 +210,21 @@ class TestOSMHikesCollector:
         
         # Simulate the save operation that happens in collect_all_trails
         if mock_collector.db_writer:
-            mock_collector.db_writer.write_park_hikes(sample_trails_gdf, mode="append")
+            mock_collector.db_writer.write_osm_hikes(sample_trails_gdf, mode="append")
         
         # Verify db_writer method was called correctly
-        mock_collector.db_writer.write_park_hikes.assert_called_once_with(
+        mock_collector.db_writer.write_osm_hikes.assert_called_once_with(
             sample_trails_gdf, mode="append"
         )
     
     def test_database_save_handles_errors(self, mock_collector, sample_trails_gdf):
         """Test database save handles errors properly."""
         mock_collector.db_writer = Mock()
-        mock_collector.db_writer.write_park_hikes.side_effect = Exception("Database error")
+        mock_collector.db_writer.write_osm_hikes.side_effect = Exception("Database error")
         
         # Test that the error propagates when db_writer fails
         with pytest.raises(Exception, match="Database error"):
-            mock_collector.db_writer.write_park_hikes(sample_trails_gdf, mode="append")
+            mock_collector.db_writer.write_osm_hikes(sample_trails_gdf, mode="append")
 
 
 class TestDataValidation:

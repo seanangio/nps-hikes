@@ -1128,7 +1128,7 @@ Examples:
   %(prog)s --write-db                   # Write results directly to PostgreSQL/PostGIS database
   %(prog)s --truncate-parks             # Truncate parks table before writing to DB
   %(prog)s --truncate-boundaries        # Truncate park_boundaries table before writing to DB
-  %(prog)s --truncate-hikes             # Truncate park_hikes table before writing to DB
+  %(prog)s --truncate-hikes             # Truncate osm_hikes table before writing to DB
   %(prog)s --truncate-all               # Truncate all tables before writing to DB
   %(prog)s --db-name my_database       # Override the database name for PostgreSQL/PostGIS connection (default: use POSTGRES_DB env var or .env)
   %(prog)s --write-db --profile-data    # Write to DB and run all profiling modules
@@ -1190,12 +1190,12 @@ Examples:
     parser.add_argument(
         "--truncate-hikes",
         action="store_true",
-        help="Truncate park_hikes table before writing to database",
+        help="Truncate osm_hikes table before writing to database",
     )
     parser.add_argument(
         "--truncate-all",
         action="store_true",
-        help="Truncate all tables (parks, park_boundaries, park_hikes) before writing to database",
+        help="Truncate all tables (parks, park_boundaries, osm_hikes) before writing to database",
     )
     parser.add_argument(
         "--db-name",
@@ -1319,7 +1319,7 @@ Examples:
             # Handle granular table truncation
             tables_to_truncate = []
             if args.truncate_all:
-                tables_to_truncate = ["parks", "park_boundaries", "park_hikes"]
+                tables_to_truncate = ["parks", "park_boundaries", "osm_hikes"]
                 logger.info("Truncating all tables before DB write (via --truncate-all flag)...")
             else:
                 if args.truncate_parks:
@@ -1327,7 +1327,7 @@ Examples:
                 if args.truncate_boundaries:
                     tables_to_truncate.append("park_boundaries")
                 if args.truncate_hikes:
-                    tables_to_truncate.append("park_hikes")
+                    tables_to_truncate.append("osm_hikes")
                 
                 if tables_to_truncate:
                     logger.info(f"Truncating tables: {', '.join(tables_to_truncate)}")

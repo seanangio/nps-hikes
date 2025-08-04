@@ -33,10 +33,10 @@ Example Usage:
     writer.write_park_boundaries(boundaries_gdf, mode='upsert')
 
     # Write trail data (append only)
-    writer.write_park_hikes(trails_gdf, mode='append')
+    writer.write_osm_hikes(trails_gdf, mode='append')
 
     # Check completion status
-    completed_parks = writer.get_completed_records('park_hikes', 'park_code')
+    completed_parks = writer.get_completed_records('osm_hikes', 'park_code')
 
 Author: NPS Hikes Project
 Dependencies: sqlalchemy, geopandas, pandas, geoalchemy2, shapely
@@ -131,7 +131,7 @@ class DatabaseWriter:
         Define SQLAlchemy table schemas for NPS collector tables.
 
         This method sets up Table objects for parks and park_boundaries tables
-        that use SQLAlchemy's declarative approach. Other tables like park_hikes
+        that use SQLAlchemy's declarative approach. Other tables like osm_hikes
         use raw SQL creation and are handled separately.
         """
         # Parks metadata table
@@ -190,9 +190,9 @@ class DatabaseWriter:
                     "Please fix the schema before proceeding."
                 )
 
-    def _create_park_hikes_table(self) -> None:
+    def _create_osm_hikes_table(self) -> None:
         """
-        Create the park_hikes table for OSM trail data if it doesn't exist.
+        Create the osm_hikes table for OSM trail data if it doesn't exist.
 
         This method creates the specialized table for hiking trail data with
         a composite primary key and proper PostGIS geometry support. The table
@@ -202,7 +202,7 @@ class DatabaseWriter:
             SQLAlchemyError: If table creation fails
         """
         sql = """
-        CREATE TABLE IF NOT EXISTS park_hikes (
+        CREATE TABLE IF NOT EXISTS osm_hikes (
             osm_id BIGINT NOT NULL,
             park_code VARCHAR NOT NULL,
             highway VARCHAR NOT NULL,
@@ -218,7 +218,7 @@ class DatabaseWriter:
         """
         with self.engine.begin() as conn:
             conn.execute(text(sql))
-        self.logger.info("Ensured park_hikes table exists in database")
+        self.logger.info("Ensured osm_hikes table exists in database")
 
     def ensure_table_exists(self, table_name: str) -> None:
         """
@@ -227,7 +227,7 @@ class DatabaseWriter:
         Supports these tables:
         - 'parks': NPS park metadata (created via SQLAlchemy)
         - 'park_boundaries': NPS boundary data (created via SQLAlchemy)
-        - 'park_hikes': OSM trail data (created via raw SQL with composite PK)
+        - 'osm_hikes': OSM trail data (created via raw SQL with composite PK)
 
         Args:
             table_name (str): Name of the table to create
@@ -236,8 +236,8 @@ class DatabaseWriter:
             ValueError: If table_name is not in the supported list
             SQLAlchemyError: If table creation fails
         """
-        if table_name == "park_hikes":
-            self._create_park_hikes_table()
+        if table_name == "osm_hikes":
+            self._create_osm_hikes_table()
         elif table_name in ["parks", "park_boundaries"]:
             # Use SQLAlchemy table definitions
             self.metadata.create_all(
@@ -411,14 +411,14 @@ class DatabaseWriter:
 
         self.logger.info(f"Upserted {len(gdf)} boundary records to {table_name}")
 
-    def write_park_hikes(
+    def write_osm_hikes(
         self,
         gdf: gpd.GeoDataFrame,
         mode: str = "append",
-        table_name: str = "park_hikes",
+        table_name: str = "osm_hikes",
     ) -> None:
         """
-        Write hiking trail data to the park_hikes table.
+        Write hiking trail data to the osm_hikes table.
 
         This method handles OSM trail data using geopandas' optimized PostGIS
         integration. Trail data typically uses append-only operations since
@@ -429,7 +429,7 @@ class DatabaseWriter:
                                    osm_id, park_code, highway, name, source,
                                    length_mi, geometry_type, geometry, timestamp
             mode (str): Write mode - 'append' (default) or 'upsert'
-            table_name (str): Target table name (default: 'park_hikes')
+            table_name (str): Target table name (default: 'osm_hikes')
 
         Raises:
             ValueError: If mode is not supported
@@ -448,10 +448,10 @@ class DatabaseWriter:
         if mode == "append":
             self._append_geodataframe(gdf, table_name)
         else:
-            # Upsert for park_hikes would need custom implementation
+            # Upsert for osm_hikes would need custom implementation
             # due to composite primary key (park_code, osm_id)
             raise NotImplementedError(
-                "Upsert mode not implemented for park_hikes table"
+                "Upsert mode not implemented for osm_hikes table"
             )
 
     def _append_dataframe(self, df: pd.DataFrame, table_name: str) -> None:

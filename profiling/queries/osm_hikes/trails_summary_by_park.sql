@@ -8,7 +8,7 @@ SELECT
     ROUND(MIN(length_mi)::numeric, 3) as min_length_mi,
     ROUND(MAX(length_mi)::numeric, 3) as max_length_mi,
     ROUND(SUM(length_mi)::numeric, 2) as total_length_mi
-FROM park_hikes 
+FROM osm_hikes 
 WHERE length_mi IS NOT NULL
 GROUP BY park_code
 ORDER BY total_trails DESC;

@@ -228,8 +228,8 @@ class TestTableCreation:
                 checkfirst=True
             )
     
-    def test_ensure_table_exists_park_hikes(self):
-        """Test ensuring park_hikes table exists."""
+    def test_ensure_table_exists_osm_hikes(self):
+        """Test ensuring osm_hikes table exists."""
         mock_engine = Mock(spec=Engine)
         mock_connection = Mock()
         mock_context = Mock()
@@ -238,7 +238,7 @@ class TestTableCreation:
         mock_engine.begin.return_value = mock_context
         
         writer = DatabaseWriter(mock_engine)
-        writer.ensure_table_exists("park_hikes")
+        writer.ensure_table_exists("osm_hikes")
         
         mock_engine.begin.assert_called_once()
         mock_connection.execute.assert_called_once()
@@ -428,18 +428,18 @@ class TestBoundariesOperations:
 class TestHikesOperations:
     """Test cases for park hikes operations."""
     
-    def test_write_park_hikes_empty_geodataframe(self):
+    def test_write_osm_hikes_empty_geodataframe(self):
         """Test writing empty GeoDataFrame logs warning and returns."""
         mock_engine = Mock(spec=Engine)
         mock_logger = Mock(spec=logging.Logger)
         writer = DatabaseWriter(mock_engine, mock_logger)
         
         empty_gdf = gpd.GeoDataFrame()
-        writer.write_park_hikes(empty_gdf)
+        writer.write_osm_hikes(empty_gdf)
         
         mock_logger.warning.assert_called_once_with("No trail data to save")
     
-    def test_write_park_hikes_invalid_mode(self):
+    def test_write_osm_hikes_invalid_mode(self):
         """Test ValueError for invalid mode."""
         mock_engine = Mock(spec=Engine)
         writer = DatabaseWriter(mock_engine)
@@ -451,9 +451,9 @@ class TestHikesOperations:
         })
         
         with pytest.raises(ValueError, match="Unsupported mode 'invalid'"):
-            writer.write_park_hikes(gdf, mode="invalid")
+            writer.write_osm_hikes(gdf, mode="invalid")
     
-    def test_write_park_hikes_append_mode(self):
+    def test_write_osm_hikes_append_mode(self):
         """Test append mode calls correct methods."""
         mock_engine = Mock(spec=Engine)
         writer = DatabaseWriter(mock_engine)
@@ -467,12 +467,12 @@ class TestHikesOperations:
         with patch.object(writer, 'ensure_table_exists') as mock_ensure, \
              patch.object(writer, '_append_geodataframe') as mock_append:
             
-            writer.write_park_hikes(gdf, mode="append")
+            writer.write_osm_hikes(gdf, mode="append")
             
-            mock_ensure.assert_called_once_with("park_hikes")
-            mock_append.assert_called_once_with(gdf, "park_hikes")
+            mock_ensure.assert_called_once_with("osm_hikes")
+            mock_append.assert_called_once_with(gdf, "osm_hikes")
     
-    def test_write_park_hikes_upsert_not_implemented(self):
+    def test_write_osm_hikes_upsert_not_implemented(self):
         """Test that upsert mode raises NotImplementedError."""
         mock_engine = Mock(spec=Engine)
         writer = DatabaseWriter(mock_engine)
@@ -485,7 +485,7 @@ class TestHikesOperations:
         
         with patch.object(writer, 'ensure_table_exists'):
             with pytest.raises(NotImplementedError, match="Upsert mode not implemented"):
-                writer.write_park_hikes(gdf, mode="upsert")
+                writer.write_osm_hikes(gdf, mode="upsert")
 
 
 class TestDataFrameOperations:
@@ -707,7 +707,7 @@ class TestErrorHandling:
         writer = DatabaseWriter(mock_engine)
         
         with pytest.raises(SQLAlchemyError):
-            writer.ensure_table_exists("park_hikes")
+            writer.ensure_table_exists("osm_hikes")
     
     # TODO: Move to integration tests - complex SQLAlchemy mocking
     def _test_geometry_conversion_invalid_geometry(self):
@@ -752,7 +752,7 @@ class TestErrorHandling:
         writer = DatabaseWriter(mock_engine)
         
         with pytest.raises(Exception, match="Transaction failed"):
-            writer.ensure_table_exists("park_hikes")
+            writer.ensure_table_exists("osm_hikes")
 
 
 if __name__ == "__main__":

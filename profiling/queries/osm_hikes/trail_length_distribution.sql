@@ -9,7 +9,7 @@ WITH length_stats AS (
         ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY length_mi)::numeric, 3) as median_length,
         ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY length_mi)::numeric, 3) as q3_length,
         ROUND(MAX(length_mi)::numeric, 3) as max_length
-    FROM park_hikes 
+    FROM osm_hikes 
     WHERE length_mi IS NOT NULL
 ),
 length_buckets AS (
@@ -22,7 +22,7 @@ length_buckets AS (
             ELSE 'Over 5.0 mi'
         END as length_bucket,
         COUNT(*) as trail_count
-    FROM park_hikes
+    FROM osm_hikes
     WHERE length_mi IS NOT NULL
     GROUP BY 1
 )

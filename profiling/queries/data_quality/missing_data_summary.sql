@@ -24,7 +24,7 @@ FROM park_boundaries
 UNION ALL
 
 SELECT 
-    'park_hikes' as table_name,
+    'osm_hikes' as table_name,
     COUNT(*) as total_records,
     ROUND((COUNT(park_code) * 100.0 / COUNT(*))::numeric, 1) || '%' as park_code_complete,
     ROUND((COUNT(name) * 100.0 / COUNT(*))::numeric, 1) || '%' as name_complete,

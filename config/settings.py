@@ -60,7 +60,7 @@ class Config:
     LOG_FILE: str = "logs/nps_collector.log"
 
     # OSM Collection Settings
-    OSM_DEFAULT_OUTPUT_GPKG: str = "park_hikes.gpkg"
+    OSM_DEFAULT_OUTPUT_GPKG: str = "osm_hikes.gpkg"
     OSM_DEFAULT_RATE_LIMIT: float = 1.0
     OSM_LENGTH_CRS: str = "EPSG:5070"  # NAD83 / Conus Albers for length calculations
     OSM_TRAIL_TAGS: dict = {"highway": ["path", "footway"]}

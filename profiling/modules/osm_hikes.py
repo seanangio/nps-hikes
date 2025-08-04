@@ -1,7 +1,7 @@
 """
 OSM hiking trails profiling module.
 
-This module analyzes data from the park_hikes table populated by osm_hikes_collector.py.
+This module analyzes data from the osm_hikes table populated by osm_hikes_collector.py.
 It provides insights into trail counts, lengths, types, and data quality from OSM sources.
 """
 

@@ -158,7 +158,7 @@ class OSMHikesCollector:
         """
         Get set of park codes that have already been processed.
 
-        This method queries the park_hikes table to find which parks already have
+        This method queries the osm_hikes table to find which parks already have
         trail data, enabling resumable collection runs. If the table doesn't exist
         or there's an error accessing it, returns an empty set.
 
@@ -175,7 +175,7 @@ class OSMHikesCollector:
         if not self.write_db or self.db_writer is None:
             return set()
 
-        return self.db_writer.get_completed_records("park_hikes", "park_code")
+        return self.db_writer.get_completed_records("osm_hikes", "park_code")
 
     def query_osm_trails(
         self, polygon: Union[Polygon, MultiPolygon]
@@ -414,7 +414,7 @@ class OSMHikesCollector:
                 # Save immediately to both GPKG and DB
                 self.save_to_gpkg(trails, append=True)
                 if self.db_writer:
-                    self.db_writer.write_park_hikes(trails, mode="append")
+                    self.db_writer.write_osm_hikes(trails, mode="append")
 
                 total_trails_collected += len(trails)
                 all_trails_for_summary.append(trails)

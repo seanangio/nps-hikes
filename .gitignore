@@ -1,7 +1,7 @@
 # artifacts
 park_data_collected.csv
 park_boundaries_collected.gpkg
-park_hikes.gpkg
+osm_hikes.gpkg
 test_results.xml
 profiling_results/*
 scratch*

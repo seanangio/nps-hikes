@@ -9,7 +9,7 @@ SELECT
     ROUND(MAX(length_mi)::numeric, 3) as max_length_mi,
     ROUND(SUM(length_mi)::numeric, 2) as total_length_mi,
     ROUND((COUNT(*) * 100.0 / SUM(COUNT(*)) OVER())::numeric, 1) as percentage_of_trails
-FROM park_hikes
+FROM osm_hikes
 WHERE length_mi IS NOT NULL
 GROUP BY highway
 ORDER BY trail_count DESC;

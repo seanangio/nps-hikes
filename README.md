@@ -169,7 +169,7 @@ The profiling system provides insights into data quality and completeness:
 ### Core Tables
 - **parks**: Park metadata (codes, names, coordinates, descriptions)
 - **park_boundaries**: Spatial boundaries as MultiPolygon geometries
-- **park_hikes**: Trail geometries with attributes (name, length, type)
+- **osm_hikes**: Trail geometries with attributes (name, length, type) from OpenStreetMap via OSMnx
 
 ### Key Features
 - Proper spatial indexing for performance
@@ -190,7 +190,7 @@ parks = gpd.read_postgis("SELECT * FROM park_boundaries", engine)
 
 # Load trails for a specific park
 trails = gpd.read_postgis(
-    "SELECT * FROM park_hikes WHERE park_code = 'YELL'", 
+    "SELECT * FROM osm_hikes WHERE park_code = 'YELL'", 
     engine
 )
 

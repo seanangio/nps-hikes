@@ -43,7 +43,7 @@ SELECT 'Duplicate Trail OSM IDs' as check_type,
        END as details
 FROM (
     SELECT osm_id, COUNT(*) as dup_count
-    FROM park_hikes 
+    FROM osm_hikes 
     WHERE osm_id IS NOT NULL
     GROUP BY osm_id
     HAVING COUNT(*) > 1

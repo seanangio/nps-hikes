@@ -12,7 +12,7 @@ FROM (
     UNION
     SELECT park_code FROM park_boundaries WHERE park_code !~ '^[a-z]{4}$'  
     UNION
-    SELECT park_code FROM park_hikes WHERE park_code !~ '^[a-z]{4}$'
+    SELECT park_code FROM osm_hikes WHERE park_code !~ '^[a-z]{4}$'
 ) invalid_codes
 
 UNION ALL
