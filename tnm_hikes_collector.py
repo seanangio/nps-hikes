@@ -4,11 +4,11 @@ The National Map (TNM) Hiking Trails Collector
 This module provides a comprehensive solution for collecting hiking trail data from
 The National Map (TNM) within National Park boundaries. It queries TNM's REST API
 to download trail geometries, processes and validates the data, and stores results
-in both file and database formats.
+in both file and database formats. The USGS provides the TNM. Find the API documentation: https://carto.nationalmap.gov/arcgis/rest/services/transportation/MapServer
 
 Key Features:
 - Automated trail discovery using TNM's transportation layer
-- Spatial filtering within precise park boundary polygons
+- Spatial filtering within park boundary polygons
 - Data quality validation and standardization
 - Resumable collection runs for large datasets
 - Rate limiting to respect TNM server policies
@@ -25,25 +25,6 @@ Data Processing Pipeline:
 7. Validate data quality and remove invalid/unrealistic records
 8. Add metadata (park codes, timestamps, source attribution)
 9. Write to both GeoPackage and database with proper spatial indexing
-
-The collector is designed for production use with large datasets, supporting
-resumable operations, comprehensive error handling, and detailed logging.
-It can process hundreds of parks over several hours while maintaining data
-integrity and providing progress feedback.
-
-Example Usage:
-    # Process all parks and write to database
-    python tnm_hikes_collector.py --write-db
-
-    # Test with specific parks only
-    python tnm_hikes_collector.py --parks acad,yell --test-limit 2
-
-    # Resume interrupted collection
-    python tnm_hikes_collector.py --write-db  # Automatically skips completed parks
-
-Author: NPS Hikes Project
-License: [License information]
-Dependencies: geopandas, requests, sqlalchemy, shapely, pandas
 """
 
 # Standard library imports

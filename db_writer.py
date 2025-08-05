@@ -19,6 +19,7 @@ Key Features:
 The module is designed to be used by all data collectors in the project:
 - NPS park metadata and boundary collection
 - OSM hiking trail data collection
+- TNM hiking trail data collection
 - Future data collection modules
 
 Example Usage:
@@ -37,9 +38,6 @@ Example Usage:
 
     # Check completion status
     completed_parks = writer.get_completed_records('osm_hikes', 'park_code')
-
-Author: NPS Hikes Project
-Dependencies: sqlalchemy, geopandas, pandas, geoalchemy2, shapely
 """
 
 import logging

@@ -1,9 +1,40 @@
 """
 National Park Service API Data Collector
 
-This reads a list of parks from a CSV file, queries the NPS API for each park
-to collect basic park information and spatial boundary data, then creates
-structured datasets with comprehensive park information.
+This module provides a solution for collecting National Park Service (NPS)
+data from the NPS API. It reads a list of parks from a CSV file, queries
+multiple NPS API endpoints for each park to collect basic park information and
+spatial boundary data, then creates structured datasets with comprehensive park metadata.
+
+The module handles the foundational data collection that
+enables subsequent trail data collection from OSM and TNM sources.
+
+Key Features:
+- Automated park discovery and data collection from NPS API
+- Intelligent park name matching and fuzzy search capabilities
+- Comprehensive park metadata collection (descriptions, coordinates, URLs, etc.)
+- Spatial boundary data collection with proper geometry handling
+- Data quality validation and coordinate verification
+- Resumable collection runs for large datasets
+- Rate limiting to respect NPS API policies
+- Comprehensive logging and progress tracking
+- Dual output: CSV/GPKG files and PostgreSQL database
+- Error handling and retry logic for robust data collection
+
+Data Processing Pipeline:
+Stage 1 - Basic Park Data Collection:
+1. Load park list from CSV file with visit dates and names
+2. Query NPS API for basic park information using fuzzy name matching
+3. Extract and validate comprehensive park metadata (descriptions, coordinates, URLs, etc.)
+4. Save basic park data to CSV file and optionally to database
+5. Extract valid park codes for boundary collection
+
+Stage 2 - Spatial Boundary Data Collection:
+6. Query NPS API for spatial boundary data using validated park codes from Stage 1
+7. Transform boundary geometries to standardized format (MultiPolygon)
+8. Validate coordinate data and geometry quality
+9. Save boundary data to GeoPackage file and optionally to database
+10. Generate comprehensive collection summaries and validation reports
 """
 
 # Standard library imports

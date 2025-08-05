@@ -24,25 +24,6 @@ Data Processing Pipeline:
 6. Validate data quality and remove invalid/unrealistic records
 7. Add metadata (park codes, timestamps, source attribution)
 8. Write to both GeoPackage and database with proper spatial indexing
-
-The collector is designed for production use with large datasets, supporting
-resumable operations, comprehensive error handling, and detailed logging.
-It can process hundreds of parks over several hours while maintaining data
-integrity and providing progress feedback.
-
-Example Usage:
-    # Process all parks and write to database
-    python osm_hikes_collector.py --write-db
-
-    # Test with specific parks only
-    python osm_hikes_collector.py --parks YELL,GRCA --test-limit 2
-
-    # Resume interrupted collection
-    python osm_hikes_collector.py --write-db  # Automatically skips completed parks
-
-Author: NPS Hikes Project
-License: [License information]
-Dependencies: geopandas, osmnx, sqlalchemy, shapely, pandas
 """
 
 # Standard library imports
