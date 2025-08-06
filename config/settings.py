@@ -82,7 +82,6 @@ class Config:
         "length_mi",
         "geometry_type",
         "geometry",
-        "timestamp",
     ]
 
     # TNM Collection Settings

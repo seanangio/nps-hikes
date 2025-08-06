@@ -114,7 +114,7 @@ python osm_hikes_collector.py --parks YELL,ZION --rate-limit 1.0
 python -m profiling.orchestrator
 
 # Profile specific modules
-python -m profiling.orchestrator --modules nps_parks,data_quality
+python -m profiling.orchestrator nps_parks data_quality
 ```
 
 ## 📋 Configuration
@@ -150,19 +150,43 @@ pytest tests/unit/test_db_writer.py -v
 
 ## 📈 Data Profiling
 
-The profiling system provides insights into data quality and completeness:
+The profiling system provides comprehensive insights into data quality and completeness across all datasets.
 
-### Available Profiles
-- **NPS Parks**: Collection status, data completeness, geographic distribution
-- **NPS Geography**: Boundary coverage, coordinate quality, regional analysis  
-- **OSM Hikes**: Trail data quality, length distributions, type analysis
-- **Data Quality**: Consistency checks, duplicate detection, referential integrity
+### Running Profiling
+
+```bash
+# Run all enabled profiling modules
+python -m profiling.orchestrator
+
+# Run specific modules
+python -m profiling.orchestrator osm_hikes tnm_hikes
+
+# List all available modules and their status
+python -m profiling.orchestrator --list-modules
+
+# Run with verbose output
+python -m profiling.orchestrator --verbose data_freshness
+
+# Get help
+python -m profiling.orchestrator --help
+```
+
+### Available Modules
+- **nps_parks**: NPS park statistics and data analysis
+- **nps_geography**: NPS geographic and spatial analysis  
+- **data_quality**: Cross-table data quality and validation checks
+- **visualization**: Data visualization and maps
+- **osm_hikes**: OSM hiking trails analysis
+- **tnm_hikes**: TNM hiking trails analysis
+- **data_freshness**: Data freshness monitoring across all tables
 
 ### Sample Metrics
 - Park collection success rates by state
 - Trail length distributions and outliers
 - Coordinate precision and accuracy analysis
 - Missing data patterns and completeness scores
+- Data freshness monitoring with staleness thresholds
+- Cross-table referential integrity validation
 
 ## 🔧 Database Schema
 

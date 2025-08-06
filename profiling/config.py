@@ -62,6 +62,18 @@ PROFILING_MODULES = {
         "dependencies": [],
         "output_prefix": "osm_hikes",
     },
+    "data_freshness": {
+        "enabled": True,
+        "description": "Data freshness monitoring across all tables",
+        "queries": [
+            "parks_staleness.sql",
+            "boundaries_staleness.sql",
+            "osm_staleness.sql",
+            "tnm_staleness.sql",
+        ],
+        "dependencies": [],
+        "output_prefix": "data_freshness",
+    },
 }
 
 # Global profiling settings

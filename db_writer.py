@@ -57,6 +57,7 @@ from sqlalchemy import (
     text,
     Engine,
     inspect,
+    DateTime,
 )
 from sqlalchemy.dialects.postgresql import insert
 from geoalchemy2 import Geometry
@@ -148,6 +149,7 @@ class DatabaseWriter:
             Column("description", Text),
             Column("error_message", Text),
             Column("collection_status", String),
+            Column("collected_at", DateTime(timezone=True), nullable=False, server_default=text('NOW()')),
             extend_existing=True,
         )
 
@@ -160,6 +162,7 @@ class DatabaseWriter:
             Column("collection_status", String),
             Column("error_message", Text),
             Column("bbox", String(100)),  # Bounding box as "xmin,ymin,xmax,ymax" string
+            Column("collected_at", DateTime(timezone=True), nullable=False, server_default=text('NOW()')),
             Column("geometry_type", String),
             Column(
                 "geometry", Geometry(geometry_type="MULTIPOLYGON", srid=4326)
@@ -210,9 +213,9 @@ class DatabaseWriter:
             name VARCHAR,
             source VARCHAR,
             length_mi DOUBLE PRECISION NOT NULL,
+            collected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             geometry_type VARCHAR NOT NULL,
             geometry geometry(LINESTRING, 4326) NOT NULL,
-            timestamp TIMESTAMPTZ NOT NULL,
             PRIMARY KEY (park_code, osm_id),
             FOREIGN KEY (park_code) REFERENCES park_boundaries(park_code)
         );
@@ -261,9 +264,9 @@ class DatabaseWriter:
             "shape_Length" DOUBLE PRECISION,
             sourcedatadecscription VARCHAR,
             globalid VARCHAR,
+            collected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             geometry_type VARCHAR NOT NULL,
             geometry geometry(GEOMETRY, 4326) NOT NULL,
-            timestamp TIMESTAMPTZ NOT NULL,
             FOREIGN KEY (park_code) REFERENCES park_boundaries(park_code)
         );
         """

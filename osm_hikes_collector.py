@@ -302,9 +302,8 @@ class OSMHikesCollector:
         trails_proj = trails.to_crs(config.OSM_LENGTH_CRS)
         trails["length_mi"] = trails_proj.geometry.length / 1609.34
 
-        # Add park_code and timestamp
+        # Add park_code
         trails["park_code"] = park_code
-        trails["timestamp"] = self.timestamp
 
         # Add source (from OSM tag if present)
         if "source" not in trails.columns:
@@ -321,7 +320,6 @@ class OSMHikesCollector:
                 "length_mi",
                 "geometry_type",
                 "geometry",
-                "timestamp",
             ]
         ]
 

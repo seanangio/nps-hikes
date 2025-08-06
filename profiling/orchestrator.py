@@ -4,17 +4,54 @@ Main orchestrator for the profiling system.
 This orchestrator manages the execution of all profiling modules,
 handles dependencies, and provides a clean interface for running
 profiling operations.
+
+Key Features:
+- Dynamic module loading and execution
+- Dependency management between modules
+- Configurable module enable/disable
+- Error handling with optional continuation
+- Comprehensive logging and reporting
+
+Available Modules:
+- nps_parks: NPS park statistics and data analysis
+- nps_geography: NPS geographic and spatial analysis  
+- data_quality: Cross-table data quality and validation checks
+- visualization: Data visualization and maps
+- osm_hikes: OSM hiking trails analysis
+- tnm_hikes: TNM hiking trails analysis
+- data_freshness: Data freshness monitoring across all tables
+
+Examples:
+  # Run all enabled modules
+  python profiling/orchestrator.py
+  
+  # Run specific modules
+  python profiling/orchestrator.py osm_hikes tnm_hikes
+  
+  # Run with help
+  python profiling/orchestrator.py --help
+  
+  # List available modules
+  python profiling/orchestrator.py --list-modules
+  
+  # Run with verbose output
+  python profiling/orchestrator.py --verbose osm_hikes
 """
 
 import sys
+import argparse
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
 # Load environment variables before importing config-dependent modules
 load_dotenv()
 
-from .config import PROFILING_MODULES, PROFILING_SETTINGS
-from .utils import ProfilingLogger
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from profiling.config import PROFILING_MODULES, PROFILING_SETTINGS
+from profiling.utils import ProfilingLogger
 
 
 class ProfilingOrchestrator:
@@ -160,12 +197,84 @@ def run_specific_profiling(module_names: List[str]):
     return orchestrator.run_specific_modules(module_names)
 
 
+def list_available_modules():
+    """List all available profiling modules with their status and description."""
+    print("Available Profiling Modules:")
+    print("=" * 50)
+    
+    for module_name, config in PROFILING_MODULES.items():
+        status = "✓ Enabled" if config["enabled"] else "✗ Disabled"
+        print(f"{module_name:20} {status}")
+        print(f"{'':20} {config['description']}")
+        if config.get("dependencies"):
+            print(f"{'':20} Dependencies: {', '.join(config['dependencies'])}")
+        print()
+
+
+def create_argument_parser():
+    """Create and configure the argument parser for CLI."""
+    parser = argparse.ArgumentParser(
+        description="Profiling system orchestrator for NPS hikes data analysis",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s                              # Run all enabled modules
+  %(prog)s osm_hikes tnm_hikes          # Run specific modules
+  %(prog)s --list-modules               # List all available modules
+  %(prog)s --verbose data_freshness     # Run with verbose output
+  %(prog)s --help                       # Show this help message
+
+Available Modules:
+  nps_parks      - NPS park statistics and data analysis
+  nps_geography  - NPS geographic and spatial analysis
+  data_quality   - Cross-table data quality and validation checks
+  visualization  - Data visualization and maps
+  osm_hikes      - OSM hiking trails analysis
+  tnm_hikes      - TNM hiking trails analysis
+  data_freshness - Data freshness monitoring across all tables
+        """
+    )
+    
+    parser.add_argument(
+        "modules",
+        nargs="*",
+        help="Specific modules to run (default: run all enabled modules)"
+    )
+    
+    parser.add_argument(
+        "--list-modules",
+        action="store_true",
+        help="List all available modules with their status and description"
+    )
+    
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    return parser
+
+
 # CLI interface
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
+    parser = create_argument_parser()
+    args = parser.parse_args()
+    
+    if args.list_modules:
+        list_available_modules()
+        sys.exit(0)
+    
+    if args.verbose:
+        # Set logging level to DEBUG for verbose output
+        import logging
+        logging.getLogger().setLevel(logging.DEBUG)
+    
+    if args.modules:
         # Run specific modules
-        modules_to_run = sys.argv[1:]
-        run_specific_profiling(modules_to_run)
+        print(f"Running modules: {', '.join(args.modules)}")
+        run_specific_profiling(args.modules)
     else:
         # Run all modules
+        print("Running all enabled modules...")
         run_all_profiling()

@@ -436,8 +436,7 @@ class TNMHikesCollector:
             # Add geometry type
             gdf["geometry_type"] = gdf.geometry.geom_type
 
-            # Add timestamp
-            gdf["timestamp"] = self.timestamp
+            # Add metadata (timestamp removed - using collected_at instead)
 
             # Ensure park_code is set
             gdf["park_code"] = park_code

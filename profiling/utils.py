@@ -3,9 +3,14 @@ Enhanced utilities for the profiling system.
 """
 
 import os
+import sys
 import pandas as pd
 from sqlalchemy import text
 from dotenv import load_dotenv
+
+# Add project root to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 from config.settings import config
 from db_writer import get_postgres_engine
 
