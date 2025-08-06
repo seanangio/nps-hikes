@@ -119,7 +119,7 @@ class TNMHikesCollector:
             SQLAlchemyError: If database connection or query fails
         """
         self.logger.info("Loading park boundaries from DB...")
-        sql = "SELECT park_code, geometry FROM park_boundaries"
+        sql = "SELECT park_code, geometry, bbox FROM park_boundaries WHERE bbox IS NOT NULL"
         gdf = gpd.read_postgis(
             sql, self.engine, geom_col="geometry", crs=config.DEFAULT_CRS
         )
@@ -127,7 +127,7 @@ class TNMHikesCollector:
             gdf = gdf[gdf["park_code"].isin(self.parks)]
         if self.test_limit:
             gdf = gdf.head(self.test_limit)
-        self.logger.info(f"Loaded {len(gdf)} park boundaries.")
+        self.logger.info(f"Loaded {len(gdf)} park boundaries with bbox data.")
         return gdf
 
     def get_completed_parks(self) -> Set[str]:
@@ -153,34 +153,20 @@ class TNMHikesCollector:
 
         return self.db_writer.get_completed_records("tnm_hikes", "park_code")
 
-    def calculate_bounding_box(self, gdf: gpd.GeoDataFrame) -> tuple:
-        """
-        Calculate bounding box from park geometry.
-        
-        Args:
-            gdf: GeoDataFrame with park boundary
-            
-        Returns:
-            Tuple of (xmin, ymin, xmax, ymax) for bounding box
-        """
-        bounds = gdf.geometry.bounds.iloc[0]
-        return (bounds.minx, bounds.miny, bounds.maxx, bounds.maxy)
 
-    def query_tnm_api(self, bbox: tuple, park_code: str) -> Optional[Dict[str, Any]]:
+
+    def query_tnm_api(self, bbox_string: str, park_code: str) -> Optional[Dict[str, Any]]:
         """
         Query TNM API for trails within bounding box.
         
         Args:
-            bbox: Bounding box as (xmin, ymin, xmax, ymax)
+            bbox_string: Bounding box as "xmin,ymin,xmax,ymax" string
             park_code: Park code for logging
             
         Returns:
             API response as dictionary or None if failed
         """
         query_url = f"{config.TNM_API_BASE_URL}/query"
-        
-        # Convert bbox to ESRI envelope format: "xmin,ymin,xmax,ymax"
-        bbox_string = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
         
         params = {
             'where': '1=1',
@@ -446,11 +432,14 @@ class TNMHikesCollector:
         """
         self.logger.info(f"Processing trails for {park_code}")
         
-        # Calculate bounding box
-        bbox = self.calculate_bounding_box(boundary_gdf)
+        # Get bounding box from stored data
+        bbox_string = boundary_gdf['bbox'].iloc[0]
+        if not bbox_string:
+            self.logger.warning(f"No bounding box found for {park_code}, skipping")
+            return gpd.GeoDataFrame()
         
         # Query TNM API
-        response = self.query_tnm_api(bbox, park_code)
+        response = self.query_tnm_api(bbox_string, park_code)
         if response is None:
             return gpd.GeoDataFrame()
         

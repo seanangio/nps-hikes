@@ -156,11 +156,12 @@ class DatabaseWriter:
             "park_boundaries",
             self.metadata,
             Column("park_code", String, primary_key=True),
-            Column("geometry", Geometry(geometry_type="MULTIPOLYGON", srid=4326)),
-            Column("geometry_type", String),
             Column("boundary_source", String),
-            Column("error_message", Text),
             Column("collection_status", String),
+            Column("error_message", Text),
+            Column("bbox", String(100)),  # Bounding box as "xmin,ymin,xmax,ymax" string
+            Column("geometry_type", String),
+            Column("geometry", Geometry(geometry_type="MULTIPOLYGON", srid=4326)),  # Geometry column last
             extend_existing=True,
         )
 
@@ -267,6 +268,8 @@ class DatabaseWriter:
         with self.engine.begin() as conn:
             conn.execute(text(create_table_sql))
         self.logger.info("Ensured tnm_hikes table exists in database")
+
+
 
     def ensure_table_exists(self, table_name: str) -> None:
         """
@@ -449,6 +452,7 @@ class DatabaseWriter:
                     "boundary_source": row.get("boundary_source"),
                     "error_message": row.get("error_message"),
                     "collection_status": row.get("collection_status"),
+                    "bbox": row.get("bbox"),  # Add bbox column
                 }
 
                 stmt = insert(self.park_boundaries_table).values(**values)

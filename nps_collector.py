@@ -648,6 +648,7 @@ class NPSDataCollector:
             "boundary_source": "NPS API",
             "error_message": None,
             "collection_status": "success",
+            "bbox": None,  # Will be calculated if geometry is available
         }
 
         # The boundary data is now properly structured GeoJSON
@@ -664,6 +665,8 @@ class NPSDataCollector:
                         extracted_data["geometry_type"] = geometry.get(
                             "type", "Unknown"
                         )
+                        # Calculate bounding box
+                        extracted_data["bbox"] = self.calculate_bounding_box(geometry)
                         logger.debug(
                             f"Extracted {geometry.get('type', 'Unknown')} geometry from FeatureCollection for {park_code}"
                         )
@@ -682,6 +685,8 @@ class NPSDataCollector:
                 if geometry:
                     extracted_data["geometry"] = geometry
                     extracted_data["geometry_type"] = geometry.get("type", "Unknown")
+                    # Calculate bounding box
+                    extracted_data["bbox"] = self.calculate_bounding_box(geometry)
                     logger.debug(
                         f"Extracted {geometry.get('type', 'Unknown')} geometry from Feature for {park_code}"
                     )
@@ -693,6 +698,8 @@ class NPSDataCollector:
                 geometry = boundary_api_data["geometry"]
                 extracted_data["geometry"] = geometry
                 extracted_data["geometry_type"] = geometry.get("type", "Unknown")
+                # Calculate bounding box
+                extracted_data["bbox"] = self.calculate_bounding_box(geometry)
                 logger.debug(
                     f"Extracted {geometry.get('type', 'Unknown')} geometry from direct object for {park_code}"
                 )
@@ -704,6 +711,35 @@ class NPSDataCollector:
             logger.error(f"Error extracting boundary data for {park_code}: {str(e)}")
 
         return extracted_data
+
+    def calculate_bounding_box(self, geometry: Dict) -> Optional[str]:
+        """
+        Calculate bounding box from park geometry and return as string.
+        
+        Args:
+            geometry (Dict): GeoJSON geometry object
+            
+        Returns:
+            Optional[str]: Bounding box as "xmin,ymin,xmax,ymax" string, or None if calculation fails
+        """
+        try:
+            from shapely.geometry import shape
+            
+            # Convert GeoJSON to Shapely geometry
+            shapely_geom = shape(geometry)
+            
+            # Get bounds (xmin, ymin, xmax, ymax)
+            bounds = shapely_geom.bounds
+            
+            # Format as string
+            bbox_string = f"{bounds[0]},{bounds[1]},{bounds[2]},{bounds[3]}"
+            
+            logger.debug(f"Calculated bbox: {bbox_string}")
+            return bbox_string
+            
+        except Exception as e:
+            logger.warning(f"Failed to calculate bounding box: {e}")
+            return None
 
     def process_park_boundaries(
         self,

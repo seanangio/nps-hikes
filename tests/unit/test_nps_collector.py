@@ -238,13 +238,45 @@ class TestNPSDataCollector:
                 assert "CSV missing required columns" in str(e)
     
     def test_load_parks_from_csv_drops_missing_park_names(self, collector):
-        df = pd.DataFrame({
-            "park_name": ["Zion", None, ""],
-            "month": ["June", "July", "August"],
-            "year": [2024, 2024, 2024]
-        })
+        # Create a DataFrame with some missing park names
+        test_data = {
+            "park_name": ["Zion", "", "Grand Canyon", None],
+            "month": ["June", "July", "August", "September"],
+            "year": [2024, 2024, 2024, 2024],
+        }
+        df = pd.DataFrame(test_data)
+
         with patch("pandas.read_csv", return_value=df):
-            result = collector.load_parks_from_csv("dummy.csv")
-            # Only the first row should remain
-            assert len(result) == 1
-            assert result.iloc[0]["park_name"] == "Zion"
+            result = collector.load_parks_from_csv("test.csv")
+
+        # Should drop rows with missing park names
+        assert len(result) == 2
+        assert "Zion" in result["park_name"].values
+        assert "Grand Canyon" in result["park_name"].values
+
+    def test_calculate_bounding_box_valid_geometry(self, collector):
+        """Test bounding box calculation with valid geometry."""
+        # Create a simple polygon geometry
+        geometry = {
+            "type": "Polygon",
+            "coordinates": [[
+                [-68.7, 44.0],
+                [-68.0, 44.0],
+                [-68.0, 44.5],
+                [-68.7, 44.5],
+                [-68.7, 44.0]
+            ]]
+        }
+        
+        bbox_string = collector.calculate_bounding_box(geometry)
+        
+        assert bbox_string == "-68.7,44.0,-68.0,44.5"
+
+    def test_calculate_bounding_box_invalid_geometry(self, collector):
+        """Test bounding box calculation with invalid geometry."""
+        # Invalid geometry that will cause an error
+        invalid_geometry = {"type": "Invalid", "coordinates": None}
+        
+        bbox_string = collector.calculate_bounding_box(invalid_geometry)
+        
+        assert bbox_string is None

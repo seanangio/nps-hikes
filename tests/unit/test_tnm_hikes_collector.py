@@ -155,7 +155,8 @@ def sample_park_boundary():
     polygon = Polygon([(-68.7, 44.0), (-68.0, 44.0), (-68.0, 44.5), (-68.7, 44.5), (-68.7, 44.0)])
     return gpd.GeoDataFrame({
         'park_code': ['acad'],
-        'geometry': [polygon]
+        'geometry': [polygon],
+        'bbox': ['-68.7,44.0,-68.0,44.5']  # Add bbox column
     }, crs="EPSG:4326")
 
 
@@ -203,15 +204,7 @@ class TestTNMHikesCollector:
             assert collector.test_limit == 5
             assert collector.write_db is True
 
-    def test_calculate_bounding_box(self, mock_collector, sample_park_boundary):
-        """Test bounding box calculation."""
-        bbox = mock_collector.calculate_bounding_box(sample_park_boundary)
-        
-        assert len(bbox) == 4
-        assert bbox[0] == pytest.approx(-68.7)  # xmin
-        assert bbox[1] == pytest.approx(44.0)   # ymin
-        assert bbox[2] == pytest.approx(-68.0)  # xmax
-        assert bbox[3] == pytest.approx(44.5)   # ymax
+
 
     @patch('requests.get')
     def test_query_tnm_api_success(self, mock_get, mock_collector):
@@ -222,8 +215,8 @@ class TestTNMHikesCollector:
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
         
-        bbox = (-68.7, 44.0, -68.0, 44.5)
-        response = mock_collector.query_tnm_api(bbox, "acad")
+        bbox_string = "-68.7,44.0,-68.0,44.5"
+        response = mock_collector.query_tnm_api(bbox_string, "acad")
         
         assert response == {"features": []}
         mock_get.assert_called_once()
@@ -234,8 +227,8 @@ class TestTNMHikesCollector:
         # Mock failed response
         mock_get.side_effect = Exception("API Error")
         
-        bbox = (-68.7, 44.0, -68.0, 44.5)
-        response = mock_collector.query_tnm_api(bbox, "acad")
+        bbox_string = "-68.7,44.0,-68.0,44.5"
+        response = mock_collector.query_tnm_api(bbox_string, "acad")
         
         assert response is None
 
@@ -508,7 +501,8 @@ class TestIntegration:
             # Mock park boundary
             boundary = gpd.GeoDataFrame({
                 'park_code': ['acad'],
-                'geometry': [Polygon([(-68.7, 44.0), (-68.0, 44.0), (-68.0, 44.5), (-68.7, 44.5), (-68.7, 44.0)])]
+                'geometry': [Polygon([(-68.7, 44.0), (-68.0, 44.0), (-68.0, 44.5), (-68.7, 44.5), (-68.7, 44.0)])],
+                'bbox': ['-68.7,44.0,-68.0,44.5']  # Add bbox column
             }, crs="EPSG:4326")
             
             # Process trails
