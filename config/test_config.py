@@ -43,7 +43,7 @@ def test_config():
     print(f"Default Input CSV: {config.DEFAULT_INPUT_CSV}")
     print(f"Default Output CSV: {config.DEFAULT_OUTPUT_CSV}")
     print(f"Default Output GPKG: {config.DEFAULT_OUTPUT_GPKG}")
-    print(f"Log File: {config.LOG_FILE}")
+    print(f"Log File: {config.NPS_LOG_FILE}")
 
     # Test logging configuration
     print(f"Log Level: {config.LOG_LEVEL}")

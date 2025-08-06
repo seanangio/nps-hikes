@@ -21,7 +21,7 @@ except Exception:
         LOG_LEVEL = "INFO"
         LOG_MAX_BYTES = 5 * 1024 * 1024
         LOG_BACKUP_COUNT = 3
-        LOG_FILE = "logs/nps_collector.log"
+        NPS_LOG_FILE = "logs/nps_collector.log"
         OSM_LOG_FILE = "logs/osm_collector.log"
         TNM_LOG_FILE = "logs/tnm_collector.log"
 
@@ -71,7 +71,7 @@ def setup_logging(
     # Determine log file path
     if log_file is None:
         if logger_name == "nps_collector":
-            log_file = config.LOG_FILE
+            log_file = config.NPS_LOG_FILE
         elif logger_name == "osm_collector":
             log_file = config.OSM_LOG_FILE
         elif logger_name == "tnm_collector":
@@ -133,7 +133,7 @@ def setup_nps_collector_logging(log_level: str = None) -> logging.Logger:
         logging.Logger: Configured logger for NPS collector
     """
     return setup_logging(
-        log_level=log_level, log_file=config.LOG_FILE, logger_name="nps_collector"
+        log_level=log_level, log_file=config.NPS_LOG_FILE, logger_name="nps_collector"
     )
 
 

@@ -57,7 +57,7 @@ class Config:
     DEFAULT_INPUT_CSV: str = "parks.csv"
     DEFAULT_OUTPUT_CSV: str = "park_data_collected.csv"
     DEFAULT_OUTPUT_GPKG: str = "park_boundaries_collected.gpkg"
-    LOG_FILE: str = "logs/nps_collector.log"
+    NPS_LOG_FILE: str = "logs/nps_collector.log"
 
     # OSM Collection Settings
     OSM_DEFAULT_OUTPUT_GPKG: str = "osm_hikes.gpkg"
