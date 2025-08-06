@@ -91,7 +91,7 @@ def get_postgres_engine() -> Engine:
 
     # Validate database requirements
     config.validate_for_database_operations()
-    
+
     conn_str = config.get_database_url()
     return create_engine(conn_str)
 
@@ -161,7 +161,9 @@ class DatabaseWriter:
             Column("error_message", Text),
             Column("bbox", String(100)),  # Bounding box as "xmin,ymin,xmax,ymax" string
             Column("geometry_type", String),
-            Column("geometry", Geometry(geometry_type="MULTIPOLYGON", srid=4326)),  # Geometry column last
+            Column(
+                "geometry", Geometry(geometry_type="MULTIPOLYGON", srid=4326)
+            ),  # Geometry column last
             extend_existing=True,
         )
 
@@ -222,7 +224,7 @@ class DatabaseWriter:
     def _create_tnm_hikes_table(self) -> None:
         """
         Create the tnm_hikes table for TNM trail data if it doesn't exist.
-        
+
         This table stores hiking trail geometries and attributes from The National Map.
         It uses permanentidentifier as the primary key since it's globally unique.
         """
@@ -268,8 +270,6 @@ class DatabaseWriter:
         with self.engine.begin() as conn:
             conn.execute(text(create_table_sql))
         self.logger.info("Ensured tnm_hikes table exists in database")
-
-
 
     def ensure_table_exists(self, table_name: str) -> None:
         """
@@ -502,9 +502,7 @@ class DatabaseWriter:
         else:
             # Upsert for tnm_hikes would need custom implementation
             # due to single primary key (permanentidentifier)
-            raise NotImplementedError(
-                "Upsert mode not implemented for tnm_hikes table"
-            )
+            raise NotImplementedError("Upsert mode not implemented for tnm_hikes table")
 
     def write_osm_hikes(
         self,
@@ -545,9 +543,7 @@ class DatabaseWriter:
         else:
             # Upsert for osm_hikes would need custom implementation
             # due to composite primary key (park_code, osm_id)
-            raise NotImplementedError(
-                "Upsert mode not implemented for osm_hikes table"
-            )
+            raise NotImplementedError("Upsert mode not implemented for osm_hikes table")
 
     def _append_dataframe(self, df: pd.DataFrame, table_name: str) -> None:
         """
@@ -646,4 +642,3 @@ class DatabaseWriter:
                 )
 
         return info
-

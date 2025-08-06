@@ -2,7 +2,7 @@
 Data quality profiling module.
 
 This module performs cross-table validation and data integrity checks across
-the parks, park_boundaries, and osm_hikes tables. It focuses on referential 
+the parks, park_boundaries, and osm_hikes tables. It focuses on referential
 integrity, consistency, and duplicate detection that spans multiple tables.
 """
 

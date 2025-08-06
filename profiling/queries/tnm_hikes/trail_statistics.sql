@@ -1,20 +1,23 @@
 -- TNM Trail Statistics Query
 -- This query provides comprehensive statistics for TNM hiking trails by park
+-- Uses parks table as base to show ALL parks, including those with 0 trails
 
 SELECT 
-    park_code,
-    COUNT(*) as trail_count,
-    COUNT(CASE WHEN name IS NOT NULL AND name != '' THEN 1 END) as named_trail_count,
-    COUNT(CASE WHEN name IS NULL OR name = '' THEN 1 END) as unnamed_trail_count,
-    AVG(lengthmiles) as avg_length_miles,
-    MIN(lengthmiles) as min_length_miles,
-    MAX(lengthmiles) as max_length_miles,
-    SUM(lengthmiles) as total_length_miles,
-    COUNT(CASE WHEN hikerpedestrian = 'Y' THEN 1 END) as hiker_pedestrian_count,
-    COUNT(CASE WHEN hikerpedestrian = 'N' THEN 1 END) as non_hiker_pedestrian_count,
-    COUNT(CASE WHEN hikerpedestrian IS NULL THEN 1 END) as unknown_hiker_pedestrian_count,
-    COUNT(CASE WHEN trailtype IS NOT NULL THEN 1 END) as typed_trail_count,
-    COUNT(CASE WHEN nationaltraildesignation IS NOT NULL THEN 1 END) as designated_trail_count
-FROM tnm_hikes
-GROUP BY park_code
-ORDER BY trail_count DESC; 
+    p.park_code,
+    p.full_name,
+    COALESCE(COUNT(t.permanentidentifier), 0) as trail_count,
+    COALESCE(COUNT(CASE WHEN t.name IS NOT NULL AND t.name != '' THEN 1 END), 0) as named_trail_count,
+    COALESCE(COUNT(CASE WHEN t.name IS NULL OR t.name = '' THEN 1 END), 0) as unnamed_trail_count,
+    COALESCE(AVG(t.lengthmiles), 0) as avg_length_miles,
+    COALESCE(MIN(t.lengthmiles), 0) as min_length_miles,
+    COALESCE(MAX(t.lengthmiles), 0) as max_length_miles,
+    COALESCE(SUM(t.lengthmiles), 0) as total_length_miles,
+    COALESCE(COUNT(CASE WHEN t.hikerpedestrian = 'Y' THEN 1 END), 0) as hiker_pedestrian_count,
+    COALESCE(COUNT(CASE WHEN t.hikerpedestrian = 'N' THEN 1 END), 0) as non_hiker_pedestrian_count,
+    COALESCE(COUNT(CASE WHEN t.hikerpedestrian IS NULL THEN 1 END), 0) as unknown_hiker_pedestrian_count,
+    COALESCE(COUNT(CASE WHEN t.trailtype IS NOT NULL THEN 1 END), 0) as typed_trail_count,
+    COALESCE(COUNT(CASE WHEN t.nationaltraildesignation IS NOT NULL THEN 1 END), 0) as designated_trail_count
+FROM parks p
+LEFT JOIN tnm_hikes t ON p.park_code = t.park_code
+GROUP BY p.park_code, p.full_name
+ORDER BY trail_count DESC, p.park_code; 

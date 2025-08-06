@@ -88,7 +88,7 @@ class NPSDataCollector:
 
         self.base_url = config.API_BASE_URL
         self.rate_limit_warning_threshold = config.RATE_LIMIT_WARNING_THRESHOLD
-        self.session = requests.Session() 
+        self.session = requests.Session()
 
         # Set up session headers that will be used for all requests
         self.session.headers.update(
@@ -715,28 +715,28 @@ class NPSDataCollector:
     def calculate_bounding_box(self, geometry: Dict) -> Optional[str]:
         """
         Calculate bounding box from park geometry and return as string.
-        
+
         Args:
             geometry (Dict): GeoJSON geometry object
-            
+
         Returns:
             Optional[str]: Bounding box as "xmin,ymin,xmax,ymax" string, or None if calculation fails
         """
         try:
             from shapely.geometry import shape
-            
+
             # Convert GeoJSON to Shapely geometry
             shapely_geom = shape(geometry)
-            
+
             # Get bounds (xmin, ymin, xmax, ymax)
             bounds = shapely_geom.bounds
-            
+
             # Format as string
             bbox_string = f"{bounds[0]},{bounds[1]},{bounds[2]},{bounds[3]}"
-            
+
             logger.debug(f"Calculated bbox: {bbox_string}")
             return bbox_string
-            
+
         except Exception as e:
             logger.warning(f"Failed to calculate bounding box: {e}")
             return None
@@ -1382,12 +1382,14 @@ Examples:
             )
             engine = get_postgres_engine()
             db_writer = DatabaseWriter(engine, logger)
-            
+
             # Handle granular table truncation
             tables_to_truncate = []
             if args.truncate_all:
                 tables_to_truncate = ["parks", "park_boundaries", "osm_hikes"]
-                logger.info("Truncating all tables before DB write (via --truncate-all flag)...")
+                logger.info(
+                    "Truncating all tables before DB write (via --truncate-all flag)..."
+                )
             else:
                 if args.truncate_parks:
                     tables_to_truncate.append("parks")
@@ -1395,13 +1397,13 @@ Examples:
                     tables_to_truncate.append("park_boundaries")
                 if args.truncate_hikes:
                     tables_to_truncate.append("osm_hikes")
-                
+
                 if tables_to_truncate:
                     logger.info(f"Truncating tables: {', '.join(tables_to_truncate)}")
-            
+
             if tables_to_truncate:
                 db_writer.truncate_tables(tables_to_truncate)
-            
+
             db_writer.write_parks(park_data, mode="upsert")
             if not boundary_data.empty:
                 db_writer.write_park_boundaries(boundary_data, mode="upsert")

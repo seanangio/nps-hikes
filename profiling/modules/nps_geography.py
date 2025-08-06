@@ -1,8 +1,8 @@
 """
 NPS geography profiling module.
 
-This module analyzes geographic and spatial data from the parks and park_boundaries tables 
-populated by nps_collector.py. It provides insights into regional distributions, coordinate 
+This module analyzes geographic and spatial data from the parks and park_boundaries tables
+populated by nps_collector.py. It provides insights into regional distributions, coordinate
 quality, and boundary coverage from NPS API sources.
 """
 

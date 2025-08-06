@@ -5,7 +5,7 @@ This module centralizes all configuration values and provides a single source of
 configurable parameters.
 
 The configuration system uses context-aware validation to support different operational modes:
-- API operations (CSV output): Requires only NPS_API_KEY  
+- API operations (CSV output): Requires only NPS_API_KEY
 - Database operations (profiling, OSM collection): Requires only database credentials
 - API + Database operations (--write-db flag): Requires both NPS_API_KEY and database credentials
 
@@ -67,7 +67,7 @@ class Config:
     OSM_LOG_FILE: str = "logs/osm_collector.log"
     OSM_REQUIRED_COLUMNS: list = [
         "osm_id",
-        "park_code", 
+        "park_code",
         "highway",
         "geometry",
         "geometry_type",
@@ -76,7 +76,7 @@ class Config:
     OSM_ALL_COLUMNS: list = [
         "osm_id",
         "park_code",
-        "highway", 
+        "highway",
         "name",
         "source",
         "length_mi",
@@ -86,7 +86,9 @@ class Config:
     ]
 
     # TNM Collection Settings
-    TNM_API_BASE_URL: str = "https://cartowfs.nationalmap.gov/arcgis/rest/services/transportation/MapServer/8"
+    TNM_API_BASE_URL: str = (
+        "https://cartowfs.nationalmap.gov/arcgis/rest/services/transportation/MapServer/8"
+    )
     TNM_DEFAULT_OUTPUT_GPKG: str = "tnm_hikes.gpkg"
     TNM_DEFAULT_RATE_LIMIT: float = 1.0
     TNM_TRAIL_AGGREGATION_DISTANCE: float = 50.0  # meters for trail continuity
@@ -155,7 +157,7 @@ class Config:
     def validate_for_api_operations(self):
         """
         Validate requirements for API-only operations (CSV output).
-        
+
         Raises:
             ValueError: If required configuration for API operations is missing.
         """
@@ -164,11 +166,11 @@ class Config:
                 "NPS_API_KEY environment variable is required for API operations. "
                 "Please set it in your .env file or environment."
             )
-    
+
     def validate_for_database_operations(self):
         """
         Validate requirements for database operations (profiling, OSM collection, etc).
-        
+
         Raises:
             ValueError: If required configuration for database operations is missing.
         """
@@ -177,11 +179,11 @@ class Config:
                 "POSTGRES_PASSWORD environment variable is required for database operations. "
                 "Please set it in your .env file or environment."
             )
-    
+
     def validate_for_api_and_database_operations(self):
         """
         Validate requirements for API collection with database storage (--write-db flag).
-        
+
         Raises:
             ValueError: If required configuration for API + database operations is missing.
         """
@@ -196,7 +198,6 @@ class Config:
             str: PostgreSQL connection URL
         """
         return f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-
 
 
 # Global configuration instance

@@ -36,7 +36,7 @@ PROFILING_MODULES = {
         "description": "Cross-table data quality and validation checks",
         "queries": [
             "referential_integrity.sql",
-            "data_consistency.sql", 
+            "data_consistency.sql",
             "missing_data_summary.sql",
             "duplicate_detection.sql",
         ],
@@ -55,7 +55,7 @@ PROFILING_MODULES = {
         "description": "OSM hiking trails analysis",
         "queries": [
             "trails_summary_by_park.sql",
-            "trail_type_analysis.sql", 
+            "trail_type_analysis.sql",
             "trail_length_distribution.sql",
             "trail_data_quality.sql",
         ],
