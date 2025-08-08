@@ -93,7 +93,7 @@ class VisualizationProfiler:
         
         # Get TNM trails for this park - use f-string instead of params
         tnm_query = f"""
-        SELECT name, "shape_Length" as length_mi, geometry
+        SELECT name, lengthmiles as length_mi, geometry
         FROM tnm_hikes 
         WHERE park_code = '{park_code}'
         """
@@ -193,7 +193,7 @@ class VisualizationProfiler:
             
             # Get all TNM trails
             tnm_query = """
-            SELECT park_code, name, "shape_Length" as length_mi, geometry
+            SELECT park_code, name, lengthmiles as length_mi, geometry
             FROM tnm_hikes
             """
             tnm_trails = gpd.read_postgis(tnm_query, engine, geom_col="geometry")
@@ -239,7 +239,7 @@ class VisualizationProfiler:
             
             # Get TNM trails for these parks
             tnm_query = f"""
-            SELECT park_code, name, "shape_Length" as length_mi, geometry
+            SELECT park_code, name, lengthmiles as length_mi, geometry
             FROM tnm_hikes
             WHERE park_code IN ('{park_codes}')
             LIMIT 50
