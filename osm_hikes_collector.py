@@ -335,7 +335,101 @@ class OSMHikesCollector:
         # Validate the data
         trails = self.validate_trails(trails, park_code)
 
+        # CLIP TRAILS TO BOUNDARY (NEW) - with primary key handling
+        trails = self.clip_trails_to_boundary(trails, polygon, park_code)
+
         return trails
+
+    def clip_trails_to_boundary(
+        self,
+        trails_gdf: gpd.GeoDataFrame,
+        boundary_geom,
+        park_code: str,
+    ) -> gpd.GeoDataFrame:
+        """
+        Clip OSM trails to exact park boundary and recalculate lengths.
+
+        Args:
+            trails_gdf: GeoDataFrame with trail data
+            boundary_geom: Park boundary geometry
+            park_code: Park code for logging
+
+        Returns:
+            Clipped GeoDataFrame with recalculated lengths
+        """
+        if trails_gdf.empty:
+            return trails_gdf
+
+        try:
+            original_count = len(trails_gdf)
+            clipped_trails = []
+            total_clipped_length = 0.0
+            
+            for idx, trail in trails_gdf.iterrows():
+                if trail.geometry.intersects(boundary_geom):
+                    # Clip the trail to the boundary
+                    clipped_geom = trail.geometry.intersection(boundary_geom)
+                    
+                    if not clipped_geom.is_empty:
+                        # Handle different geometry types that might result from clipping
+                        if clipped_geom.geom_type == 'LineString':
+                            clipped_geometries = [clipped_geom]
+                        elif clipped_geom.geom_type == 'MultiLineString':
+                            clipped_geometries = list(clipped_geom.geoms)
+                        else:
+                            # Skip if clipping resulted in non-linestring geometry
+                            continue
+                        
+                        # Create a trail record for each clipped segment
+                        for i, geom in enumerate(clipped_geometries):
+                            trail_copy = trail.copy()
+                            trail_copy.geometry = geom
+                            
+                            # CRITICAL: Handle composite primary key for multiple segments
+                            # If we have multiple segments, modify the osm_id to make it unique
+                            if len(clipped_geometries) > 1:
+                                # Generate unique integer ID for segments using hash
+                                original_osm_id = trail_copy['osm_id']
+                                # Use hash of original_id + segment_index to create unique integer
+                                unique_string = f"{original_osm_id}_{i}"
+                                # Convert to positive integer using hash (keep within BIGINT range)
+                                trail_copy['osm_id'] = abs(hash(unique_string)) % (2**63 - 1)
+                            
+                            # Recalculate length in miles using projected CRS
+                            # Convert geometry to projected CRS for accurate length calculation
+                            geom_proj = geom
+                            if trails_gdf.crs != config.OSM_LENGTH_CRS:
+                                # Create a temporary GeoDataFrame to reproject
+                                temp_gdf = gpd.GeoDataFrame([{'geometry': geom}], crs=trails_gdf.crs)
+                                temp_gdf_proj = temp_gdf.to_crs(config.OSM_LENGTH_CRS)
+                                geom_proj = temp_gdf_proj.geometry.iloc[0]
+                            
+                            # Calculate length in miles
+                            length_miles = geom_proj.length / 1609.34  # Convert meters to miles
+                            
+                            # Only keep trails that meet minimum length requirement
+                            if length_miles >= 0.01:  # OSM minimum length
+                                trail_copy['length_mi'] = length_miles
+                                clipped_trails.append(trail_copy)
+                                total_clipped_length += length_miles
+            
+            # Create new GeoDataFrame with clipped trails
+            if clipped_trails:
+                result_gdf = gpd.GeoDataFrame(clipped_trails, crs=trails_gdf.crs)
+            else:
+                result_gdf = gpd.GeoDataFrame(crs=trails_gdf.crs)
+            
+            clipped_count = len(result_gdf)
+            self.logger.info(
+                f"Clipped OSM {park_code}: {original_count} -> {clipped_count} trails "
+                f"(total length: {total_clipped_length:.1f} mi)"
+            )
+            
+            return result_gdf
+
+        except Exception as e:
+            self.logger.error(f"Error clipping OSM trails for {park_code}: {e}")
+            return trails_gdf
 
     def collect_all_trails(self) -> gpd.GeoDataFrame:
         """
