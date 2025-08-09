@@ -183,6 +183,17 @@ class OSMHikesCollector:
             in an empty GeoDataFrame being returned with an error logged.
         """
         try:
+            # Validate and repair polygon geometry if needed
+            if not polygon.is_valid:
+                self.logger.warning("Invalid polygon geometry detected. Attempting to repair...")
+                # Try to fix the polygon using buffer(0) which often repairs self-intersections
+                polygon = polygon.buffer(0)
+                if not polygon.is_valid:
+                    self.logger.error("Unable to repair polygon geometry. Skipping OSM query.")
+                    return gpd.GeoDataFrame()
+                else:
+                    self.logger.info("Successfully repaired polygon geometry.")
+            
             trails = ox.features.features_from_polygon(
                 polygon, tags=config.OSM_TRAIL_TAGS
             )
