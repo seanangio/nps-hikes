@@ -1,9 +1,7 @@
 # artifacts
-park_data_collected.csv
-park_boundaries_collected.gpkg
-osm_hikes.gpkg
-tnm_hikes.gpkg
-test_results.xml
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/README.md
 profiling_results/*
 scratch*
 

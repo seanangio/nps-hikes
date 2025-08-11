@@ -54,13 +54,13 @@ class Config:
     DB_PASSWORD: Optional[str] = None
 
     # File Paths
-    DEFAULT_INPUT_CSV: str = "parks.csv"
-    DEFAULT_OUTPUT_CSV: str = "park_data_collected.csv"
-    DEFAULT_OUTPUT_GPKG: str = "park_boundaries_collected.gpkg"
+    DEFAULT_INPUT_CSV: str = "raw_data/parks.csv"
+    DEFAULT_OUTPUT_CSV: str = "artifacts/park_data_collected.csv"
+    DEFAULT_OUTPUT_GPKG: str = "artifacts/park_boundaries_collected.gpkg"
     NPS_LOG_FILE: str = "logs/nps_collector.log"
 
     # OSM Collection Settings
-    OSM_DEFAULT_OUTPUT_GPKG: str = "osm_hikes.gpkg"
+    OSM_DEFAULT_OUTPUT_GPKG: str = "artifacts/osm_hikes.gpkg"
     OSM_DEFAULT_RATE_LIMIT: float = 1.0
     OSM_LENGTH_CRS: str = "EPSG:5070"  # NAD83 / Conus Albers for length calculations
     OSM_TRAIL_TAGS: dict = {"highway": ["path", "footway"]}
@@ -88,7 +88,7 @@ class Config:
     TNM_API_BASE_URL: str = (
         "https://cartowfs.nationalmap.gov/arcgis/rest/services/transportation/MapServer/8"
     )
-    TNM_DEFAULT_OUTPUT_GPKG: str = "tnm_hikes.gpkg"
+    TNM_DEFAULT_OUTPUT_GPKG: str = "artifacts/tnm_hikes.gpkg"
     TNM_DEFAULT_RATE_LIMIT: float = 1.0
     TNM_TRAIL_AGGREGATION_DISTANCE: float = 50.0  # meters for trail continuity
     TNM_MIN_TRAIL_LENGTH_MI: float = 0.01  # minimum length after aggregation
