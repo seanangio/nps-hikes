@@ -274,6 +274,29 @@ class DatabaseWriter:
             conn.execute(text(create_table_sql))
         self.logger.info("Ensured tnm_hikes table exists in database")
 
+    def _create_gmaps_hiking_locations_table(self) -> None:
+        """
+        Create the gmaps_hiking_locations table for Google Maps hiking data if it doesn't exist.
+
+        This table stores hiking location data with coordinates from Google Maps.
+        """
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS gmaps_hiking_locations (
+            id SERIAL PRIMARY KEY,
+            park_code VARCHAR(10) NOT NULL,
+            location_name VARCHAR(500) NOT NULL,
+            latitude DECIMAL(15, 12),
+            longitude DECIMAL(16, 12),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            
+            CONSTRAINT fk_gmaps_park_code 
+                FOREIGN KEY (park_code) REFERENCES parks(park_code)
+        );
+        """
+        with self.engine.begin() as conn:
+            conn.execute(text(create_table_sql))
+        self.logger.info("Ensured gmaps_hiking_locations table exists in database")
+
     def ensure_table_exists(self, table_name: str) -> None:
         """
         Ensure that the specified table exists in the database.
@@ -283,6 +306,7 @@ class DatabaseWriter:
         - 'park_boundaries': NPS boundary data (created via SQLAlchemy)
         - 'osm_hikes': OSM trail data (created via raw SQL with composite PK)
         - 'tnm_hikes': TNM trail data (created via raw SQL with single PK)
+        - 'gmaps_hiking_locations': Google Maps hiking locations (created via raw SQL)
 
         Args:
             table_name (str): Name of the table to create
@@ -295,6 +319,8 @@ class DatabaseWriter:
             self._create_osm_hikes_table()
         elif table_name == "tnm_hikes":
             self._create_tnm_hikes_table()
+        elif table_name == "gmaps_hiking_locations":
+            self._create_gmaps_hiking_locations_table()
         elif table_name in ["parks", "park_boundaries"]:
             # Use SQLAlchemy table definitions
             self.metadata.create_all(
@@ -576,6 +602,108 @@ class DatabaseWriter:
             self.logger.info(f"Appended {len(gdf)} spatial records to {table_name}")
         except Exception as e:
             self.logger.error(f"Failed to append spatial data to {table_name}: {e}")
+            raise
+
+    def write_gmaps_hiking_locations(
+        self,
+        df: pd.DataFrame,
+        mode: str = "append",
+        table_name: str = "gmaps_hiking_locations",
+    ) -> None:
+        """
+        Write Google Maps hiking location data to the gmaps_hiking_locations table.
+
+        This method handles hiking location data with coordinates. It supports
+        both append and upsert modes, with upsert being useful for updating
+        existing locations.
+
+        Args:
+            df (pd.DataFrame): Location data to write with required columns:
+                               park_code, location_name, latitude, longitude
+            mode (str): Write mode - 'append' (default) or 'upsert'
+            table_name (str): Target table name (default: 'gmaps_hiking_locations')
+
+        Raises:
+            ValueError: If mode is not supported
+            SQLAlchemyError: If database operations fail
+        """
+        if df.empty:
+            self.logger.warning("No location data to save")
+            return
+
+        if mode not in ["append", "upsert"]:
+            raise ValueError(f"Unsupported mode '{mode}'. Use 'append' or 'upsert'")
+
+        # Ensure table exists
+        self.ensure_table_exists(table_name)
+
+        if mode == "append":
+            self._append_dataframe(df, table_name)
+        else:
+            # Upsert implementation for updating existing locations
+            self._upsert_gmaps_locations(df, table_name)
+
+    def _upsert_gmaps_locations(self, df: pd.DataFrame, table_name: str) -> None:
+        """
+        Upsert Google Maps hiking locations using ON CONFLICT.
+
+        Args:
+            df (pd.DataFrame): Location data to upsert
+            table_name (str): Target table name
+        """
+        try:
+            # Use pandas to_sql with method='multi' for better performance
+            df.to_sql(
+                table_name, 
+                self.engine, 
+                if_exists="append", 
+                index=False,
+                method='multi'
+            )
+            self.logger.info(f"Upserted {len(df)} records to {table_name}")
+        except Exception as e:
+            self.logger.error(f"Failed to upsert data to {table_name}: {e}")
+            raise
+
+    def park_exists_in_gmaps_table(self, park_code: str) -> bool:
+        """
+        Check if a park exists in the gmaps_hiking_locations table.
+
+        Args:
+            park_code (str): Park code to check
+
+        Returns:
+            bool: True if park exists, False otherwise
+        """
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(
+                    text("SELECT COUNT(*) FROM gmaps_hiking_locations WHERE park_code = :park_code"),
+                    {"park_code": park_code}
+                )
+                count = result.scalar()
+                return count > 0
+        except Exception as e:
+            self.logger.error(f"Failed to check if park {park_code} exists: {e}")
+            return False
+
+    def delete_gmaps_park_records(self, park_code: str) -> None:
+        """
+        Delete all records for a specific park from gmaps_hiking_locations table.
+
+        Args:
+            park_code (str): Park code whose records should be deleted
+        """
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(
+                    text("DELETE FROM gmaps_hiking_locations WHERE park_code = :park_code"),
+                    {"park_code": park_code}
+                )
+                deleted_count = result.rowcount
+                self.logger.info(f"Deleted {deleted_count} records for park {park_code}")
+        except Exception as e:
+            self.logger.error(f"Failed to delete records for park {park_code}: {e}")
             raise
 
     def truncate_tables(self, table_names: List[str]) -> None:

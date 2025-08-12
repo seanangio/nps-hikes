@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>google-maps-nps-trails</name>
+    <description>Google My Maps collection of hiked NPS trails</description>
+    <Style id="icon-1899-0288D1-nodesc-normal">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+        <hotSpot x="32" xunits="pixels" y="64" yunits="insetPixels"/>
+      </IconStyle>
+      <LabelStyle>
+        <scale>0</scale>
+      </LabelStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="icon-1899-0288D1-nodesc-highlight">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+        <hotSpot x="32" xunits="pixels" y="64" yunits="insetPixels"/>
+      </IconStyle>
+      <LabelStyle>
+        <scale>1</scale>
+      </LabelStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <StyleMap id="icon-1899-0288D1-nodesc">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#icon-1899-0288D1-nodesc-normal</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#icon-1899-0288D1-nodesc-highlight</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Folder>
+      <name>pinn</name>
+      <Placemark>
+        <name>Juniper Canyon Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.2047223,36.4871085,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Balconies Cave Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.2011774,36.5002002,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Balconies Cliffs Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.2020834,36.5006437,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Prewett Point Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.2254809,36.4775673,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Moses Spring Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.1865253,36.4747836,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Rim Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.1875328,36.4748524,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Condor Gulch Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.1810307,36.4816139,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>High Peaks Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.1862481,36.4895368,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>seki</name>
+      <Placemark>
+        <name>General Sherman Tree</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.751442,36.5817069,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>The Congress Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.750251,36.5809946,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Big Trees Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7682073,36.5669878,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Moro Rock Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7656765,36.5467941,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Crescent Meadow Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7488318,36.5564694,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Tokopah Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7227277,36.6050929,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Circle Meadow Loops</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7500029,36.569767,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Soldiers Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7652506,36.5470277,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Trail Of The Sequoias</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7429917,36.5663194,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Booker T. Washington Tree</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7707784,36.5575659,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Long Meadow Loop</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7367113,36.5908093,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lakes trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.733674,36.596711,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Giant Forest Museum</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7727191,36.5647207,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>High Sierra Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7489866,36.5548051,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Wolverton Cut-Off</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7364408,36.5700536,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Beetle Rock Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.7743175,36.5646957,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Big Baldy Ridge Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.8787359,36.6973519,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>General Grant Tree</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.9711957,36.7482167,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Buena Vista Peak</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.8966666,36.7113888,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Boole Tree Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.9607407,36.8221928,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>The Big Stump Grove</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.9652293,36.7173293,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Zumwalt Meadows</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.5959325,36.7913281,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Roaring River Falls</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.6209327,36.7804955,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Knapps Cabin</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.6366468,36.7835008,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Sheep Creek Cascade</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.6843153,36.7770097,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cedar Grove Overlook</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.6787816,36.8004806,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mist Falls Trailhead 8 mile hike rt</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.5828403,36.7946371,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Copper Creek Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -118.5835548,36.7964936,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+  </Document>
+</kml>

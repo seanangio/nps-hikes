@@ -14,6 +14,10 @@ This design allows components to run independently without unnecessary dependenc
 
 import os
 from typing import Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class Config:

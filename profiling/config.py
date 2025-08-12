@@ -74,6 +74,17 @@ PROFILING_MODULES = {
         "dependencies": [],
         "output_prefix": "data_freshness",
     },
+    "gmaps_hiking_locations": {
+        "enabled": True,
+        "description": "Google Maps hiking locations analysis",
+        "queries": [
+            "basic_summary.sql",
+            "park_analysis.sql",
+            "park_coverage.sql",
+        ],
+        "dependencies": [],
+        "output_prefix": "gmaps",
+    },
 }
 
 # Global profiling settings
