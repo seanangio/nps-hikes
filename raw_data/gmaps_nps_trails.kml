@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>google-maps-nps-trails</name>
+    <name>gmaps_nps_trails</name>
     <description>Google My Maps collection of hiked NPS trails</description>
     <Style id="icon-1899-0288D1-nodesc-normal">
       <IconStyle>
@@ -371,6 +371,300 @@
         <Point>
           <coordinates>
             -118.5835548,36.7964936,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>yose</name>
+      <Placemark>
+        <name>Grizzly Giant Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.6049086,37.5058884,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Big Trees Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.6100182,37.5022657,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Guardians Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5984702,37.5134502,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mariposa Grove Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.6030533,37.5108431,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Wawona Point</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.6008314,37.5185446,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Bridalveil Falls Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.6509222,37.716814,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lower Yosemite Fall Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5935639,37.7474042,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name><![CDATA[Cook's Meadow Loop]]></name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5927789,37.7461204,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mirror Lake Loop</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.547126,37.7510483,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mist Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5398801,37.7265763,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>John Muir Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5489532,37.7260032,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Yosemite Falls Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5813409,37.7719593,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Glacier Point Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5742864,37.7276829,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>McGurk Meadow Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.6225043,37.6803288,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Sentinel Dome Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5834763,37.7205455,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Panorama Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5522226,37.7191461,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Wapama And Rancheria Fall Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.7875811,37.9462683,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>May Lake Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.4910614,37.832588,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>North Dome Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5713197,37.7678585,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Pothole Dome</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.3932138,37.8799245,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Gaylor Lake Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.2583428,37.9101831,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lembert Dome Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.3433786,37.8832615,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Dog Lake Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.3452279,37.8896887,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cathedral Lakes Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.3826485,37.8732051,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mono Pass Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.2624601,37.8910129,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Dewey Point</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.6502382,37.7045816,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Taft Point</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.6046084,37.7129827,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>redw</name>
+      <Placemark>
+        <name>Trillium Falls Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -124.0451908,41.3215949,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Berry Glen Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -124.0340806,41.3096449,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lady Bird Johnson Grove Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -124.0184639,41.3035697,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Tall Trees Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -124.0035261,41.2087378,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Klamath River Overlook</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -124.0866836,41.5544092,0
           </coordinates>
         </Point>
       </Placemark>
