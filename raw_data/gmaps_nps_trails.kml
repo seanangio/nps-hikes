@@ -669,5 +669,218 @@
         </Point>
       </Placemark>
     </Folder>
+    <Folder>
+      <name>crla</name>
+      <Placemark>
+        <name>Castle Crest Wildflower Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.1334125,42.8959414,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lady of the Woods Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.1344653,42.8966311,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Annie Creek Canyon</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.159141,42.8652519,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Godfrey Glen Nature Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.1477479,42.8647611,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Discovery Point Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.1475278,42.9123082,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Watchman Peak Trailhead, Crater Lake</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.1691656,42.9457166,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cleetwood Cove Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.0832215,42.9796232,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Fumarole Bay Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.1513464,42.937555,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mount Scott Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.0300214,42.9289768,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Sun Notch Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.0957699,42.9001593,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Garfield Peak Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.1403775,42.9096448,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Wizard Island Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -122.1482313,42.9370411,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>lavo</name>
+      <Placemark>
+        <name>Bumpass Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.5140083,40.4661197,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Ridge Lakes Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.535845,40.4490098,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lassen Peak Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.5056466,40.4748224,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Kings Creek Falls</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.4411684,40.459747,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name><![CDATA[Terrace, Shadow & Cliff Lake]]></name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.4512487,40.4823278,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Sulphur Works</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.5368687,40.4486997,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Manzanita Lake Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.5664283,40.5350978,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Reflection Lake Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.5652813,40.537694,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Devastated Area Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.4650444,40.5158466,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Chaos Crags Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.5449618,40.5356569,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cinder Cone trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -121.3017884,40.564806,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
   </Document>
 </kml>
