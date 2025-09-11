@@ -99,6 +99,14 @@ class VisualizationProfiler:
         """
         tnm_trails = gpd.read_postgis(tnm_query, engine, geom_col="geometry")
         
+        # Get GMaps locations for this park
+        gmaps_query = f"""
+        SELECT location_name as name, longitude as lon, latitude as lat
+        FROM gmaps_hiking_locations 
+        WHERE park_code = '{park_code}'
+        """
+        gmaps_locations = pd.read_sql(gmaps_query, engine)
+        
         # Create the map with better color scheme
         fig, ax = plt.subplots(1, 1, figsize=(12, 10))
         
@@ -138,6 +146,7 @@ class VisualizationProfiler:
         # Calculate trail statistics for legend
         osm_count = len(osm_trails)
         tnm_count = len(tnm_trails)
+        gmaps_count = len(gmaps_locations)
         osm_length = osm_trails['length_mi'].sum() if not osm_trails.empty else 0
         tnm_length = tnm_trails['length_mi'].sum() if not tnm_trails.empty else 0
         
@@ -151,13 +160,22 @@ class VisualizationProfiler:
             tnm_trails.plot(ax=ax, color='#fd7e14', linewidth=1.5, alpha=0.7,
                            label=f'TNM: {tnm_count} trails, {tnm_length:.1f} mi')
         
+        # Plot GMaps locations with purple color
+        if not gmaps_locations.empty:
+            ax.scatter(gmaps_locations['lon'], gmaps_locations['lat'], 
+                      color='#6f42c1', s=20, alpha=0.8, 
+                      label=f'GMap: {gmaps_count} points')
+            
+            # Add smart labels
+            self._add_smart_labels(ax, gmaps_locations, boundary_geom)
+        
         # Set up the map
         ax.set_title(f"{park_name} ({park_code.upper()})", fontsize=16, fontweight='bold')
         ax.set_xlabel("Longitude")
         ax.set_ylabel("Latitude")
         
         # Add consolidated legend in top right only
-        if not osm_trails.empty or not tnm_trails.empty:
+        if not osm_trails.empty or not tnm_trails.empty or not gmaps_locations.empty:
             ax.legend(loc='upper right', framealpha=0.9, fancybox=True, shadow=True)
         
         # Save the map
@@ -166,6 +184,94 @@ class VisualizationProfiler:
         plt.close()
         
         self.logger.info(f"Created map for {park_code}: {output_path}")
+
+    def _plot_gmaps_locations(self, ax, gmaps_locations, park_boundary):
+        """Plot GMaps locations with smart label positioning."""
+        if gmaps_locations.empty:
+            return 0
+        
+        # Plot GMaps points
+        gmaps_locations.plot(ax=ax, color='#6f42c1', markersize=20, alpha=0.8, 
+                            label=f'GMap: {len(gmaps_locations)} points')
+        
+        # Add labels with smart positioning
+        self._add_smart_labels(ax, gmaps_locations, park_boundary)
+        
+        return len(gmaps_locations)
+
+    def _add_smart_labels(self, ax, gmaps_locations, park_boundary):
+        """Add smart labels to GMaps locations to avoid overlaps."""
+        if gmaps_locations.empty:
+            return
+        
+        # Get park boundary bounds for label positioning
+        if park_boundary is not None:
+            bounds = park_boundary.bounds
+            park_width = bounds[2] - bounds[0]
+            park_height = bounds[3] - bounds[1]
+        else:
+            # Fallback to data bounds
+            min_lon = gmaps_locations['lon'].min()
+            max_lon = gmaps_locations['lon'].max()
+            min_lat = gmaps_locations['lat'].min()
+            max_lat = gmaps_locations['lat'].max()
+            park_width = max_lon - min_lon
+            park_height = max_lat - min_lat
+        
+        # Calculate label offset based on park size
+        label_offset = max(park_width, park_height) * 0.02
+        
+        # Track used positions to avoid overlaps
+        used_positions = []
+        
+        for idx, location in gmaps_locations.iterrows():
+            name = location['name'] or 'Unnamed'
+            lon = location['lon']
+            lat = location['lat']
+            
+            # Try different label positions to avoid overlaps
+            label_positions = [
+                (lon, lat + label_offset),  # Above
+                (lon + label_offset, lat),  # Right
+                (lon, lat - label_offset),  # Below
+                (lon - label_offset, lat),  # Left
+                (lon + label_offset, lat + label_offset),  # Top-right
+                (lon - label_offset, lat + label_offset),  # Top-left
+                (lon + label_offset, lat - label_offset),  # Bottom-right
+                (lon - label_offset, lat - label_offset),  # Bottom-left
+            ]
+            
+            # Find best position that doesn't overlap
+            best_position = None
+            for pos in label_positions:
+                if not self._position_overlaps(pos, used_positions, label_offset):
+                    best_position = pos
+                    break
+            
+            if best_position is None:
+                # If all positions overlap, use the first one
+                best_position = label_positions[0]
+            
+            # Add to used positions
+            used_positions.append(best_position)
+            
+            # Draw line from point to label
+            ax.plot([lon, best_position[0]], [lat, best_position[1]], 
+                   color='#6f42c1', linewidth=0.8, alpha=0.6)
+            
+            # Add label with background box
+            ax.annotate(name, xy=best_position, xytext=best_position,
+                       ha='center', va='center', fontsize=8, fontweight='bold',
+                       bbox=dict(boxstyle='round,pad=0.3', facecolor='white', 
+                                edgecolor='#6f42c1', alpha=0.8, linewidth=0.5))
+
+    def _position_overlaps(self, pos, used_positions, min_distance):
+        """Check if a position overlaps with existing positions."""
+        for used_pos in used_positions:
+            distance = ((pos[0] - used_pos[0])**2 + (pos[1] - used_pos[1])**2)**0.5
+            if distance < min_distance:
+                return True
+        return False
 
     def run_interactive_map(self):
         """Create one comprehensive interactive map with all parks and trails."""
