@@ -3,13 +3,14 @@
 Google Maps Hiking Locations Importer
 
 This script imports hiking location data from Google Maps KML files into the database.
+It automatically discovers and processes all KML files in the configured directory.
 It supports both CSV output (default) and database insertion (with --write-db flag).
 
 Usage:
-    # Parse KML and create CSV artifact (default)
+    # Parse all KML files in raw_data/gmaps/ and create CSV artifact (default)
     python gmaps_hiking_importer.py
 
-    # Parse KML and write to database
+    # Parse all KML files and write to database
     python gmaps_hiking_importer.py --write-db
 
     # Force refresh (drop existing records and re-import)
@@ -55,7 +56,7 @@ class GMapsHikingImporter:
             write_db (bool): Whether to write to database or just create CSV
         """
         self.write_db = write_db
-        self.kml_file_path = "raw_data/gmaps_nps_trails.kml"
+        self.kml_directory = config.GMAPS_INPUT_DIRECTORY
         
         if self.write_db:
             self.engine = get_postgres_engine()
@@ -74,81 +75,156 @@ class GMapsHikingImporter:
             'missing_park_codes': []
         }
     
-    def parse_kml_file(self) -> Dict[str, List[Dict]]:
+    def _discover_kml_files(self) -> List[str]:
         """
-        Parse the KML file and extract hiking locations.
+        Discover all KML files in the configured directory.
+        
+        Returns:
+            List of KML file paths
+        """
+        if not os.path.exists(self.kml_directory):
+            logger.warning(f"KML directory not found: {self.kml_directory}")
+            return []
+        
+        kml_files = []
+        for filename in sorted(os.listdir(self.kml_directory)):
+            if filename.lower().endswith('.kml'):
+                kml_files.append(os.path.join(self.kml_directory, filename))
+        
+        logger.info(f"Found {len(kml_files)} KML files in {self.kml_directory}")
+        for kml_file in kml_files:
+            logger.info(f"  - {os.path.basename(kml_file)}")
+        
+        return kml_files
+    
+    def parse_kml_directory(self) -> Dict[str, List[Dict]]:
+        """
+        Parse all KML files in the configured directory and extract hiking locations.
         
         Returns:
             Dict mapping park_code to list of location dictionaries
         """
-        logger.info(f"Parsing KML file: {self.kml_file_path}")
+        kml_files = self._discover_kml_files()
         
-        if not os.path.exists(self.kml_file_path):
-            raise FileNotFoundError(f"KML file not found: {self.kml_file_path}")
+        if not kml_files:
+            logger.warning("No KML files found to process")
+            return {}
         
-        try:
-            tree = ET.parse(self.kml_file_path)
-            root = tree.getroot()
+        all_parks_data = {}
+        
+        for kml_file_path in kml_files:
+            logger.info(f"Processing KML file: {os.path.basename(kml_file_path)}")
             
-            # Remove namespace for easier parsing
-            namespace = {'kml': 'http://www.opengis.net/kml/2.2'}
-            
-            parks_data = {}
-            
-            # Find all folders (park layers)
-            folders = root.findall('.//kml:Folder', namespace)
-            logger.info(f"Found {len(folders)} park layers in KML")
-            
-            for folder in folders:
-                folder_name = folder.find('kml:name', namespace)
-                if folder_name is None or not folder_name.text:
-                    logger.warning("Found folder without name, skipping")
-                    continue
+            try:
+                tree = ET.parse(kml_file_path)
+                root = tree.getroot()
                 
-                park_code = folder_name.text.strip()
-                logger.info(f"Processing park: {park_code}")
+                # Remove namespace for easier parsing
+                namespace = {'kml': 'http://www.opengis.net/kml/2.2'}
                 
-                # Find all placemarks (locations) in this park
-                placemarks = folder.findall('.//kml:Placemark', namespace)
-                locations = []
+                # Find all folders (park layers)
+                folders = root.findall('.//kml:Folder', namespace)
+                logger.info(f"Found {len(folders)} park layers in {os.path.basename(kml_file_path)}")
                 
-                for placemark in placemarks:
-                    location_name = placemark.find('kml:name', namespace)
-                    if location_name is None or not location_name.text:
-                        logger.warning(f"Found placemark without name in {park_code}, skipping")
+                for folder in folders:
+                    folder_name = folder.find('kml:name', namespace)
+                    if folder_name is None or not folder_name.text:
+                        logger.warning("Found folder without name, skipping")
                         continue
                     
-                    location_name = location_name.text.strip()
+                    park_code = folder_name.text.strip()
+                    logger.info(f"Processing park: {park_code}")
                     
-                    # Extract coordinates
-                    coords_elem = placemark.find('.//kml:coordinates', namespace)
-                    lat, lon = None, None
+                    # Find all placemarks (locations) in this park
+                    placemarks = folder.findall('.//kml:Placemark', namespace)
+                    locations = []
                     
-                    if coords_elem is not None and coords_elem.text:
-                        try:
-                            coords_text = coords_elem.text.strip()
-                            # Parse coordinates: "longitude,latitude,altitude"
-                            lon_str, lat_str, alt_str = coords_text.split(',')
-                            lat = float(lat_str)
-                            lon = float(lon_str)
-                        except (ValueError, IndexError) as e:
-                            logger.warning(f"Could not parse coordinates for {location_name}: {e}")
+                    for placemark in placemarks:
+                        location_name = placemark.find('kml:name', namespace)
+                        if location_name is None or not location_name.text:
+                            logger.warning(f"Found placemark without name in {park_code}, skipping")
+                            continue
+                        
+                        location_name = location_name.text.strip()
+                        
+                        # Extract coordinates
+                        coords_elem = placemark.find('.//kml:coordinates', namespace)
+                        lat, lon = None, None
+                        
+                        if coords_elem is not None and coords_elem.text:
+                            try:
+                                coords_text = coords_elem.text.strip()
+                                # Parse coordinates: "longitude,latitude,altitude"
+                                lon_str, lat_str, alt_str = coords_text.split(',')
+                                lat = float(lat_str)
+                                lon = float(lon_str)
+                            except (ValueError, IndexError) as e:
+                                logger.warning(f"Could not parse coordinates for {location_name}: {e}")
+                        
+                        locations.append({
+                            'park_code': park_code,
+                            'location_name': location_name,
+                            'latitude': lat,
+                            'longitude': lon
+                        })
                     
-                    locations.append({
-                        'park_code': park_code,
-                        'location_name': location_name,
-                        'latitude': lat,
-                        'longitude': lon
-                    })
+                    # Merge with existing data for this park (if park appears in multiple files)
+                    if park_code in all_parks_data:
+                        logger.info(f"Park {park_code} found in multiple files, merging locations")
+                        all_parks_data[park_code].extend(locations)
+                    else:
+                        all_parks_data[park_code] = locations
+                    
+                    logger.info(f"Found {len(locations)} locations for park {park_code} in {os.path.basename(kml_file_path)}")
                 
-                parks_data[park_code] = locations
-                logger.info(f"Found {len(locations)} locations for park {park_code}")
+            except Exception as e:
+                logger.error(f"Failed to parse KML file {os.path.basename(kml_file_path)}: {e}")
+                continue
+        
+        # Remove duplicates based on park_code + location_name
+        all_parks_data = self._remove_duplicates(all_parks_data)
+        
+        # Log final summary
+        total_parks = len(all_parks_data)
+        total_locations = sum(len(locations) for locations in all_parks_data.values())
+        logger.info(f"Successfully parsed {len(kml_files)} KML files")
+        logger.info(f"Total parks found: {total_parks}")
+        logger.info(f"Total locations found: {total_locations}")
+        
+        return all_parks_data
+    
+    def _remove_duplicates(self, parks_data: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
+        """
+        Remove duplicate locations based on park_code + location_name.
+        
+        Args:
+            parks_data: Dict mapping park_code to list of location dictionaries
             
-            return parks_data
+        Returns:
+            Dict with duplicates removed
+        """
+        deduplicated_data = {}
+        
+        for park_code, locations in parks_data.items():
+            seen = set()
+            unique_locations = []
             
-        except Exception as e:
-            logger.error(f"Failed to parse KML file: {e}")
-            raise
+            for location in locations:
+                # Create unique key based on park_code + location_name
+                key = (location['park_code'], location['location_name'])
+                
+                if key not in seen:
+                    seen.add(key)
+                    unique_locations.append(location)
+                else:
+                    logger.debug(f"Removed duplicate: {location['park_code']} - {location['location_name']}")
+            
+            deduplicated_data[park_code] = unique_locations
+            
+            if len(unique_locations) < len(locations):
+                logger.info(f"Removed {len(locations) - len(unique_locations)} duplicates from park {park_code}")
+        
+        return deduplicated_data
     
     def validate_location(self, location: Dict) -> Tuple[bool, Optional[float], Optional[float]]:
         """
@@ -336,8 +412,8 @@ class GMapsHikingImporter:
         logger.info("Starting Google Maps hiking locations import")
         
         try:
-            # Parse KML file
-            parks_data = self.parse_kml_file()
+            # Parse KML directory
+            parks_data = self.parse_kml_directory()
             self.stats['total_parks'] = len(parks_data)
             
             # Get valid park codes and calculate missing ones
@@ -425,7 +501,7 @@ class GMapsHikingImporter:
 def main():
     """Main function."""
     parser = argparse.ArgumentParser(
-        description="Import Google Maps hiking locations from KML file"
+        description="Import Google Maps hiking locations from KML files in configured directory"
     )
     parser.add_argument(
         "--write-db",

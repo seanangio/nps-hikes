@@ -98,6 +98,10 @@ class Config:
     TNM_MIN_TRAIL_LENGTH_MI: float = 0.01  # minimum length after aggregation
     TNM_LOG_FILE: str = "logs/tnm_collector.log"
 
+    # GMaps Collection Settings
+    GMAPS_INPUT_DIRECTORY: str = "raw_data/gmaps"
+    GMAPS_LOG_FILE: str = "logs/gmaps_importer.log"
+
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_MAX_BYTES: int = 5 * 1024 * 1024  # 5MB

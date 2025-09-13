@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>nps_points_cave</name>
+    <description/>
+    <Style id="icon-1899-0288D1-nodesc-normal">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+        <hotSpot x="32" xunits="pixels" y="64" yunits="insetPixels"/>
+      </IconStyle>
+      <LabelStyle>
+        <scale>0</scale>
+      </LabelStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="icon-1899-0288D1-nodesc-highlight">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+        <hotSpot x="32" xunits="pixels" y="64" yunits="insetPixels"/>
+      </IconStyle>
+      <LabelStyle>
+        <scale>1</scale>
+      </LabelStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <StyleMap id="icon-1899-0288D1-nodesc">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#icon-1899-0288D1-nodesc-normal</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#icon-1899-0288D1-nodesc-highlight</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Folder>
+      <name>cave</name>
+      <Placemark>
+        <name>Carlsbad Cavern Natural Entrance</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -104.44098,32.1770851,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Walnut Canyon Nature Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -104.4220293,32.1873128,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>whsa</name>
+      <Placemark>
+        <name>Playa Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -106.211546,32.7968022,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Dune Life Nature Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -106.2126421,32.7935745,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Alkali Flat Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -106.273089,32.8205291,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>jotr</name>
+      <Placemark>
+        <name>Arch Rock Nature Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.0229624,33.9894597,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Bajada Nature Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -115.8016785,33.6812271,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Barker Dam Nature Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.1436643,34.0280864,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cap Rock Nature Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.1627702,33.9882264,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hall of Horrors Area</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.1467554,34.0003505,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cholla Cactus Garden</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -115.9298704,33.9251083,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cottonwood Spring</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -115.810737,33.7368946,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hidden Valley Nature Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.1680568,34.0124685,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Keys View</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.1872155,33.9265764,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Oasis Of Mara Nature Trail Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.0374109,34.1285854,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Skull Rock Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.0598124,33.9978738,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hi-View Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.3993036,34.0760208,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mastodon Peak Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -115.8115644,33.7451966,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Fortynine Palms Oasis Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.1079895,34.1129593,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>deva</name>
+      <Placemark>
+        <name>Zabriskie Point</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.8122303,36.4200667,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Harmony Borax Works Interpretive Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.8748184,36.4799951,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Badwater Salt Flats</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.7714057,36.2305485,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Ubehebe Crater</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -117.4507424,37.0100405,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Golden Canyon Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -116.8466104,36.4207484,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mosaic Canyon Trailhead 3.5 miles</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -117.1441504,36.5718213,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>acad</name>
+      <Placemark>
+        <name>Precipice Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.1882496,44.3494871,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Compass Harbor Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.197529,44.373801,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Jesup Path and Hemlock Path Loop</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.212039,44.3714409,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Beehive Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.1853228,44.3315664,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Jordan Pond Path Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.2537108,44.3229493,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Beachcroft Path</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.2020293,44.3540389,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cadillac North Ridge Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.230524,44.3666888,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Ocean Path Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.1837093,44.3294668,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cadillac Summit Loop</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.2240558,44.3528236,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Bubbles Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.2544579,44.3408649,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Emery Path</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.2099823,44.3607295,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Dorr Mountain Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.2043974,44.3518179,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Schiff Path</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.2137626,44.3551783,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Homans Path</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.2102253,44.3627969,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Great Head Trail (Acadia National Park)</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.1774833,44.3297625,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name><![CDATA[Kurt Diederich's Climb]]></name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.2082732,44.3588207,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Gorham Mountain Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.1918788,44.3166253,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Ship Harbor Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.3254699,44.2316344,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Wonderland Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.3153595,44.2316867,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Beech Cliff Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.3389151,44.3153565,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Saint Sauveur Mountain Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.3292725,44.3161655,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Acadia Mountain Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.3322888,44.3229586,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Alder Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.0519243,44.3412889,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Anvil Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.0494747,44.3444498,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Schoodic Head Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.0549146,44.3481598,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+  </Document>
+</kml>

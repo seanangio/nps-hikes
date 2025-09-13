@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>gmaps_nps_trails</name>
-    <description>Google My Maps collection of hiked NPS trails</description>
+    <name>gmaps_nps_trails_lavo_bibe</name>
+    <description>Google My Maps collection of hiked NPS trails from Lassen to Big Bend, excluding Carlsbad and White Sands</description>
     <Style id="icon-1899-0288D1-nodesc-normal">
       <IconStyle>
         <color>ffd18802</color>
@@ -878,6 +878,261 @@
         <Point>
           <coordinates>
             -121.3017884,40.564806,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>ever</name>
+      <Placemark>
+        <name>Anhinga Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.6071771,25.3826842,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Gumbo Limbo Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.6181224,25.380324,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Pinelands Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.6800805,25.424277,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Pa-hay-okee Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.7838154,25.4410268,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mahogany Hammock Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.8319992,25.3236517,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Otter Cave Hammock Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.7668346,25.7485379,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Bobcat Boardwalk Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.7642887,25.7567644,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>bisc</name>
+      <Placemark>
+        <name>Convoy Point</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.3339426,25.464555,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>bibe</name>
+      <Placemark>
+        <name>Window View Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.3024206,29.2706878,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>The Window</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.3301769,29.2810332,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lost Mine Trail Head</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.2863925,29.2744042,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Chisos Basin Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.3015178,29.2705397,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Boquillas Canyon Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -102.9193605,29.2005724,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Sam Nail Ranch Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.3697032,29.2794758,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Panther Path</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.2062249,29.3280571,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Tuff Canyon Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.488161,29.149956,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lower Burro Mesa Pouroff Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.4070757,29.2340737,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Rio Grande Village Nature Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -102.9539105,29.1791057,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Santa Elena Canyon Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.61049,29.1672847,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Ernst Ridge Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -102.9728411,29.1865664,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>gumo</name>
+      <Placemark>
+        <name>Guadalupe Peak Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -104.8282227,31.8966611,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Manzanita Spring Loop Trailhead 2.5 miles</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -104.8018448,31.9061381,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Smith Spring Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -104.8028407,31.9136904,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>McKittrick Canyon Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -104.7518992,31.9769564,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Pratt Cabin Access Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -104.7801384,31.983601,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>The Notch</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -104.7926566,31.9647964,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hunter Line Shack</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -104.7887643,31.969489,0
           </coordinates>
         </Point>
       </Placemark>
