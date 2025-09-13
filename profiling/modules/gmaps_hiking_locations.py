@@ -21,12 +21,12 @@ from typing import Dict, Any, Optional
 
 class GMapsHikingLocationsProfiler:
     """Google Maps hiking locations profiling module."""
-    
+
     def __init__(self):
         self.config = PROFILING_MODULES.get("gmaps_hiking_locations", {})
         self.logger = ProfilingLogger("gmaps_hiking_locations")
         self.results = {}
-    
+
     def run_basic_summary(self):
         """Run basic summary analysis."""
         try:
@@ -34,7 +34,7 @@ class GMapsHikingLocationsProfiler:
             query = load_sql_query("gmaps_hiking_locations", "basic_summary.sql")
             engine = get_db_connection()
             results = run_query(engine, query)
-            
+
             if not results.empty:
                 save_results(
                     results,
@@ -44,17 +44,19 @@ class GMapsHikingLocationsProfiler:
                 )
                 self.results["basic_summary"] = results
                 self.logger.success("Basic summary analysis completed")
-                
+
                 if PROFILING_SETTINGS["print_summaries"]:
-                    print_results_summary(results, "Google Maps Hiking Locations Summary")
+                    print_results_summary(
+                        results, "Google Maps Hiking Locations Summary"
+                    )
             else:
                 self.logger.error("No results for basic summary analysis")
-                
+
         except Exception as e:
             self.logger.error(f"Failed to run basic summary: {e}")
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
-    
+
     def run_park_analysis(self):
         """Run park-level analysis."""
         try:
@@ -62,7 +64,7 @@ class GMapsHikingLocationsProfiler:
             query = load_sql_query("gmaps_hiking_locations", "park_analysis.sql")
             engine = get_db_connection()
             results = run_query(engine, query)
-            
+
             if not results.empty:
                 save_results(
                     results,
@@ -70,20 +72,20 @@ class GMapsHikingLocationsProfiler:
                     PROFILING_SETTINGS["output_directory"],
                     self.config.get("output_prefix", "gmaps"),
                 )
-                
+
                 self.results["park_analysis"] = results
                 self.logger.success("Park-level analysis completed")
-                
+
                 if PROFILING_SETTINGS["print_summaries"]:
                     print_results_summary(results, "Park Analysis")
             else:
                 self.logger.error("No results for park analysis")
-                
+
         except Exception as e:
             self.logger.error(f"Failed to run park analysis: {e}")
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
-    
+
     def run_park_coverage(self):
         """Run park coverage analysis."""
         try:
@@ -91,7 +93,7 @@ class GMapsHikingLocationsProfiler:
             query = load_sql_query("gmaps_hiking_locations", "park_coverage.sql")
             engine = get_db_connection()
             results = run_query(engine, query)
-            
+
             if not results.empty:
                 save_results(
                     results,
@@ -99,39 +101,39 @@ class GMapsHikingLocationsProfiler:
                     PROFILING_SETTINGS["output_directory"],
                     self.config.get("output_prefix", "gmaps"),
                 )
-                
+
                 self.results["park_coverage"] = results
                 self.logger.success("Park coverage analysis completed")
-                
+
                 if PROFILING_SETTINGS["print_summaries"]:
                     print_results_summary(results, "Park Coverage Analysis")
             else:
                 self.logger.error("No results for park coverage analysis")
-                
+
         except Exception as e:
             self.logger.error(f"Failed to run park coverage analysis: {e}")
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
-    
 
-    
     def run_all(self):
         """Run all profiling methods."""
         try:
             self.logger.info("Starting Google Maps hiking locations profiling...")
-            
+
             # Run basic summary
             self.run_basic_summary()
-            
+
             # Run park analysis
             self.run_park_analysis()
-            
+
             # Run park coverage analysis
             self.run_park_coverage()
-            
-            self.logger.success("Google Maps hiking locations profiling completed successfully")
+
+            self.logger.success(
+                "Google Maps hiking locations profiling completed successfully"
+            )
             return self.results
-            
+
         except Exception as e:
             self.logger.error(f"Profiling failed: {e}")
             if not PROFILING_SETTINGS["continue_on_error"]:
@@ -148,18 +150,18 @@ def run_gmaps_hiking_locations() -> Dict[str, Any]:
 if __name__ == "__main__":
     # Test the module
     profiler = GMapsHikingLocationsProfiler()
-    
+
     try:
         # Run basic summary
         profiler.run_basic_summary()
-        
+
         # Run park analysis
         profiler.run_park_analysis()
-        
+
         # Run park coverage analysis
         profiler.run_park_coverage()
-        
+
         print("Google Maps hiking locations profiling completed successfully!")
-        
+
     except Exception as e:
         print(f"Profiling failed: {e}")

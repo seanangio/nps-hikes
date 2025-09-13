@@ -14,7 +14,7 @@ Key Features:
 
 Available Modules:
 - nps_parks: NPS park statistics and data analysis
-- nps_geography: NPS geographic and spatial analysis  
+- nps_geography: NPS geographic and spatial analysis
 - data_quality: Cross-table data quality and validation checks
 - visualization: Data visualization and maps
 - osm_hikes: OSM hiking trails analysis
@@ -24,16 +24,16 @@ Available Modules:
 Examples:
   # Run all enabled modules
   python profiling/orchestrator.py
-  
+
   # Run specific modules
   python profiling/orchestrator.py osm_hikes tnm_hikes
-  
+
   # Run with help
   python profiling/orchestrator.py --help
-  
+
   # List available modules
   python profiling/orchestrator.py --list-modules
-  
+
   # Run with verbose output
   python profiling/orchestrator.py --verbose osm_hikes
 """
@@ -48,6 +48,7 @@ load_dotenv()
 
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from profiling.config import PROFILING_MODULES, PROFILING_SETTINGS
@@ -201,7 +202,7 @@ def list_available_modules():
     """List all available profiling modules with their status and description."""
     print("Available Profiling Modules:")
     print("=" * 50)
-    
+
     for module_name, config in PROFILING_MODULES.items():
         status = "✓ Enabled" if config["enabled"] else "✗ Disabled"
         print(f"{module_name:20} {status}")
@@ -232,27 +233,23 @@ Available Modules:
   osm_hikes      - OSM hiking trails analysis
   tnm_hikes      - TNM hiking trails analysis
   data_freshness - Data freshness monitoring across all tables
-        """
+        """,
     )
-    
+
     parser.add_argument(
         "modules",
         nargs="*",
-        help="Specific modules to run (default: run all enabled modules)"
+        help="Specific modules to run (default: run all enabled modules)",
     )
-    
+
     parser.add_argument(
         "--list-modules",
         action="store_true",
-        help="List all available modules with their status and description"
+        help="List all available modules with their status and description",
     )
-    
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Enable verbose output"
-    )
-    
+
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+
     return parser
 
 
@@ -260,16 +257,17 @@ Available Modules:
 if __name__ == "__main__":
     parser = create_argument_parser()
     args = parser.parse_args()
-    
+
     if args.list_modules:
         list_available_modules()
         sys.exit(0)
-    
+
     if args.verbose:
         # Set logging level to DEBUG for verbose output
         import logging
+
         logging.getLogger().setLevel(logging.DEBUG)
-    
+
     if args.modules:
         # Run specific modules
         print(f"Running modules: {', '.join(args.modules)}")

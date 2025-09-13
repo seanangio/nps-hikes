@@ -149,7 +149,12 @@ class DatabaseWriter:
             Column("description", Text),
             Column("error_message", Text),
             Column("collection_status", String),
-            Column("collected_at", DateTime(timezone=True), nullable=False, server_default=text('NOW()')),
+            Column(
+                "collected_at",
+                DateTime(timezone=True),
+                nullable=False,
+                server_default=text("NOW()"),
+            ),
             extend_existing=True,
         )
 
@@ -162,7 +167,12 @@ class DatabaseWriter:
             Column("collection_status", String),
             Column("error_message", Text),
             Column("bbox", String(100)),  # Bounding box as "xmin,ymin,xmax,ymax" string
-            Column("collected_at", DateTime(timezone=True), nullable=False, server_default=text('NOW()')),
+            Column(
+                "collected_at",
+                DateTime(timezone=True),
+                nullable=False,
+                server_default=text("NOW()"),
+            ),
             Column("geometry_type", String),
             Column(
                 "geometry", Geometry(geometry_type="MULTIPOLYGON", srid=4326)
@@ -654,11 +664,7 @@ class DatabaseWriter:
         try:
             # Use pandas to_sql with method='multi' for better performance
             df.to_sql(
-                table_name, 
-                self.engine, 
-                if_exists="append", 
-                index=False,
-                method='multi'
+                table_name, self.engine, if_exists="append", index=False, method="multi"
             )
             self.logger.info(f"Upserted {len(df)} records to {table_name}")
         except Exception as e:
@@ -678,8 +684,10 @@ class DatabaseWriter:
         try:
             with self.engine.connect() as conn:
                 result = conn.execute(
-                    text("SELECT COUNT(*) FROM gmaps_hiking_locations WHERE park_code = :park_code"),
-                    {"park_code": park_code}
+                    text(
+                        "SELECT COUNT(*) FROM gmaps_hiking_locations WHERE park_code = :park_code"
+                    ),
+                    {"park_code": park_code},
                 )
                 count = result.scalar()
                 return count > 0
@@ -697,11 +705,15 @@ class DatabaseWriter:
         try:
             with self.engine.begin() as conn:
                 result = conn.execute(
-                    text("DELETE FROM gmaps_hiking_locations WHERE park_code = :park_code"),
-                    {"park_code": park_code}
+                    text(
+                        "DELETE FROM gmaps_hiking_locations WHERE park_code = :park_code"
+                    ),
+                    {"park_code": park_code},
                 )
                 deleted_count = result.rowcount
-                self.logger.info(f"Deleted {deleted_count} records for park {park_code}")
+                self.logger.info(
+                    f"Deleted {deleted_count} records for park {park_code}"
+                )
         except Exception as e:
             self.logger.error(f"Failed to delete records for park {park_code}: {e}")
             raise

@@ -181,9 +181,7 @@ class TNMHikesCollector:
         }
 
         try:
-            self.logger.info(
-                f"Querying TNM API for {park_code}"
-            )
+            self.logger.info(f"Querying TNM API for {park_code}")
             response = requests.get(query_url, params=params, timeout=30)
             response.raise_for_status()
 
@@ -289,66 +287,74 @@ class TNMHikesCollector:
             # Get the park boundary geometry
             boundary_geom = boundary_gdf.geometry.iloc[0]
             original_count = len(trails_gdf)
-            
+
             # Ensure both datasets are in the same CRS
             if trails_gdf.crs != boundary_gdf.crs:
-                self.logger.warning(f"CRS mismatch in {park_code}: trails={trails_gdf.crs}, boundary={boundary_gdf.crs}")
+                self.logger.warning(
+                    f"CRS mismatch in {park_code}: trails={trails_gdf.crs}, boundary={boundary_gdf.crs}"
+                )
                 trails_gdf = trails_gdf.to_crs(boundary_gdf.crs)
-            
+
             clipped_trails = []
             total_clipped_length = 0.0
-            
+
             for idx, trail in trails_gdf.iterrows():
                 if trail.geometry.intersects(boundary_geom):
                     # Clip the trail to the boundary
                     clipped_geom = trail.geometry.intersection(boundary_geom)
-                    
+
                     if not clipped_geom.is_empty:
                         # Handle different geometry types that might result from clipping
-                        if clipped_geom.geom_type == 'LineString':
+                        if clipped_geom.geom_type == "LineString":
                             clipped_geometries = [clipped_geom]
-                        elif clipped_geom.geom_type == 'MultiLineString':
+                        elif clipped_geom.geom_type == "MultiLineString":
                             clipped_geometries = list(clipped_geom.geoms)
                         else:
                             # Skip if clipping resulted in non-linestring geometry
                             continue
-                        
+
                         # Create a trail record for each clipped segment
                         for i, geom in enumerate(clipped_geometries):
                             trail_copy = trail.copy()
                             trail_copy.geometry = geom
-                            
+
                             # Recalculate length in miles using projected CRS
                             # Convert geometry to projected CRS for accurate length calculation
                             geom_proj = geom
-                            if trails_gdf.crs != 'EPSG:5070':  # NAD83 / Conus Albers
+                            if trails_gdf.crs != "EPSG:5070":  # NAD83 / Conus Albers
                                 # Create a temporary GeoDataFrame to reproject
-                                temp_gdf = gpd.GeoDataFrame([{'geometry': geom}], crs=trails_gdf.crs)
-                                temp_gdf_proj = temp_gdf.to_crs('EPSG:5070')
+                                temp_gdf = gpd.GeoDataFrame(
+                                    [{"geometry": geom}], crs=trails_gdf.crs
+                                )
+                                temp_gdf_proj = temp_gdf.to_crs("EPSG:5070")
                                 geom_proj = temp_gdf_proj.geometry.iloc[0]
-                            
+
                             # Calculate length in miles
-                            length_miles = geom_proj.length / 1609.34  # Convert meters to miles
-                            
+                            length_miles = (
+                                geom_proj.length / 1609.34
+                            )  # Convert meters to miles
+
                             # Only keep trails that meet minimum length requirement
                             if length_miles >= config.TNM_MIN_TRAIL_LENGTH_MI:
-                                trail_copy['lengthmiles'] = length_miles
-                                trail_copy['shape_Length'] = geom.length  # Keep original decimal degrees
+                                trail_copy["lengthmiles"] = length_miles
+                                trail_copy["shape_Length"] = (
+                                    geom.length
+                                )  # Keep original decimal degrees
                                 clipped_trails.append(trail_copy)
                                 total_clipped_length += length_miles
-                
+
             # Create new GeoDataFrame with clipped trails
             if clipped_trails:
                 result_gdf = gpd.GeoDataFrame(clipped_trails, crs=trails_gdf.crs)
             else:
                 result_gdf = gpd.GeoDataFrame(crs=trails_gdf.crs)
-            
+
             clipped_count = len(result_gdf)
             self.logger.info(
                 f"Clipped {park_code}: {original_count} -> {clipped_count} trails "
                 f"(total length: {total_clipped_length:.1f} mi)"
             )
-            
+
             return result_gdf
 
         except Exception as e:
