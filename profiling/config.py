@@ -85,6 +85,20 @@ PROFILING_MODULES = {
         "dependencies": [],
         "output_prefix": "gmaps",
     },
+    "trail_matching": {
+        "enabled": True,
+        "description": "Trail matching analysis and quality metrics",
+        "queries": [
+            "match_summary.sql",
+            "confidence_distribution.sql",
+            "park_analysis.sql",
+            "distance_analysis.sql",
+            "unmatched_analysis.sql",
+            "source_comparison.sql",
+        ],
+        "dependencies": ["gmaps_hiking_locations"],
+        "output_prefix": "trail_matching",
+    },
 }
 
 # Global profiling settings
