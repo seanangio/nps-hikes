@@ -307,6 +307,32 @@ class DatabaseWriter:
             conn.execute(text(create_table_sql))
         self.logger.info("Ensured gmaps_hiking_locations table exists in database")
 
+    def _create_usgs_trail_elevations_table(self) -> None:
+        """
+        Create the usgs_trail_elevations table for USGS elevation data if it doesn't exist.
+
+        This table stores elevation profile data collected from USGS API for matched trails.
+        """
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS usgs_trail_elevations (
+            id SERIAL PRIMARY KEY,
+            trail_id INTEGER REFERENCES gmaps_hiking_locations_matched(id),
+            trail_name VARCHAR(255),
+            park_code VARCHAR(10),
+            source VARCHAR(10),
+            elevation_points JSONB,
+            collection_status VARCHAR(20) DEFAULT 'COMPLETE',
+            failed_points_count INTEGER DEFAULT 0,
+            total_points_count INTEGER,
+            created_at TIMESTAMP DEFAULT NOW(),
+            
+            CONSTRAINT usgs_trail_elevations_trail_id_unique UNIQUE (trail_id)
+        );
+        """
+        with self.engine.begin() as conn:
+            conn.execute(text(create_table_sql))
+        self.logger.info("Ensured usgs_trail_elevations table exists in database")
+
     def ensure_table_exists(self, table_name: str) -> None:
         """
         Ensure that the specified table exists in the database.
@@ -317,6 +343,7 @@ class DatabaseWriter:
         - 'osm_hikes': OSM trail data (created via raw SQL with composite PK)
         - 'tnm_hikes': TNM trail data (created via raw SQL with single PK)
         - 'gmaps_hiking_locations': Google Maps hiking locations (created via raw SQL)
+        - 'usgs_trail_elevations': USGS elevation data for matched trails (created via raw SQL)
 
         Args:
             table_name (str): Name of the table to create
@@ -331,6 +358,8 @@ class DatabaseWriter:
             self._create_tnm_hikes_table()
         elif table_name == "gmaps_hiking_locations":
             self._create_gmaps_hiking_locations_table()
+        elif table_name == "usgs_trail_elevations":
+            self._create_usgs_trail_elevations_table()
         elif table_name in ["parks", "park_boundaries"]:
             # Use SQLAlchemy table definitions
             self.metadata.create_all(

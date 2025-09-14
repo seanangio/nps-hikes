@@ -99,6 +99,20 @@ PROFILING_MODULES = {
         "dependencies": ["gmaps_hiking_locations"],
         "output_prefix": "trail_matching",
     },
+    "usgs_elevation": {
+        "enabled": True,
+        "description": "USGS elevation data analysis and quality metrics",
+        "queries": [
+            "trail_elevation_stats.sql",
+            "park_elevation_summary.sql",
+            "trail_grades.sql",
+            "steepest_segments.sql",
+            "data_quality.sql",
+            "collection_status.sql",
+        ],
+        "dependencies": ["trail_matching"],
+        "output_prefix": "usgs_elevation",
+    },
 }
 
 # Global profiling settings

@@ -102,6 +102,13 @@ class Config:
     GMAPS_INPUT_DIRECTORY: str = "raw_data/gmaps"
     GMAPS_LOG_FILE: str = "logs/gmaps_importer.log"
 
+    # USGS Elevation Collection Settings
+    USGS_ELEVATION_SAMPLE_DISTANCE_M: float = 50.0  # Sample every 50 meters
+    USGS_ELEVATION_API_TIMEOUT: int = 10  # 10 second timeout
+    USGS_ELEVATION_RATE_LIMIT_DELAY: float = 1.0  # 1 second delay between requests
+    USGS_ELEVATION_ERROR_THRESHOLD: float = 0.1  # 10% failure rate threshold
+    USGS_ELEVATION_LOG_FILE: str = "logs/usgs_elevation_collector.log"
+
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_MAX_BYTES: int = 5 * 1024 * 1024  # 5MB
