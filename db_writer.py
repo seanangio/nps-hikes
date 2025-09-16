@@ -333,6 +333,38 @@ class DatabaseWriter:
             conn.execute(text(create_table_sql))
         self.logger.info("Ensured usgs_trail_elevations table exists in database")
 
+    def _create_gmaps_hiking_locations_matched_table(self) -> None:
+        """
+        Create the gmaps_hiking_locations_matched table for trail matching results if it doesn't exist.
+
+        This table stores the results of matching Google Maps hiking locations to trail linestrings
+        from OSM and TNM data. It includes both the original GMaps data and the matched trail
+        information with confidence scores and matching metrics.
+        """
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS gmaps_hiking_locations_matched (
+            id SERIAL PRIMARY KEY,
+            park_code VARCHAR(10) NOT NULL,
+            location_name VARCHAR(500) NOT NULL,
+            latitude DECIMAL(15, 12),
+            longitude DECIMAL(16, 12),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            matched_trail_name VARCHAR(500),
+            source VARCHAR(10),
+            name_similarity_score DECIMAL(5, 4),
+            min_point_to_trail_distance_m DECIMAL(10, 2),
+            confidence_score DECIMAL(5, 4),
+            match_status VARCHAR(20),
+            matched_trail_geometry geometry(LINESTRING, 4326),
+            
+            CONSTRAINT fk_matched_park_code 
+                FOREIGN KEY (park_code) REFERENCES parks(park_code)
+        );
+        """
+        with self.engine.begin() as conn:
+            conn.execute(text(create_table_sql))
+        self.logger.info("Ensured gmaps_hiking_locations_matched table exists in database")
+
     def ensure_table_exists(self, table_name: str) -> None:
         """
         Ensure that the specified table exists in the database.
@@ -343,6 +375,7 @@ class DatabaseWriter:
         - 'osm_hikes': OSM trail data (created via raw SQL with composite PK)
         - 'tnm_hikes': TNM trail data (created via raw SQL with single PK)
         - 'gmaps_hiking_locations': Google Maps hiking locations (created via raw SQL)
+        - 'gmaps_hiking_locations_matched': Trail matching results (created via raw SQL)
         - 'usgs_trail_elevations': USGS elevation data for matched trails (created via raw SQL)
 
         Args:
@@ -358,6 +391,8 @@ class DatabaseWriter:
             self._create_tnm_hikes_table()
         elif table_name == "gmaps_hiking_locations":
             self._create_gmaps_hiking_locations_table()
+        elif table_name == "gmaps_hiking_locations_matched":
+            self._create_gmaps_hiking_locations_matched_table()
         elif table_name == "usgs_trail_elevations":
             self._create_usgs_trail_elevations_table()
         elif table_name in ["parks", "park_boundaries"]:
@@ -746,6 +781,81 @@ class DatabaseWriter:
         except Exception as e:
             self.logger.error(f"Failed to delete records for park {park_code}: {e}")
             raise
+
+    def write_gmaps_hiking_locations_matched(
+        self,
+        gdf: gpd.GeoDataFrame,
+        mode: str = "replace",
+        table_name: str = "gmaps_hiking_locations_matched",
+    ) -> None:
+        """
+        Write matched trail data to the gmaps_hiking_locations_matched table.
+
+        This method handles the results of trail matching operations, storing both the original
+        Google Maps hiking location data and the matched trail information with confidence
+        scores and matching metrics.
+
+        Args:
+            gdf (gpd.GeoDataFrame): Matched trail data to write with required columns:
+                                   id, park_code, location_name, latitude, longitude, created_at,
+                                   matched_trail_name, source, name_similarity_score,
+                                   min_point_to_trail_distance_m, confidence_score, match_status,
+                                   matched_trail_geometry
+            mode (str): Write mode - 'replace' (default) or 'append'
+            table_name (str): Target table name (default: 'gmaps_hiking_locations_matched')
+
+        Raises:
+            ValueError: If mode is not supported
+            SQLAlchemyError: If database operations fail
+        """
+        if gdf.empty:
+            self.logger.warning("No matched trail data to save")
+            return
+
+        if mode not in ["replace", "append"]:
+            raise ValueError(f"Unsupported mode '{mode}'. Use 'replace' or 'append'")
+
+        # Ensure table exists
+        self.ensure_table_exists(table_name)
+
+        if mode == "replace":
+            self._replace_geodataframe(gdf, table_name)
+        else:
+            self._append_geodataframe(gdf, table_name)
+
+    def _replace_geodataframe(self, gdf: gpd.GeoDataFrame, table_name: str) -> None:
+        """
+        Replace all data in a table using geopandas to_postgis.
+
+        For tables with foreign key dependencies, this method truncates the table
+        instead of dropping and recreating it to avoid constraint violations.
+
+        Args:
+            gdf (gpd.GeoDataFrame): Spatial data to replace existing data with
+            table_name (str): Target table name
+        """
+        try:
+            # First try the standard replace approach
+            gdf.to_postgis(table_name, self.engine, if_exists="replace", index=False)
+            self.logger.info(f"Replaced all data in {table_name} with {len(gdf)} spatial records")
+        except Exception as e:
+            # If replace fails due to foreign key constraints, try truncate + append
+            if "DependentObjectsStillExist" in str(e) or "CASCADE" in str(e):
+                self.logger.info(f"Replace failed due to foreign key constraints, using truncate + append for {table_name}")
+                try:
+                    # Truncate the table
+                    with self.engine.begin() as conn:
+                        conn.execute(text(f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE"))
+                    
+                    # Append the new data
+                    gdf.to_postgis(table_name, self.engine, if_exists="append", index=False)
+                    self.logger.info(f"Truncated and replaced all data in {table_name} with {len(gdf)} spatial records")
+                except Exception as truncate_error:
+                    self.logger.error(f"Failed to truncate and replace spatial data in {table_name}: {truncate_error}")
+                    raise
+            else:
+                self.logger.error(f"Failed to replace spatial data in {table_name}: {e}")
+                raise
 
     def truncate_tables(self, table_names: List[str]) -> None:
         """

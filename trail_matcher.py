@@ -32,29 +32,32 @@ import difflib
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from config.settings import config
-from db_writer import get_postgres_engine
-
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, config.LOG_LEVEL),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("logs/trail_matcher.log"), logging.StreamHandler()],
-)
-logger = logging.getLogger("trail_matcher")
+from db_writer import get_postgres_engine, DatabaseWriter
+from utils.logging import setup_logging
 
 
 class TrailMatcher:
     """Match GMaps hiking locations to trail linestrings."""
 
-    def __init__(self):
-        """Initialize the trail matcher."""
-        self.engine = get_postgres_engine()
+    def __init__(self, write_db: bool = False, test_limit: Optional[int] = None, logger: logging.Logger = None):
+        """
+        Initialize the trail matcher.
 
-        # Matching parameters
-        self.distance_threshold_m = 100  # meters
-        self.confidence_threshold = 0.7
-        self.name_weight = 0.6
-        self.distance_weight = 0.4
+        Args:
+            write_db (bool): Whether to write results to the database
+            test_limit (Optional[int]): Limit processing to first N parks for testing
+            logger (logging.Logger): Logger instance for operation tracking
+        """
+        self.logger = logger or logging.getLogger("trail_matcher")
+        self.engine = get_postgres_engine()
+        self.db_writer = DatabaseWriter(self.engine, self.logger) if write_db else None
+        self.test_limit = test_limit
+
+        # Matching parameters from config
+        self.distance_threshold_m = config.TRAIL_MATCHING_DISTANCE_THRESHOLD_M
+        self.confidence_threshold = config.TRAIL_MATCHING_CONFIDENCE_THRESHOLD
+        self.name_weight = config.TRAIL_MATCHING_NAME_WEIGHT
+        self.distance_weight = config.TRAIL_MATCHING_DISTANCE_WEIGHT
 
         # Statistics for profiling
         self.stats = {
@@ -160,7 +163,7 @@ class TrailMatcher:
 
             return distance_m
         except Exception as e:
-            logger.warning(f"Error calculating distance: {e}")
+            self.logger.warning(f"Error calculating distance: {e}")
             # Fallback to simple approximation
             try:
                 distance_deg = point.distance(trail_geometry)
@@ -216,7 +219,7 @@ class TrailMatcher:
         try:
             tnm_trails = gpd.read_postgis(query, self.engine, geom_col="geometry")
         except Exception as e:
-            logger.error(f"Error querying TNM trails for {park_code}: {e}")
+            self.logger.error(f"Error querying TNM trails for {park_code}: {e}")
             return []
 
         matches = []
@@ -274,7 +277,7 @@ class TrailMatcher:
         try:
             osm_trails = gpd.read_postgis(query, self.engine, geom_col="geometry")
         except Exception as e:
-            logger.error(f"Error querying OSM trails for {park_code}: {e}")
+            self.logger.error(f"Error querying OSM trails for {park_code}: {e}")
             return []
 
         matches = []
@@ -377,12 +380,12 @@ class TrailMatcher:
 
     def create_matched_table(self, matched_data: List[Dict]) -> None:
         """
-        Create the gmaps_hiking_locations_matched table.
+        Create the gmaps_hiking_locations_matched table using DatabaseWriter.
 
         Args:
             matched_data: List of matched records
         """
-        logger.info("Creating gmaps_hiking_locations_matched table...")
+        self.logger.info("Creating gmaps_hiking_locations_matched table...")
 
         # Convert to DataFrame
         df = pd.DataFrame(matched_data)
@@ -408,20 +411,21 @@ class TrailMatcher:
         ]
         gdf = gdf[column_order]
 
-        # Write to database
-        gdf.to_postgis(
-            "gmaps_hiking_locations_matched",
-            self.engine,
-            if_exists="replace",
-            index=False,
-        )
+        # Write to database using DatabaseWriter
+        if self.db_writer:
+            self.db_writer.write_gmaps_hiking_locations_matched(gdf, mode="replace")
+        else:
+            # Fallback to file output
+            output_path = config.TRAIL_MATCHING_OUTPUT_GPKG
+            gdf.to_file(output_path, driver="GPKG")
+            self.logger.info(f"Saved matched data to {output_path} with {len(gdf)} records")
 
-        logger.info(f"Created table with {len(gdf)} records")
+        self.logger.info(f"Created table with {len(gdf)} records")
 
     def run_matching(self) -> None:
         """Run the complete trail matching process."""
         start_time = datetime.now()
-        logger.info("Starting trail matching process...")
+        self.logger.info("Starting trail matching process...")
 
         try:
             # Get all GMaps points
@@ -432,9 +436,15 @@ class TrailMatcher:
             """
 
             gmaps_points = pd.read_sql(query, self.engine)
+            
+            # Apply test limit if specified
+            if self.test_limit is not None:
+                gmaps_points = gmaps_points.head(self.test_limit)
+                self.logger.info(f"TESTING MODE: Limited to first {self.test_limit} GMaps points")
+            
             self.stats["total_gmaps_points"] = len(gmaps_points)
 
-            logger.info(f"Processing {len(gmaps_points)} GMaps points...")
+            self.logger.info(f"Processing {len(gmaps_points)} GMaps points...")
 
             # Process each point
             matched_data = []
@@ -452,7 +462,7 @@ class TrailMatcher:
                     distances.append(match_result["min_point_to_trail_distance_m"])
 
                 if len(matched_data) % 20 == 0:
-                    logger.info(
+                    self.logger.info(
                         f"Processed {len(matched_data)}/{len(gmaps_points)} points..."
                     )
 
@@ -476,33 +486,52 @@ class TrailMatcher:
             self._print_summary()
 
         except Exception as e:
-            logger.error(f"Matching process failed: {e}")
+            self.logger.error(f"Matching process failed: {e}")
             raise
 
     def _print_summary(self) -> None:
         """Print matching summary."""
-        logger.info("=" * 60)
-        logger.info("TRAIL MATCHING SUMMARY")
-        logger.info("=" * 60)
-        logger.info(f"Total GMaps points processed: {self.stats['total_gmaps_points']}")
-        logger.info(f"Successfully matched (TNM): {self.stats['matched_tnm']}")
-        logger.info(f"Successfully matched (OSM): {self.stats['matched_osm']}")
-        logger.info(f"No match found: {self.stats['no_match']}")
-        logger.info(
+        self.logger.info("=" * 60)
+        self.logger.info("TRAIL MATCHING SUMMARY")
+        self.logger.info("=" * 60)
+        self.logger.info(f"Total GMaps points processed: {self.stats['total_gmaps_points']}")
+        self.logger.info(f"Successfully matched (TNM): {self.stats['matched_tnm']}")
+        self.logger.info(f"Successfully matched (OSM): {self.stats['matched_osm']}")
+        self.logger.info(f"No match found: {self.stats['no_match']}")
+        self.logger.info(
             f"Match rate: {((self.stats['matched_tnm'] + self.stats['matched_osm']) / self.stats['total_gmaps_points'] * 100):.1f}%"
         )
-        logger.info(
+        self.logger.info(
             f"Average confidence score: {self.stats['avg_confidence_score']:.3f}"
         )
-        logger.info(f"Average distance to trail: {self.stats['avg_distance_m']:.1f}m")
-        logger.info(f"Processing time: {self.stats['processing_time']:.2f} seconds")
-        logger.info("=" * 60)
+        self.logger.info(f"Average distance to trail: {self.stats['avg_distance_m']:.1f}m")
+        self.logger.info(f"Processing time: {self.stats['processing_time']:.2f} seconds")
+        self.logger.info("=" * 60)
 
 
 def main():
     """Main function."""
     parser = argparse.ArgumentParser(
-        description="Match GMaps hiking locations to trail linestrings"
+        description="Match GMaps hiking locations to trail linestrings",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s                              # Process all GMaps points, write to database
+  %(prog)s --file-only                  # Write results to file only
+  %(prog)s --test-limit 10              # Test with first 10 GMaps points only
+  %(prog)s --file-only --test-limit 5   # Test mode with file output
+  %(prog)s --log-level DEBUG            # Enable debug logging
+        """,
+    )
+    parser.add_argument(
+        "--file-only",
+        action="store_true",
+        help="Write results to file only (default: write to database)",
+    )
+    parser.add_argument(
+        "--test-limit",
+        type=int,
+        help="Limit to first N GMaps points (for testing)",
     )
     parser.add_argument(
         "--log-level",
@@ -513,12 +542,17 @@ def main():
 
     args = parser.parse_args()
 
-    # Set log level
-    logging.getLogger().setLevel(getattr(logging, args.log_level))
+    # Set up centralized logging
+    logger = setup_logging(
+        log_level=args.log_level,
+        log_file="logs/trail_matcher.log",
+        logger_name="trail_matcher"
+    )
 
     try:
-        # Initialize matcher
-        matcher = TrailMatcher()
+        # Initialize matcher with new parameters
+        # Default to database writing (original behavior), use file-only if specified
+        matcher = TrailMatcher(write_db=not args.file_only, test_limit=args.test_limit, logger=logger)
 
         # Run matching
         matcher.run_matching()

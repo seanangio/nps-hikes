@@ -109,6 +109,14 @@ class Config:
     USGS_ELEVATION_ERROR_THRESHOLD: float = 0.1  # 10% failure rate threshold
     USGS_ELEVATION_LOG_FILE: str = "logs/usgs_elevation_collector.log"
 
+    # Trail Matching Settings
+    TRAIL_MATCHING_DISTANCE_THRESHOLD_M: float = 100.0  # Maximum distance for trail matching
+    TRAIL_MATCHING_CONFIDENCE_THRESHOLD: float = 0.7  # Minimum confidence score for matches
+    TRAIL_MATCHING_NAME_WEIGHT: float = 0.6  # Weight for name similarity in confidence calculation
+    TRAIL_MATCHING_DISTANCE_WEIGHT: float = 0.4  # Weight for distance in confidence calculation
+    TRAIL_MATCHING_LOG_FILE: str = "logs/trail_matcher.log"
+    TRAIL_MATCHING_OUTPUT_GPKG: str = "artifacts/gmaps_hiking_locations_matched.gpkg"
+
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_MAX_BYTES: int = 5 * 1024 * 1024  # 5MB
