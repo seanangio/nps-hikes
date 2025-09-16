@@ -39,7 +39,12 @@ from utils.logging import setup_logging
 class TrailMatcher:
     """Match GMaps hiking locations to trail linestrings."""
 
-    def __init__(self, write_db: bool = False, test_limit: Optional[int] = None, logger: logging.Logger = None):
+    def __init__(
+        self,
+        write_db: bool = False,
+        test_limit: Optional[int] = None,
+        logger: logging.Logger = None,
+    ):
         """
         Initialize the trail matcher.
 
@@ -418,7 +423,9 @@ class TrailMatcher:
             # Fallback to file output
             output_path = config.TRAIL_MATCHING_OUTPUT_GPKG
             gdf.to_file(output_path, driver="GPKG")
-            self.logger.info(f"Saved matched data to {output_path} with {len(gdf)} records")
+            self.logger.info(
+                f"Saved matched data to {output_path} with {len(gdf)} records"
+            )
 
         self.logger.info(f"Created table with {len(gdf)} records")
 
@@ -436,12 +443,14 @@ class TrailMatcher:
             """
 
             gmaps_points = pd.read_sql(query, self.engine)
-            
+
             # Apply test limit if specified
             if self.test_limit is not None:
                 gmaps_points = gmaps_points.head(self.test_limit)
-                self.logger.info(f"TESTING MODE: Limited to first {self.test_limit} GMaps points")
-            
+                self.logger.info(
+                    f"TESTING MODE: Limited to first {self.test_limit} GMaps points"
+                )
+
             self.stats["total_gmaps_points"] = len(gmaps_points)
 
             self.logger.info(f"Processing {len(gmaps_points)} GMaps points...")
@@ -494,7 +503,9 @@ class TrailMatcher:
         self.logger.info("=" * 60)
         self.logger.info("TRAIL MATCHING SUMMARY")
         self.logger.info("=" * 60)
-        self.logger.info(f"Total GMaps points processed: {self.stats['total_gmaps_points']}")
+        self.logger.info(
+            f"Total GMaps points processed: {self.stats['total_gmaps_points']}"
+        )
         self.logger.info(f"Successfully matched (TNM): {self.stats['matched_tnm']}")
         self.logger.info(f"Successfully matched (OSM): {self.stats['matched_osm']}")
         self.logger.info(f"No match found: {self.stats['no_match']}")
@@ -504,8 +515,12 @@ class TrailMatcher:
         self.logger.info(
             f"Average confidence score: {self.stats['avg_confidence_score']:.3f}"
         )
-        self.logger.info(f"Average distance to trail: {self.stats['avg_distance_m']:.1f}m")
-        self.logger.info(f"Processing time: {self.stats['processing_time']:.2f} seconds")
+        self.logger.info(
+            f"Average distance to trail: {self.stats['avg_distance_m']:.1f}m"
+        )
+        self.logger.info(
+            f"Processing time: {self.stats['processing_time']:.2f} seconds"
+        )
         self.logger.info("=" * 60)
 
 
@@ -546,13 +561,15 @@ Examples:
     logger = setup_logging(
         log_level=args.log_level,
         log_file="logs/trail_matcher.log",
-        logger_name="trail_matcher"
+        logger_name="trail_matcher",
     )
 
     try:
         # Initialize matcher with new parameters
         # Default to database writing (original behavior), use file-only if specified
-        matcher = TrailMatcher(write_db=not args.file_only, test_limit=args.test_limit, logger=logger)
+        matcher = TrailMatcher(
+            write_db=not args.file_only, test_limit=args.test_limit, logger=logger
+        )
 
         # Run matching
         matcher.run_matching()

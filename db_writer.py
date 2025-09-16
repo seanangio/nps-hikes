@@ -363,7 +363,9 @@ class DatabaseWriter:
         """
         with self.engine.begin() as conn:
             conn.execute(text(create_table_sql))
-        self.logger.info("Ensured gmaps_hiking_locations_matched table exists in database")
+        self.logger.info(
+            "Ensured gmaps_hiking_locations_matched table exists in database"
+        )
 
     def ensure_table_exists(self, table_name: str) -> None:
         """
@@ -837,24 +839,40 @@ class DatabaseWriter:
         try:
             # First try the standard replace approach
             gdf.to_postgis(table_name, self.engine, if_exists="replace", index=False)
-            self.logger.info(f"Replaced all data in {table_name} with {len(gdf)} spatial records")
+            self.logger.info(
+                f"Replaced all data in {table_name} with {len(gdf)} spatial records"
+            )
         except Exception as e:
             # If replace fails due to foreign key constraints, try truncate + append
             if "DependentObjectsStillExist" in str(e) or "CASCADE" in str(e):
-                self.logger.info(f"Replace failed due to foreign key constraints, using truncate + append for {table_name}")
+                self.logger.info(
+                    f"Replace failed due to foreign key constraints, using truncate + append for {table_name}"
+                )
                 try:
                     # Truncate the table
                     with self.engine.begin() as conn:
-                        conn.execute(text(f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE"))
-                    
+                        conn.execute(
+                            text(
+                                f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE"
+                            )
+                        )
+
                     # Append the new data
-                    gdf.to_postgis(table_name, self.engine, if_exists="append", index=False)
-                    self.logger.info(f"Truncated and replaced all data in {table_name} with {len(gdf)} spatial records")
+                    gdf.to_postgis(
+                        table_name, self.engine, if_exists="append", index=False
+                    )
+                    self.logger.info(
+                        f"Truncated and replaced all data in {table_name} with {len(gdf)} spatial records"
+                    )
                 except Exception as truncate_error:
-                    self.logger.error(f"Failed to truncate and replace spatial data in {table_name}: {truncate_error}")
+                    self.logger.error(
+                        f"Failed to truncate and replace spatial data in {table_name}: {truncate_error}"
+                    )
                     raise
             else:
-                self.logger.error(f"Failed to replace spatial data in {table_name}: {e}")
+                self.logger.error(
+                    f"Failed to replace spatial data in {table_name}: {e}"
+                )
                 raise
 
     def truncate_tables(self, table_names: List[str]) -> None:

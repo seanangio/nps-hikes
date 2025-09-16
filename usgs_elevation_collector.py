@@ -69,7 +69,9 @@ class USGSElevationCollector:
             os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
             with open(self.cache_file, "w") as f:
                 json.dump(self.elevation_cache, f)
-            self.logger.info(f"Saved {len(self.elevation_cache)} elevation points to cache")
+            self.logger.info(
+                f"Saved {len(self.elevation_cache)} elevation points to cache"
+            )
         except Exception as e:
             self.logger.error(f"Failed to save elevation cache: {e}")
 
@@ -259,7 +261,9 @@ class USGSElevationCollector:
 
             # Skip if already collected (unless force_refresh)
             if not force_refresh and trail_id in existing_trail_ids:
-                self.logger.info(f"Skipping {trail_name} - elevation data already exists")
+                self.logger.info(
+                    f"Skipping {trail_name} - elevation data already exists"
+                )
                 continue
 
             # Check if geometry is valid
@@ -326,7 +330,9 @@ class USGSElevationCollector:
                 )
 
             except Exception as e:
-                self.logger.error(f"Failed to store elevation data for {trail_name}: {e}")
+                self.logger.error(
+                    f"Failed to store elevation data for {trail_name}: {e}"
+                )
                 failed_count += 1
 
         # Save cache
@@ -475,7 +481,7 @@ Examples:
     logger = setup_logging(
         log_level=args.log_level,
         log_file=config.USGS_ELEVATION_LOG_FILE,
-        logger_name="usgs_elevation_collector"
+        logger_name="usgs_elevation_collector",
     )
 
     try:
