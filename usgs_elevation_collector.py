@@ -15,6 +15,7 @@ from shapely.geometry import Point, LineString
 from sqlalchemy import text
 import json
 import os
+import logging
 from typing import List, Dict, Tuple, Optional
 import argparse
 
@@ -25,26 +26,25 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from config.settings import config
 from db_writer import get_postgres_engine, DatabaseWriter
-from profiling.utils import ProfilingLogger
-
-logger = ProfilingLogger("usgs_elevation_collector")
+from utils.logging import setup_logging
 
 
 class USGSElevationCollector:
     """Collect elevation data for matched trails using USGS API."""
 
-    def __init__(self):
+    def __init__(self, logger=None):
         """Initialize the collector."""
+        self.logger = logger or logging.getLogger("usgs_elevation_collector")
         self.engine = get_postgres_engine()
-        self.db_writer = DatabaseWriter(self.engine, logger)
+        self.db_writer = DatabaseWriter(self.engine, self.logger)
         self.elevation_cache = {}
 
-        # USGS API settings
+        # USGS API settings from config
         self.usgs_api_base = "https://epqs.nationalmap.gov/v1/json"
-        self.sample_distance_m = 50  # Sample every 50 meters
-        self.api_timeout = 10  # 10 second timeout
-        self.rate_limit_delay = 1  # 1 second delay between requests
-        self.error_threshold = 0.1  # 10% failure rate threshold
+        self.sample_distance_m = config.USGS_ELEVATION_SAMPLE_DISTANCE_M
+        self.api_timeout = config.USGS_ELEVATION_API_TIMEOUT
+        self.rate_limit_delay = config.USGS_ELEVATION_RATE_LIMIT_DELAY
+        self.error_threshold = config.USGS_ELEVATION_ERROR_THRESHOLD
 
         # Cache file for persistence
         self.cache_file = "cache/elevation_cache.json"
@@ -56,11 +56,11 @@ class USGSElevationCollector:
             if os.path.exists(self.cache_file):
                 with open(self.cache_file, "r") as f:
                     self.elevation_cache = json.load(f)
-                logger.info(
+                self.logger.info(
                     f"Loaded {len(self.elevation_cache)} cached elevation points"
                 )
         except Exception as e:
-            logger.error(f"Failed to load elevation cache: {e}")
+            self.logger.error(f"Failed to load elevation cache: {e}")
             self.elevation_cache = {}
 
     def _save_cache(self):
@@ -69,9 +69,9 @@ class USGSElevationCollector:
             os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
             with open(self.cache_file, "w") as f:
                 json.dump(self.elevation_cache, f)
-            logger.info(f"Saved {len(self.elevation_cache)} elevation points to cache")
+            self.logger.info(f"Saved {len(self.elevation_cache)} elevation points to cache")
         except Exception as e:
-            logger.error(f"Failed to save elevation cache: {e}")
+            self.logger.error(f"Failed to save elevation cache: {e}")
 
     def get_elevation_usgs(self, lat: float, lon: float) -> Optional[float]:
         """Get elevation from USGS free API with caching and rate limiting."""
@@ -97,13 +97,13 @@ class USGSElevationCollector:
                     self.elevation_cache[cache_key] = elevation_float
                     return elevation_float
 
-            logger.error(
+            self.logger.error(
                 f"Failed to get elevation for ({lat:.6f}, {lon:.6f}): {response.status_code}"
             )
             return None
 
         except Exception as e:
-            logger.error(f"Error getting elevation from USGS API: {e}")
+            self.logger.error(f"Error getting elevation from USGS API: {e}")
             return None
 
     def sample_trail_elevation(
@@ -160,7 +160,7 @@ class USGSElevationCollector:
                 )
             else:
                 failed_count += 1
-                logger.error(
+                self.logger.error(
                     f"Failed to get elevation for point {i} ({lat:.6f}, {lon:.6f})"
                 )
 
@@ -170,17 +170,17 @@ class USGSElevationCollector:
 
         if failure_rate > self.error_threshold:
             collection_status = "FAILED"
-            logger.error(
+            self.logger.error(
                 f"High failure rate: {failure_rate:.1%} ({failed_count}/{total_points})"
             )
         elif failed_count > 0:
             collection_status = "PARTIAL"
-            logger.error(
+            self.logger.error(
                 f"Partial collection: {failure_rate:.1%} failed ({failed_count}/{total_points})"
             )
         else:
             collection_status = "COMPLETE"
-            logger.info(f"Complete collection: {total_points} points")
+            self.logger.info(f"Complete collection: {total_points} points")
 
         return elevation_data, collection_status
 
@@ -201,7 +201,7 @@ class USGSElevationCollector:
         Returns:
             Dictionary with collection results
         """
-        logger.info(f"Collecting elevation data for park: {park_code}")
+        self.logger.info(f"Collecting elevation data for park: {park_code}")
 
         # Query matched trails for this park
         query = f"""
@@ -218,7 +218,7 @@ class USGSElevationCollector:
         )
 
         if trails_df.empty:
-            logger.error(f"No matched trails found for park: {park_code}")
+            self.logger.error(f"No matched trails found for park: {park_code}")
             return {
                 "processed_count": 0,
                 "failed_count": 0,
@@ -237,11 +237,11 @@ class USGSElevationCollector:
                 with self.engine.connect() as conn:
                     result = conn.execute(text(existing_query))
                     existing_trail_ids = {row[0] for row in result.fetchall()}
-                logger.info(
+                self.logger.info(
                     f"Found {len(existing_trail_ids)} trails with existing elevation data"
                 )
             except Exception as e:
-                logger.error(f"Failed to check existing elevation data: {e}")
+                self.logger.error(f"Failed to check existing elevation data: {e}")
 
         # Process each trail
         processed_count = 0
@@ -255,16 +255,16 @@ class USGSElevationCollector:
             trail_geometry = trail["matched_trail_geometry"]
             source = trail["source"]
 
-            logger.info(f"Processing trail: {trail_name}")
+            self.logger.info(f"Processing trail: {trail_name}")
 
             # Skip if already collected (unless force_refresh)
             if not force_refresh and trail_id in existing_trail_ids:
-                logger.info(f"Skipping {trail_name} - elevation data already exists")
+                self.logger.info(f"Skipping {trail_name} - elevation data already exists")
                 continue
 
             # Check if geometry is valid
             if not trail_geometry.is_valid:
-                logger.error(f"Invalid geometry for trail: {trail_name}")
+                self.logger.error(f"Invalid geometry for trail: {trail_name}")
                 failed_count += 1
                 continue
 
@@ -274,7 +274,7 @@ class USGSElevationCollector:
             )
 
             if collection_status == "FAILED":
-                logger.error(f"Failed to collect elevation data for: {trail_name}")
+                self.logger.error(f"Failed to collect elevation data for: {trail_name}")
                 failed_count += 1
                 continue
 
@@ -321,12 +321,12 @@ class USGSElevationCollector:
                     conn.commit()
 
                 processed_count += 1
-                logger.info(
+                self.logger.info(
                     f"Stored elevation data for: {trail_name} ({collection_status})"
                 )
 
             except Exception as e:
-                logger.error(f"Failed to store elevation data for {trail_name}: {e}")
+                self.logger.error(f"Failed to store elevation data for {trail_name}: {e}")
                 failed_count += 1
 
         # Save cache
@@ -339,12 +339,11 @@ class USGSElevationCollector:
             "complete_count": complete_count,
         }
 
-        logger.info(f"Collection complete for {park_code}: {results}")
+        self.logger.info(f"Collection complete for {park_code}: {results}")
         return results
 
     def collect_all_parks_elevation_data(
         self,
-        parks: Optional[List[str]] = None,
         test_limit: Optional[int] = None,
         force_refresh: bool = False,
     ) -> Dict:
@@ -352,39 +351,28 @@ class USGSElevationCollector:
         Collect elevation data for all parks with matched trails.
 
         Args:
-            parks: Optional list of specific park codes to process
             test_limit: Optional limit on number of parks to process (for testing)
             force_refresh: If True, re-collect data even if already exists
 
         Returns:
             Dictionary with collection results
         """
-        logger.info("Starting elevation data collection for all parks")
+        self.logger.info("Starting elevation data collection for all parks")
 
         # Get list of parks with matched trails
-        if parks:
-            parks_str = "', '".join(parks)
-            query = f"""
-                SELECT DISTINCT park_code 
-                FROM gmaps_hiking_locations_matched 
-                WHERE park_code IN ('{parks_str}')
-                AND match_status = 'MATCHED'
-                ORDER BY park_code
-            """
-        else:
-            query = """
-                SELECT DISTINCT park_code 
-                FROM gmaps_hiking_locations_matched 
-                WHERE match_status = 'MATCHED'
-                ORDER BY park_code
-            """
+        query = """
+            SELECT DISTINCT park_code 
+            FROM gmaps_hiking_locations_matched 
+            WHERE match_status = 'MATCHED'
+            ORDER BY park_code
+        """
 
         try:
             with self.engine.connect() as conn:
                 result = conn.execute(text(query))
                 available_parks = [row[0] for row in result.fetchall()]
         except Exception as e:
-            logger.error(f"Failed to get list of parks: {e}")
+            self.logger.error(f"Failed to get list of parks: {e}")
             return {
                 "total_parks": 0,
                 "total_processed": 0,
@@ -394,7 +382,7 @@ class USGSElevationCollector:
             }
 
         if not available_parks:
-            logger.error("No parks with matched trails found")
+            self.logger.error("No parks with matched trails found")
             return {
                 "total_parks": 0,
                 "total_processed": 0,
@@ -406,9 +394,9 @@ class USGSElevationCollector:
         # Apply test limit if specified
         if test_limit:
             available_parks = available_parks[:test_limit]
-            logger.info(f"Limited to first {test_limit} parks for testing")
+            self.logger.info(f"Limited to first {test_limit} parks for testing")
 
-        logger.info(
+        self.logger.info(
             f"Found {len(available_parks)} parks with matched trails: {', '.join(available_parks)}"
         )
 
@@ -420,7 +408,7 @@ class USGSElevationCollector:
         total_failed = 0
 
         for i, park_code in enumerate(available_parks, 1):
-            logger.info(f"Processing park {i}/{total_parks}: {park_code}")
+            self.logger.info(f"Processing park {i}/{total_parks}: {park_code}")
 
             try:
                 results = self.collect_park_elevation_data(park_code, force_refresh)
@@ -429,7 +417,7 @@ class USGSElevationCollector:
                 total_partial += results["partial_count"]
                 total_failed += results["failed_count"]
             except Exception as e:
-                logger.error(f"Failed to process park {park_code}: {e}")
+                self.logger.error(f"Failed to process park {park_code}: {e}")
                 continue
 
         # Final summary
@@ -441,55 +429,83 @@ class USGSElevationCollector:
             "total_failed": total_failed,
         }
 
-        logger.info(f"Collection complete for all parks: {final_results}")
+        self.logger.info(f"Collection complete for all parks: {final_results}")
         return final_results
 
 
 def main():
     """Main function for elevation data collection."""
     parser = argparse.ArgumentParser(
-        description="Collect USGS elevation data for trails"
+        description="Collect USGS elevation data for trails",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s                              # Process all parks with matched trails
+  %(prog)s --test-limit 5               # Test with first 5 parks only
+  %(prog)s --force-refresh              # Re-collect data even if already exists
+  %(prog)s --create-table               # Create elevation database table
+  %(prog)s --log-level DEBUG            # Enable debug logging
+        """,
     )
     parser.add_argument(
-        "--parks",
-        type=str,
-        help="Comma-separated list of park codes to process (optional)",
+        "--test-limit",
+        type=int,
+        help="Limit to first N parks (for testing)",
     )
     parser.add_argument(
-        "--test-limit", type=int, help="Limit to first N parks (for testing)"
-    )
-    parser.add_argument(
-        "--create-table", action="store_true", help="Create elevation database table"
+        "--create-table",
+        action="store_true",
+        help="Create elevation database table",
     )
     parser.add_argument(
         "--force-refresh",
         action="store_true",
         help="Re-collect data even if already exists",
     )
-    parser.add_argument("--log-level", default="INFO", help="Logging level")
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default="INFO",
+        help="Set logging level",
+    )
 
     args = parser.parse_args()
 
-    # Initialize collector
-    collector = USGSElevationCollector()
-
-    if args.create_table:
-        collector.create_elevation_table()
-
-    # Parse parks list
-    parks = args.parks.split(",") if args.parks else None
-
-    # Collect elevation data for all parks or specified parks
-    results = collector.collect_all_parks_elevation_data(
-        parks=parks, test_limit=args.test_limit, force_refresh=args.force_refresh
+    # Set up centralized logging
+    logger = setup_logging(
+        log_level=args.log_level,
+        log_file=config.USGS_ELEVATION_LOG_FILE,
+        logger_name="usgs_elevation_collector"
     )
 
-    print(f"\nUSGS Elevation Data Collection Results:")
-    print(f"Total Parks Processed: {results['total_parks']}")
-    print(f"Total Trails Processed: {results['total_processed']}")
-    print(f"Total Complete: {results['total_complete']}")
-    print(f"Total Partial: {results['total_partial']}")
-    print(f"Total Failed: {results['total_failed']}")
+    try:
+        # Initialize collector
+        collector = USGSElevationCollector(logger=logger)
+
+        if args.create_table:
+            collector.create_elevation_table()
+
+        # Collect elevation data for all parks
+        results = collector.collect_all_parks_elevation_data(
+            test_limit=args.test_limit, force_refresh=args.force_refresh
+        )
+
+        # Print summary
+        logger.info("=" * 60)
+        logger.info("USGS ELEVATION DATA COLLECTION SUMMARY")
+        logger.info("=" * 60)
+        logger.info(f"Total Parks Processed: {results['total_parks']}")
+        logger.info(f"Total Trails Processed: {results['total_processed']}")
+        logger.info(f"Total Complete: {results['total_complete']}")
+        logger.info(f"Total Partial: {results['total_partial']}")
+        logger.info(f"Total Failed: {results['total_failed']}")
+        logger.info("=" * 60)
+
+        logger.info("USGS elevation data collection completed successfully")
+
+    except Exception as e:
+        logger.error(f"USGS elevation data collection failed: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
