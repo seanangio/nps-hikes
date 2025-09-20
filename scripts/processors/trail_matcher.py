@@ -449,14 +449,25 @@ class TrailMatcher:
         self.logger.info("Starting trail matching process...")
 
         try:
-            # Get all GMaps points
+            # Get GMaps points only from parks that have trail data
             query = """
-            SELECT id, park_code, location_name, latitude, longitude, created_at
-            FROM gmaps_hiking_locations
-            ORDER BY id
+            SELECT DISTINCT g.id, g.park_code, g.location_name, g.latitude, g.longitude, g.created_at
+            FROM gmaps_hiking_locations g
+            WHERE g.park_code IN (
+                SELECT DISTINCT park_code FROM osm_hikes
+                UNION
+                SELECT DISTINCT park_code FROM tnm_hikes
+            )
+            ORDER BY g.id
             """
 
             gmaps_points = pd.read_sql(query, self.engine)
+            
+            if len(gmaps_points) == 0:
+                self.logger.warning("No GMaps locations found for parks with trail data")
+                return
+
+            self.logger.info(f"Found {len(gmaps_points)} GMaps locations in parks with trail data")
 
             # Apply test limit if specified
             if self.test_limit is not None:

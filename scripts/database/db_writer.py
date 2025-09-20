@@ -239,7 +239,9 @@ class DatabaseWriter:
             Exception: If any other error occurs reading the file
         """
         sql_file = f"{table_name}.sql"
-        sql_path = os.path.join(os.path.dirname(__file__), 'sql', 'schema', sql_file)
+        # Get project root directory (two levels up from scripts/database/)
+        project_root = os.path.join(os.path.dirname(__file__), '..', '..')
+        sql_path = os.path.join(project_root, 'sql', 'schema', sql_file)
         
         try:
             if not os.path.exists(sql_path):

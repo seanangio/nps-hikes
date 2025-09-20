@@ -125,6 +125,10 @@ class Config:
     TRAIL_MATCHING_LOG_FILE: str = "logs/trail_matcher.log"
     TRAIL_MATCHING_OUTPUT_GPKG: str = "artifacts/gmaps_hiking_locations_matched.gpkg"
 
+    # Orchestration Settings
+    ORCHESTRATOR_LOG_FILE: str = "logs/orchestrator.log"
+    ORCHESTRATOR_STEP_TIMEOUT: int = 3600  # 1 hour max per step
+
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_MAX_BYTES: int = 5 * 1024 * 1024  # 5MB

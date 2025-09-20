@@ -211,7 +211,7 @@ class USGSElevationCollector:
 
         # Query matched trails for this park
         query = f"""
-            SELECT id, matched_trail_name, matched_trail_geometry, source
+            SELECT gmaps_location_id, matched_trail_name, matched_trail_geometry, source
             FROM gmaps_hiking_locations_matched
             WHERE park_code = '{park_code}' 
             AND match_status = 'MATCHED'
@@ -239,7 +239,7 @@ class USGSElevationCollector:
             self.db_writer.ensure_table_exists("usgs_trail_elevations")
             
             existing_query = f"""
-                SELECT trail_id FROM usgs_trail_elevations 
+                SELECT gmaps_location_id FROM usgs_trail_elevations 
                 WHERE park_code = '{park_code}'
             """
             try:
@@ -259,7 +259,7 @@ class USGSElevationCollector:
         complete_count = 0
 
         for _, trail in trails_df.iterrows():
-            trail_id = trail["id"]
+            trail_id = trail["gmaps_location_id"]
             trail_name = trail["matched_trail_name"]
             trail_geometry = trail["matched_trail_geometry"]
             source = trail["source"]
@@ -305,11 +305,11 @@ class USGSElevationCollector:
                 self.db_writer.ensure_table_exists("usgs_trail_elevations")
                 insert_sql = """
                     INSERT INTO usgs_trail_elevations 
-                    (trail_id, trail_name, park_code, source, elevation_points, 
+                    (gmaps_location_id, trail_name, park_code, source, elevation_points, 
                      collection_status, failed_points_count, total_points_count)
-                    VALUES (:trail_id, :trail_name, :park_code, :source, :elevation_points,
+                    VALUES (:gmaps_location_id, :trail_name, :park_code, :source, :elevation_points,
                             :collection_status, :failed_points_count, :total_points_count)
-                    ON CONFLICT (trail_id) DO UPDATE SET
+                    ON CONFLICT (gmaps_location_id) DO UPDATE SET
                         elevation_points = EXCLUDED.elevation_points,
                         collection_status = EXCLUDED.collection_status,
                         failed_points_count = EXCLUDED.failed_points_count,
@@ -322,7 +322,7 @@ class USGSElevationCollector:
                         conn.execute(
                             text(insert_sql),
                             {
-                                "trail_id": trail_id,
+                                "gmaps_location_id": trail_id,
                                 "trail_name": trail_name,
                                 "park_code": park_code,
                                 "source": source,
