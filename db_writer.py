@@ -58,6 +58,7 @@ from sqlalchemy import (
     Engine,
     inspect,
     DateTime,
+    ForeignKeyConstraint,
 )
 from sqlalchemy.dialects.postgresql import insert
 from geoalchemy2 import Geometry
@@ -107,6 +108,9 @@ class DatabaseWriter:
 
     The writer is designed to be stateless and thread-safe, with all state
     managed through the database connection and transaction handling.
+    
+    Table schemas are now loaded from SQL files in sql/schema/ directory with
+    automatic dependency checking to ensure proper creation order.
     """
 
     def __init__(self, engine: Engine, logger: Optional[logging.Logger] = None):
@@ -121,6 +125,17 @@ class DatabaseWriter:
         self.engine = engine
         self.logger = logger or logging.getLogger(__name__)
         self.metadata = MetaData()
+        
+        # Define table dependencies for proper creation order
+        self.table_dependencies = {
+            'parks': [],
+            'park_boundaries': ['parks'],
+            'osm_hikes': ['parks'],
+            'tnm_hikes': ['parks'],
+            'gmaps_hiking_locations': ['parks'],
+            'gmaps_hiking_locations_matched': ['gmaps_hiking_locations'],
+            'usgs_trail_elevations': ['gmaps_hiking_locations_matched']
+        }
 
         # NPS table schemas - defined once and reused
         self._define_nps_table_schemas()
@@ -177,6 +192,7 @@ class DatabaseWriter:
             Column(
                 "geometry", Geometry(geometry_type="MULTIPOLYGON", srid=4326)
             ),  # Geometry column last
+            ForeignKeyConstraint(['park_code'], ['parks.park_code']),  # Reference to authoritative parks table
             extend_existing=True,
         )
 
@@ -204,6 +220,194 @@ class DatabaseWriter:
                     "Please fix the schema before proceeding."
                 )
 
+    def _load_sql_schema(self, table_name: str) -> str:
+        """
+        Load SQL schema from file with comprehensive error handling.
+        
+        Args:
+            table_name (str): Name of the table (without .sql extension)
+            
+        Returns:
+            str: SQL content from the schema file
+            
+        Raises:
+            FileNotFoundError: If SQL schema file is missing
+            ValueError: If SQL schema file is empty
+            Exception: If any other error occurs reading the file
+        """
+        sql_file = f"{table_name}.sql"
+        sql_path = os.path.join(os.path.dirname(__file__), 'sql', 'schema', sql_file)
+        
+        try:
+            if not os.path.exists(sql_path):
+                raise FileNotFoundError(f"SQL schema file not found: {sql_path}")
+                
+            with open(sql_path, 'r') as f:
+                sql_content = f.read().strip()
+                
+            if not sql_content:
+                raise ValueError(f"SQL schema file is empty: {sql_path}")
+                
+            return sql_content
+            
+        except FileNotFoundError as e:
+            self.logger.error(f"Schema file missing: {e}")
+            raise
+        except ValueError as e:
+            self.logger.error(f"Invalid schema file: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Failed to read schema file {sql_path}: {e}")
+            raise
+
+    def _create_table_from_sql(self, table_name: str) -> None:
+        """
+        Create table from SQL schema file.
+        
+        Args:
+            table_name (str): Name of the table to create
+            
+        Raises:
+            Exception: If table creation fails
+        """
+        try:
+            sql_content = self._load_sql_schema(table_name)
+            
+            with self.engine.begin() as conn:
+                conn.execute(text(sql_content))
+                
+            self.logger.info(f"Successfully created table: {table_name}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create table {table_name}: {e}")
+            raise
+
+    def _create_all_tables(self) -> None:
+        """
+        Create all tables in dependency order with error handling.
+        
+        Uses the table_dependencies dictionary to determine the correct order
+        and ensures all dependencies are met before creating each table.
+        
+        Raises:
+            RuntimeError: If circular dependency is detected
+            Exception: If any table creation fails
+        """
+        created_tables = set()
+        
+        while len(created_tables) < len(self.table_dependencies):
+            progress_made = False
+            
+            for table_name, dependencies in self.table_dependencies.items():
+                if table_name in created_tables:
+                    continue
+                    
+                # Check if all dependencies are met
+                if all(dep in created_tables for dep in dependencies):
+                    try:
+                        self._create_table_from_sql(table_name)
+                        created_tables.add(table_name)
+                        progress_made = True
+                    except Exception as e:
+                        self.logger.error(f"Failed to create table {table_name}: {e}")
+                        raise
+                        
+            if not progress_made:
+                remaining = set(self.table_dependencies.keys()) - created_tables
+                raise RuntimeError(f"Circular dependency detected in table creation. Remaining tables: {remaining}")
+
+    def drop_all_tables(self) -> None:
+        """
+        Drop all tables in the correct order to avoid foreign key violations.
+        
+        This method drops tables in reverse dependency order and handles
+        any remaining tables that might exist outside our standard schema.
+        
+        Raises:
+            Exception: If any error occurs during table dropping
+        """
+        # Tables in reverse dependency order
+        tables_to_drop = [
+            'usgs_trail_elevations',
+            'gmaps_hiking_locations_matched', 
+            'gmaps_hiking_locations',
+            'tnm_hikes',
+            'osm_hikes',
+            'park_boundaries',
+            'parks'
+        ]
+        
+        try:
+            with self.engine.begin() as conn:
+                # Drop tables in reverse dependency order
+                for table_name in tables_to_drop:
+                    conn.execute(text(f"DROP TABLE IF EXISTS {table_name} CASCADE"))
+                    self.logger.info(f"Dropped table: {table_name}")
+                
+                # Drop any remaining tables (excluding PostGIS system tables)
+                result = conn.execute(text("""
+                    SELECT tablename FROM pg_tables 
+                    WHERE schemaname = 'public'
+                    AND tablename NOT IN (
+                        'spatial_ref_sys', 'geometry_columns', 'geography_columns',
+                        'raster_columns', 'raster_overviews'
+                    )
+                """))
+                remaining_tables = [row[0] for row in result]
+                
+                for table_name in remaining_tables:
+                    conn.execute(text(f"DROP TABLE IF EXISTS {table_name} CASCADE"))
+                    self.logger.info(f"Dropped remaining table: {table_name}")
+                
+                if remaining_tables:
+                    self.logger.info("Preserved PostGIS system tables (spatial_ref_sys, geometry_columns, etc.)")
+                
+                # Drop any sequences
+                result = conn.execute(text("""
+                    SELECT sequence_name FROM information_schema.sequences 
+                    WHERE sequence_schema = 'public'
+                """))
+                sequences = [row[0] for row in result]
+                
+                for seq_name in sequences:
+                    conn.execute(text(f"DROP SEQUENCE IF EXISTS {seq_name} CASCADE"))
+                    self.logger.info(f"Dropped sequence: {seq_name}")
+                    
+            self.logger.info("Successfully dropped all tables and sequences")
+            
+        except Exception as e:
+            self.logger.error(f"Error dropping tables: {e}")
+            raise
+
+    def reset_database(self) -> None:
+        """
+        Complete database reset: drop all tables and recreate with new schema.
+        
+        This method provides a clean way to start fresh with the new standardized
+        schema. It drops all existing tables and sequences, then creates all
+        tables using the new SQL schema files.
+        
+        Raises:
+            Exception: If any error occurs during the reset process
+        """
+        self.logger.info("Starting complete database reset...")
+        
+        try:
+            # Step 1: Drop all existing tables
+            self.logger.info("Step 1: Dropping all existing tables and sequences...")
+            self.drop_all_tables()
+            
+            # Step 2: Create all tables with new schema
+            self.logger.info("Step 2: Creating all tables with new standardized schema...")
+            self._create_all_tables()
+            
+            self.logger.info("✅ Database reset completed successfully!")
+            self.logger.info("All tables have been recreated with the new standardized schema.")
+                    
+        except Exception as e:
+            self.logger.error(f"❌ Database reset failed: {e}")
+            raise
+
     def _create_osm_hikes_table(self) -> None:
         """
         Create the osm_hikes table for OSM trail data if it doesn't exist.
@@ -215,74 +419,16 @@ class DatabaseWriter:
         Raises:
             SQLAlchemyError: If table creation fails
         """
-        sql = """
-        CREATE TABLE IF NOT EXISTS osm_hikes (
-            osm_id BIGINT NOT NULL,
-            park_code VARCHAR NOT NULL,
-            highway VARCHAR NOT NULL,
-            name VARCHAR,
-            source VARCHAR,
-            length_mi DOUBLE PRECISION NOT NULL,
-            collected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            geometry_type VARCHAR NOT NULL,
-            geometry geometry(LINESTRING, 4326) NOT NULL,
-            PRIMARY KEY (park_code, osm_id),
-            FOREIGN KEY (park_code) REFERENCES park_boundaries(park_code)
-        );
-        """
-        with self.engine.begin() as conn:
-            conn.execute(text(sql))
-        self.logger.info("Ensured osm_hikes table exists in database")
+        self._create_table_from_sql('osm_hikes')
 
     def _create_tnm_hikes_table(self) -> None:
         """
         Create the tnm_hikes table for TNM trail data if it doesn't exist.
 
         This table stores hiking trail geometries and attributes from The National Map.
-        It uses permanentidentifier as the primary key since it's globally unique.
+        It uses permanent_identifier as the primary key since it's globally unique.
         """
-        create_table_sql = """
-        CREATE TABLE IF NOT EXISTS tnm_hikes (
-            permanentidentifier VARCHAR PRIMARY KEY,
-            park_code VARCHAR NOT NULL,
-            objectid INTEGER,
-            name VARCHAR,
-            namealternate VARCHAR,
-            trailnumber VARCHAR,
-            trailnumberalternate VARCHAR,
-            sourcefeatureid VARCHAR,
-            sourcedatasetid VARCHAR,
-            sourceoriginator VARCHAR,
-            loaddate BIGINT,
-            trailtype VARCHAR,
-            hikerpedestrian VARCHAR,
-            bicycle VARCHAR,
-            packsaddle VARCHAR,
-            atv VARCHAR,
-            motorcycle VARCHAR,
-            ohvover50inches VARCHAR,
-            snowshoe VARCHAR,
-            crosscountryski VARCHAR,
-            dogsled VARCHAR,
-            snowmobile VARCHAR,
-            nonmotorizedwatercraft VARCHAR,
-            motorizedwatercraft VARCHAR,
-            primarytrailmaintainer VARCHAR,
-            nationaltraildesignation VARCHAR,
-            lengthmiles DOUBLE PRECISION,
-            networklength DOUBLE PRECISION,
-            "shape_Length" DOUBLE PRECISION,
-            sourcedatadecscription VARCHAR,
-            globalid VARCHAR,
-            collected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            geometry_type VARCHAR NOT NULL,
-            geometry geometry(GEOMETRY, 4326) NOT NULL,
-            FOREIGN KEY (park_code) REFERENCES park_boundaries(park_code)
-        );
-        """
-        with self.engine.begin() as conn:
-            conn.execute(text(create_table_sql))
-        self.logger.info("Ensured tnm_hikes table exists in database")
+        self._create_table_from_sql('tnm_hikes')
 
     def _create_gmaps_hiking_locations_table(self) -> None:
         """
@@ -290,22 +436,7 @@ class DatabaseWriter:
 
         This table stores hiking location data with coordinates from Google Maps.
         """
-        create_table_sql = """
-        CREATE TABLE IF NOT EXISTS gmaps_hiking_locations (
-            id SERIAL PRIMARY KEY,
-            park_code VARCHAR(10) NOT NULL,
-            location_name VARCHAR(500) NOT NULL,
-            latitude DECIMAL(15, 12),
-            longitude DECIMAL(16, 12),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            
-            CONSTRAINT fk_gmaps_park_code 
-                FOREIGN KEY (park_code) REFERENCES parks(park_code)
-        );
-        """
-        with self.engine.begin() as conn:
-            conn.execute(text(create_table_sql))
-        self.logger.info("Ensured gmaps_hiking_locations table exists in database")
+        self._create_table_from_sql('gmaps_hiking_locations')
 
     def _create_usgs_trail_elevations_table(self) -> None:
         """
@@ -313,25 +444,7 @@ class DatabaseWriter:
 
         This table stores elevation profile data collected from USGS API for matched trails.
         """
-        create_table_sql = """
-        CREATE TABLE IF NOT EXISTS usgs_trail_elevations (
-            id SERIAL PRIMARY KEY,
-            trail_id INTEGER REFERENCES gmaps_hiking_locations_matched(id),
-            trail_name VARCHAR(255),
-            park_code VARCHAR(10),
-            source VARCHAR(10),
-            elevation_points JSONB,
-            collection_status VARCHAR(20) DEFAULT 'COMPLETE',
-            failed_points_count INTEGER DEFAULT 0,
-            total_points_count INTEGER,
-            created_at TIMESTAMP DEFAULT NOW(),
-            
-            CONSTRAINT usgs_trail_elevations_trail_id_unique UNIQUE (trail_id)
-        );
-        """
-        with self.engine.begin() as conn:
-            conn.execute(text(create_table_sql))
-        self.logger.info("Ensured usgs_trail_elevations table exists in database")
+        self._create_table_from_sql('usgs_trail_elevations')
 
     def _create_gmaps_hiking_locations_matched_table(self) -> None:
         """
@@ -341,31 +454,69 @@ class DatabaseWriter:
         from OSM and TNM data. It includes both the original GMaps data and the matched trail
         information with confidence scores and matching metrics.
         """
-        create_table_sql = """
-        CREATE TABLE IF NOT EXISTS gmaps_hiking_locations_matched (
-            id SERIAL PRIMARY KEY,
-            park_code VARCHAR(10) NOT NULL,
-            location_name VARCHAR(500) NOT NULL,
-            latitude DECIMAL(15, 12),
-            longitude DECIMAL(16, 12),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            matched_trail_name VARCHAR(500),
-            source VARCHAR(10),
-            name_similarity_score DECIMAL(5, 4),
-            min_point_to_trail_distance_m DECIMAL(10, 2),
-            confidence_score DECIMAL(5, 4),
-            match_status VARCHAR(20),
-            matched_trail_geometry geometry(LINESTRING, 4326),
-            
-            CONSTRAINT fk_matched_park_code 
-                FOREIGN KEY (park_code) REFERENCES parks(park_code)
-        );
+        self._create_table_from_sql('gmaps_hiking_locations_matched')
+
+    def _ensure_gmaps_matched_constraints(self) -> None:
         """
-        with self.engine.begin() as conn:
-            conn.execute(text(create_table_sql))
-        self.logger.info(
-            "Ensured gmaps_hiking_locations_matched table exists in database"
-        )
+        Ensure that gmaps_hiking_locations_matched table has proper constraints.
+        
+        This method adds missing constraints that may be lost when geopandas
+        recreates tables.
+        """
+        try:
+            with self.engine.begin() as conn:
+                # Check if constraints already exist
+                result = conn.execute(text("""
+                    SELECT conname FROM pg_constraint 
+                    WHERE conrelid = 'gmaps_hiking_locations_matched'::regclass
+                        AND conname IN ('fk_matched_gmaps_location', 'fk_matched_park_code')
+                """))
+                existing_constraints = {row[0] for row in result.fetchall()}
+                
+                # Add missing constraints
+                if 'fk_matched_gmaps_location' not in existing_constraints:
+                    try:
+                        # First ensure gmaps_location_id is NOT NULL
+                        conn.execute(text("""
+                            UPDATE gmaps_hiking_locations_matched 
+                            SET gmaps_location_id = id 
+                            WHERE gmaps_location_id IS NULL
+                        """))
+                        conn.execute(text("""
+                            ALTER TABLE gmaps_hiking_locations_matched 
+                            ALTER COLUMN gmaps_location_id SET NOT NULL
+                        """))
+                        
+                        # Add the foreign key constraint
+                        conn.execute(text("""
+                            ALTER TABLE gmaps_hiking_locations_matched 
+                            ADD CONSTRAINT fk_matched_gmaps_location 
+                            FOREIGN KEY (gmaps_location_id) REFERENCES gmaps_hiking_locations(id)
+                        """))
+                        self.logger.debug("Added foreign key constraint for gmaps_location_id")
+                    except Exception as e:
+                        self.logger.warning(f"Could not add gmaps_location_id constraint: {e}")
+                
+                if 'fk_matched_park_code' not in existing_constraints:
+                    try:
+                        # Ensure park_code is NOT NULL
+                        conn.execute(text("""
+                            ALTER TABLE gmaps_hiking_locations_matched 
+                            ALTER COLUMN park_code SET NOT NULL
+                        """))
+                        
+                        # Add the foreign key constraint
+                        conn.execute(text("""
+                            ALTER TABLE gmaps_hiking_locations_matched 
+                            ADD CONSTRAINT fk_matched_park_code 
+                            FOREIGN KEY (park_code) REFERENCES parks(park_code)
+                        """))
+                        self.logger.debug("Added foreign key constraint for park_code")
+                    except Exception as e:
+                        self.logger.warning(f"Could not add park_code constraint: {e}")
+                        
+        except Exception as e:
+            self.logger.warning(f"Failed to ensure gmaps_hiking_locations_matched constraints: {e}")
 
     def ensure_table_exists(self, table_name: str) -> None:
         """
@@ -799,7 +950,7 @@ class DatabaseWriter:
 
         Args:
             gdf (gpd.GeoDataFrame): Matched trail data to write with required columns:
-                                   id, park_code, location_name, latitude, longitude, created_at,
+                                   gmaps_location_id, park_code, location_name, latitude, longitude, created_at,
                                    matched_trail_name, source, name_similarity_score,
                                    min_point_to_trail_distance_m, confidence_score, match_status,
                                    matched_trail_geometry

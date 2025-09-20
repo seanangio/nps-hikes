@@ -3,20 +3,20 @@
 
 -- Trail type breakdown
 SELECT 
-    trailtype,
+    trail_type,
     COUNT(*) as count,
-    AVG(lengthmiles) as avg_length_miles,
-    SUM(lengthmiles) as total_length_miles
+    AVG(length_miles) as avg_length_miles,
+    SUM(length_miles) as total_length_miles
 FROM tnm_hikes
-GROUP BY trailtype
+GROUP BY trail_type
 ORDER BY count DESC;
 
 -- National designation breakdown
 SELECT 
-    nationaltraildesignation,
+    national_trail_designation,
     COUNT(*) as count,
-    AVG(lengthmiles) as avg_length_miles,
-    SUM(lengthmiles) as total_length_miles
+    AVG(length_miles) as avg_length_miles,
+    SUM(length_miles) as total_length_miles
 FROM tnm_hikes
-GROUP BY nationaltraildesignation
+GROUP BY national_trail_designation
 ORDER BY count DESC; 

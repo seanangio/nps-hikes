@@ -32,11 +32,18 @@ from utils.logging import setup_logging
 class USGSElevationCollector:
     """Collect elevation data for matched trails using USGS API."""
 
-    def __init__(self, logger=None):
-        """Initialize the collector."""
+    def __init__(self, write_db: bool = True, logger=None):
+        """
+        Initialize the collector.
+        
+        Args:
+            write_db (bool): Whether to write results to the database (default: True)
+            logger: Logger instance for operation tracking
+        """
         self.logger = logger or logging.getLogger("usgs_elevation_collector")
         self.engine = get_postgres_engine()
-        self.db_writer = DatabaseWriter(self.engine, self.logger)
+        self.write_db = write_db
+        self.db_writer = DatabaseWriter(self.engine, self.logger) if write_db else None
         self.elevation_cache = {}
 
         # USGS API settings from config
@@ -186,9 +193,6 @@ class USGSElevationCollector:
 
         return elevation_data, collection_status
 
-    def create_elevation_table(self):
-        """Create the usgs_trail_elevations table using db_writer."""
-        self.db_writer.ensure_table_exists("usgs_trail_elevations")
 
     def collect_park_elevation_data(
         self, park_code: str, force_refresh: bool = False
@@ -228,9 +232,12 @@ class USGSElevationCollector:
                 "complete_count": 0,
             }
 
-        # Check for existing elevation data (unless force_refresh)
+        # Check for existing elevation data (unless force_refresh and write_db is enabled)
         existing_trail_ids = set()
-        if not force_refresh:
+        if not force_refresh and self.write_db:
+            # Ensure table exists before querying (consistent with other collectors)
+            self.db_writer.ensure_table_exists("usgs_trail_elevations")
+            
             existing_query = f"""
                 SELECT trail_id FROM usgs_trail_elevations 
                 WHERE park_code = '{park_code}'
@@ -292,48 +299,57 @@ class USGSElevationCollector:
             total_points = len(elevation_data) if elevation_data else 0
             failed_points = 0  # We filtered out failed points, so this is 0
 
-            # Store in database (UPSERT to handle re-runs)
-            insert_sql = """
-                INSERT INTO usgs_trail_elevations 
-                (trail_id, trail_name, park_code, source, elevation_points, 
-                 collection_status, failed_points_count, total_points_count)
-                VALUES (:trail_id, :trail_name, :park_code, :source, :elevation_points,
-                        :collection_status, :failed_points_count, :total_points_count)
-                ON CONFLICT (trail_id) DO UPDATE SET
-                    elevation_points = EXCLUDED.elevation_points,
-                    collection_status = EXCLUDED.collection_status,
-                    failed_points_count = EXCLUDED.failed_points_count,
-                    total_points_count = EXCLUDED.total_points_count,
-                    created_at = NOW()
-            """
+            # Store in database (UPSERT to handle re-runs) if write_db is enabled
+            if self.write_db and self.db_writer:
+                # Ensure table exists before writing (consistent with other collectors)
+                self.db_writer.ensure_table_exists("usgs_trail_elevations")
+                insert_sql = """
+                    INSERT INTO usgs_trail_elevations 
+                    (trail_id, trail_name, park_code, source, elevation_points, 
+                     collection_status, failed_points_count, total_points_count)
+                    VALUES (:trail_id, :trail_name, :park_code, :source, :elevation_points,
+                            :collection_status, :failed_points_count, :total_points_count)
+                    ON CONFLICT (trail_id) DO UPDATE SET
+                        elevation_points = EXCLUDED.elevation_points,
+                        collection_status = EXCLUDED.collection_status,
+                        failed_points_count = EXCLUDED.failed_points_count,
+                        total_points_count = EXCLUDED.total_points_count,
+                        created_at = NOW()
+                """
 
-            try:
-                with self.engine.connect() as conn:
-                    conn.execute(
-                        text(insert_sql),
-                        {
-                            "trail_id": trail_id,
-                            "trail_name": trail_name,
-                            "park_code": park_code,
-                            "source": source,
-                            "elevation_points": json.dumps(elevation_data),
-                            "collection_status": collection_status,
-                            "failed_points_count": failed_points,
-                            "total_points_count": total_points,
-                        },
+                try:
+                    with self.engine.connect() as conn:
+                        conn.execute(
+                            text(insert_sql),
+                            {
+                                "trail_id": trail_id,
+                                "trail_name": trail_name,
+                                "park_code": park_code,
+                                "source": source,
+                                "elevation_points": json.dumps(elevation_data),
+                                "collection_status": collection_status,
+                                "failed_points_count": failed_points,
+                                "total_points_count": total_points,
+                            },
+                        )
+                        conn.commit()
+
+                    processed_count += 1
+                    self.logger.info(
+                        f"Stored elevation data for: {trail_name} ({collection_status})"
                     )
-                    conn.commit()
 
+                except Exception as e:
+                    self.logger.error(
+                        f"Failed to store elevation data for {trail_name}: {e}"
+                    )
+                    failed_count += 1
+            else:
+                # File-only mode - just log the processing
                 processed_count += 1
                 self.logger.info(
-                    f"Stored elevation data for: {trail_name} ({collection_status})"
+                    f"Processed elevation data for: {trail_name} ({collection_status}) [file-only mode]"
                 )
-
-            except Exception as e:
-                self.logger.error(
-                    f"Failed to store elevation data for {trail_name}: {e}"
-                )
-                failed_count += 1
 
         # Save cache
         self._save_cache()
@@ -446,22 +462,21 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s                              # Process all parks with matched trails
+  %(prog)s                              # Process all parks, write to database only
   %(prog)s --test-limit 5               # Test with first 5 parks only
   %(prog)s --force-refresh              # Re-collect data even if already exists
-  %(prog)s --create-table               # Create elevation database table
   %(prog)s --log-level DEBUG            # Enable debug logging
         """,
+    )
+    parser.add_argument(
+        "--write-db",
+        action="store_true",
+        help="Write results to database (default: database only, no file output)",
     )
     parser.add_argument(
         "--test-limit",
         type=int,
         help="Limit to first N parks (for testing)",
-    )
-    parser.add_argument(
-        "--create-table",
-        action="store_true",
-        help="Create elevation database table",
     )
     parser.add_argument(
         "--force-refresh",
@@ -486,10 +501,8 @@ Examples:
 
     try:
         # Initialize collector
-        collector = USGSElevationCollector(logger=logger)
+        collector = USGSElevationCollector(write_db=args.write_db, logger=logger)
 
-        if args.create_table:
-            collector.create_elevation_table()
 
         # Collect elevation data for all parks
         results = collector.collect_all_parks_elevation_data(

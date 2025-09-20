@@ -223,6 +223,9 @@ class TNMHikesCollector:
             # Add park_code column
             gdf["park_code"] = park_code
 
+            # Map API column names to database column names
+            gdf = self._map_api_columns_to_db_columns(gdf)
+
             self.logger.info(f"Loaded {len(gdf)} trails for {park_code}")
             return gdf
 
@@ -231,6 +234,75 @@ class TNMHikesCollector:
                 f"Error loading trails to GeoDataFrame for {park_code}: {e}"
             )
             return gpd.GeoDataFrame()
+
+    def _map_api_columns_to_db_columns(self, gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+        """
+        Map TNM API column names to database column names.
+        
+        Args:
+            gdf: GeoDataFrame with API column names
+            
+        Returns:
+            GeoDataFrame with database column names
+        """
+        # Column mapping from API names to database names
+        column_mapping = {
+            'permanentidentifier': 'permanent_identifier',
+            'objectid': 'object_id', 
+            'namealternate': 'name_alternate',
+            'trailnumber': 'trail_number',
+            'trailnumberalternate': 'trail_number_alternate',
+            'sourcefeatureid': 'source_feature_id',
+            'sourcedatasetid': 'source_dataset_id',
+            'sourceoriginator': 'source_originator',
+            'loaddate': 'load_date',
+            'trailtype': 'trail_type',
+            'hikerpedestrian': 'hiker_pedestrian',
+            'packsaddle': 'pack_saddle',
+            'ohvover50inches': 'ohv_over_50_inches',
+            'crosscountryski': 'cross_country_ski',
+            'nonmotorizedwatercraft': 'non_motorized_watercraft',
+            'motorizedwatercraft': 'motorized_watercraft',
+            'primarytrailmaintainer': 'primary_trail_maintainer',
+            'nationaltraildesignation': 'national_trail_designation',
+            'lengthmiles': 'length_miles',
+            'networklength': 'network_length',
+            'shape_Length': 'shape_length',
+            'sourcedatadecscription': 'source_data_description',
+            'globalid': 'global_id'
+        }
+        
+        # Rename columns that exist in the dataframe
+        existing_columns = [col for col in column_mapping.keys() if col in gdf.columns]
+        if existing_columns:
+            rename_dict = {col: column_mapping[col] for col in existing_columns}
+            gdf = gdf.rename(columns=rename_dict)
+            self.logger.debug(f"Mapped TNM columns: {list(rename_dict.keys())} -> {list(rename_dict.values())}")
+        
+        # Add required metadata columns for database
+        if not gdf.empty:
+            gdf["collected_at"] = self.timestamp
+            gdf["geometry_type"] = gdf.geometry.type
+            
+            # Map boolean-like fields from "Yes"/"No" to "Y"/"N" for VARCHAR(1) columns
+            boolean_fields = [
+                'hiker_pedestrian', 'bicycle', 'pack_saddle', 'atv', 'motorcycle',
+                'ohv_over_50_inches', 'snowshoe', 'cross_country_ski', 'dogsled',
+                'snowmobile', 'non_motorized_watercraft', 'motorized_watercraft'
+            ]
+            
+            for field in boolean_fields:
+                if field in gdf.columns:
+                    gdf[field] = gdf[field].replace({
+                        'Yes': 'Y',
+                        'No': 'N',
+                        'yes': 'Y',
+                        'no': 'N',
+                        'YES': 'Y',
+                        'NO': 'N'
+                    })
+        
+        return gdf
 
     def filter_named_trails(
         self, gdf: gpd.GeoDataFrame, park_code: str
@@ -336,8 +408,8 @@ class TNMHikesCollector:
 
                             # Only keep trails that meet minimum length requirement
                             if length_miles >= config.TNM_MIN_TRAIL_LENGTH_MI:
-                                trail_copy["lengthmiles"] = length_miles
-                                trail_copy["shape_Length"] = (
+                                trail_copy["length_miles"] = length_miles
+                                trail_copy["shape_length"] = (
                                     geom.length
                                 )  # Keep original decimal degrees
                                 clipped_trails.append(trail_copy)
@@ -412,10 +484,10 @@ class TNMHikesCollector:
                             trail["name_lower"] = name_lower
                             # Sum the lengths if available
                             if (
-                                "lengthmiles" in trail
-                                and trail["lengthmiles"] is not None
+                                "length_miles" in trail
+                                and trail["length_miles"] is not None
                             ):
-                                trail["lengthmiles"] = group["lengthmiles"].sum()
+                                trail["length_miles"] = group["length_miles"].sum()
                             aggregated_trails.append(trail)
                     except Exception:
                         # Merging failed, keep as separate trails
@@ -463,8 +535,8 @@ class TNMHikesCollector:
 
             # Filter by minimum length
             gdf = gdf[
-                (gdf["lengthmiles"].notna())
-                & (gdf["lengthmiles"] >= config.TNM_MIN_TRAIL_LENGTH_MI)
+                (gdf["length_miles"].notna())
+                & (gdf["length_miles"] >= config.TNM_MIN_TRAIL_LENGTH_MI)
             ]
 
             filtered_count = len(gdf)

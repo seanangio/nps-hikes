@@ -216,7 +216,7 @@ class TrailMatcher:
 
         # Query TNM trails for this park
         query = f"""
-        SELECT name, lengthmiles as length_mi, geometry
+        SELECT name, length_miles as length_mi, geometry
         FROM tnm_hikes 
         WHERE park_code = '{park_code}'
         """
@@ -337,6 +337,7 @@ class TrailMatcher:
                 self.stats["matched_tnm"] += 1
                 return {
                     **gmaps_point,
+                    "gmaps_location_id": gmaps_point["id"],
                     "matched_trail_name": best_match["trail_name"],
                     "source": best_match["source"],
                     "name_similarity_score": best_match["name_similarity_score"],
@@ -359,6 +360,7 @@ class TrailMatcher:
                 self.stats["matched_osm"] += 1
                 return {
                     **gmaps_point,
+                    "gmaps_location_id": gmaps_point["id"],
                     "matched_trail_name": best_match["trail_name"],
                     "source": best_match["source"],
                     "name_similarity_score": best_match["name_similarity_score"],
@@ -374,6 +376,7 @@ class TrailMatcher:
         self.stats["no_match"] += 1
         return {
             **gmaps_point,
+            "gmaps_location_id": gmaps_point["id"],
             "matched_trail_name": None,
             "source": None,
             "name_similarity_score": None,
@@ -400,7 +403,7 @@ class TrailMatcher:
 
         # Reorder columns
         column_order = [
-            "id",
+            "gmaps_location_id",
             "park_code",
             "location_name",
             "latitude",
@@ -415,17 +418,26 @@ class TrailMatcher:
             "matched_trail_geometry",
         ]
         gdf = gdf[column_order]
+        
+        # Check if all geometries are None - if so, convert to regular DataFrame
+        if gdf.geometry.isna().all():
+            self.logger.info("All matched_trail_geometry values are None - converting to regular DataFrame")
+            # Convert GeoDataFrame to regular DataFrame (this removes the geometry column)
+            df_no_geom = pd.DataFrame(gdf)
+            # Write as regular DataFrame instead of GeoDataFrame
+            self.db_writer._append_dataframe(df_no_geom, "gmaps_hiking_locations_matched")
+            return
 
-        # Write to database using DatabaseWriter
+        # Always write to file first
+        output_path = config.TRAIL_MATCHING_OUTPUT_GPKG
+        gdf.to_file(output_path, driver="GPKG")
+        self.logger.info(
+            f"Saved matched data to {output_path} with {len(gdf)} records"
+        )
+        
+        # Also write to database if db_writer is available
         if self.db_writer:
             self.db_writer.write_gmaps_hiking_locations_matched(gdf, mode="replace")
-        else:
-            # Fallback to file output
-            output_path = config.TRAIL_MATCHING_OUTPUT_GPKG
-            gdf.to_file(output_path, driver="GPKG")
-            self.logger.info(
-                f"Saved matched data to {output_path} with {len(gdf)} records"
-            )
 
         self.logger.info(f"Created table with {len(gdf)} records")
 
@@ -531,17 +543,17 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s                              # Process all GMaps points, write to database
-  %(prog)s --file-only                  # Write results to file only
+  %(prog)s                              # Process all GMaps points, write to file only
+  %(prog)s --write-db                   # Write results to database in addition to file
   %(prog)s --test-limit 10              # Test with first 10 GMaps points only
-  %(prog)s --file-only --test-limit 5   # Test mode with file output
+  %(prog)s --write-db --test-limit 5    # Test mode with database output
   %(prog)s --log-level DEBUG            # Enable debug logging
         """,
     )
     parser.add_argument(
-        "--file-only",
+        "--write-db",
         action="store_true",
-        help="Write results to file only (default: write to database)",
+        help="Write results to database in addition to file output",
     )
     parser.add_argument(
         "--test-limit",
@@ -566,9 +578,9 @@ Examples:
 
     try:
         # Initialize matcher with new parameters
-        # Default to database writing (original behavior), use file-only if specified
+        # Default to file-only output, use database writing if specified
         matcher = TrailMatcher(
-            write_db=not args.file_only, test_limit=args.test_limit, logger=logger
+            write_db=args.write_db, test_limit=args.test_limit, logger=logger
         )
 
         # Run matching
