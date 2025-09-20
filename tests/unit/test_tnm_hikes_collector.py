@@ -16,7 +16,7 @@ import geopandas as gpd
 from shapely.geometry import LineString, MultiLineString, Polygon
 from sqlalchemy import Engine
 
-from tnm_hikes_collector import TNMHikesCollector
+from scripts.collectors.tnm_hikes_collector import TNMHikesCollector
 
 
 @pytest.fixture

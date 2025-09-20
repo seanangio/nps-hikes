@@ -66,6 +66,9 @@ from sqlalchemy.exc import SQLAlchemyError
 
 # Try to import config, but handle gracefully if it fails
 try:
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
     from config.settings import config
 
     CONFIG_AVAILABLE = True

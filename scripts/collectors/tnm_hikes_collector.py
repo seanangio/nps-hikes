@@ -46,11 +46,15 @@ from sqlalchemy import Engine
 from dotenv import load_dotenv
 
 # Load .env before local imports that need env vars
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 # Local application imports
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+
 from config.settings import config
-from db_writer import get_postgres_engine, DatabaseWriter
+from scripts.database.db_writer import get_postgres_engine, DatabaseWriter
 from utils.logging import setup_tnm_collector_logging
 
 

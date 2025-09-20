@@ -1,5 +1,5 @@
 """
-Unit tests for db_writer.py module.
+Unit tests for scripts.database.db_writer.py module.
 
 Tests cover database writer functionality without requiring a real database connection.
 All database operations are mocked to focus on business logic and error handling.
@@ -14,15 +14,15 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import Engine, Table
 import logging
 
-from db_writer import DatabaseWriter, get_postgres_engine
+from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 
 
 class TestGetPostgresEngine:
     """Test cases for get_postgres_engine function."""
 
-    @patch("db_writer.CONFIG_AVAILABLE", True)
-    @patch("db_writer.config")
-    @patch("db_writer.create_engine")
+    @patch("scripts.database.db_writer.CONFIG_AVAILABLE", True)
+    @patch("scripts.database.db_writer.config")
+    @patch("scripts.database.db_writer.create_engine")
     def test_engine_creation_with_valid_config(self, mock_create_engine, mock_config):
         """Test engine creation with valid configuration."""
         mock_config.validate_for_database_operations.return_value = None
@@ -41,15 +41,15 @@ class TestGetPostgresEngine:
         )
         assert result == mock_engine
 
-    @patch("db_writer.CONFIG_AVAILABLE", False)
-    @patch("db_writer.config", None)
+    @patch("scripts.database.db_writer.CONFIG_AVAILABLE", False)
+    @patch("scripts.database.db_writer.config", None)
     def test_engine_creation_config_unavailable(self):
         """Test ValueError when configuration is unavailable."""
         with pytest.raises(ValueError, match="Configuration not available"):
             get_postgres_engine()
 
-    @patch("db_writer.CONFIG_AVAILABLE", True)
-    @patch("db_writer.config")
+    @patch("scripts.database.db_writer.CONFIG_AVAILABLE", True)
+    @patch("scripts.database.db_writer.config")
     def test_engine_creation_invalid_config(self, mock_config):
         """Test when config validation fails."""
         mock_config.validate_for_database_operations.side_effect = ValueError(
@@ -80,7 +80,7 @@ class TestDatabaseWriterInit:
         """Test initialization creates default logger when none provided."""
         mock_engine = Mock(spec=Engine)
 
-        with patch("db_writer.logging.getLogger") as mock_get_logger:
+        with patch("scripts.database.db_writer.logging.getLogger") as mock_get_logger:
             mock_default_logger = Mock(spec=logging.Logger)
             mock_get_logger.return_value = mock_default_logger
 
@@ -163,7 +163,7 @@ class TestTableSchemaDefinition:
 class TestTableValidation:
     """Test cases for table validation methods."""
 
-    @patch("db_writer.inspect")
+    @patch("scripts.database.db_writer.inspect")
     def test_check_primary_key_valid_table(self, mock_inspect):
         """Test primary key validation with valid table."""
         mock_engine = Mock(spec=Engine)
@@ -183,7 +183,7 @@ class TestTableValidation:
         mock_inspector.get_table_names.assert_called_once()
         mock_inspector.get_pk_constraint.assert_called_once_with("test_table")
 
-    @patch("db_writer.inspect")
+    @patch("scripts.database.db_writer.inspect")
     def test_check_primary_key_invalid_table(self, mock_inspect):
         """Test primary key validation with wrong primary key."""
         mock_engine = Mock(spec=Engine)
@@ -201,7 +201,7 @@ class TestTableValidation:
         ):
             writer._check_primary_key("test_table", "test_id")
 
-    @patch("db_writer.inspect")
+    @patch("scripts.database.db_writer.inspect")
     def test_check_primary_key_nonexistent_table(self, mock_inspect):
         """Test primary key validation with nonexistent table."""
         mock_engine = Mock(spec=Engine)
@@ -393,7 +393,7 @@ class TestBoundariesOperations:
             }
         )
 
-        with patch("db_writer.insert") as mock_insert:
+        with patch("scripts.database.db_writer.insert") as mock_insert:
             mock_stmt = Mock()
             mock_insert.return_value = mock_stmt
             mock_excluded = Mock()
@@ -429,7 +429,7 @@ class TestBoundariesOperations:
             }
         )
 
-        with patch("db_writer.insert") as mock_insert:
+        with patch("scripts.database.db_writer.insert") as mock_insert:
             mock_stmt = Mock()
             mock_insert.return_value = mock_stmt
             mock_excluded = Mock()
@@ -575,7 +575,7 @@ class TestDataFrameOperations:
 class TestUtilityMethods:
     """Test cases for utility methods."""
 
-    @patch("db_writer.pd.read_sql")
+    @patch("scripts.database.db_writer.pd.read_sql")
     def test_get_completed_records_success(self, mock_read_sql):
         """Test successful completed records retrieval."""
         mock_engine = Mock(spec=Engine)
@@ -594,7 +594,7 @@ class TestUtilityMethods:
         )
         mock_logger.info.assert_called_once()
 
-    @patch("db_writer.pd.read_sql")
+    @patch("scripts.database.db_writer.pd.read_sql")
     def test_get_completed_records_empty_result(self, mock_read_sql):
         """Test completed records with empty result."""
         mock_engine = Mock(spec=Engine)
@@ -606,7 +606,7 @@ class TestUtilityMethods:
 
         assert result == set()
 
-    @patch("db_writer.pd.read_sql")
+    @patch("scripts.database.db_writer.pd.read_sql")
     def test_get_completed_records_db_error(self, mock_read_sql):
         """Test completed records handles database errors."""
         mock_engine = Mock(spec=Engine)
@@ -655,8 +655,8 @@ class TestUtilityMethods:
 
         mock_logger.error.assert_called_once()
 
-    @patch("db_writer.inspect")
-    @patch("db_writer.text")
+    @patch("scripts.database.db_writer.inspect")
+    @patch("scripts.database.db_writer.text")
     def test_get_table_info_existing_table(self, mock_text, mock_inspect):
         """Test table info for existing table."""
         mock_engine = Mock(spec=Engine)
@@ -686,7 +686,7 @@ class TestUtilityMethods:
         assert result["columns"] == ["col1", "col2"]
         assert result["primary_keys"] == ["col1"]
 
-    @patch("db_writer.inspect")
+    @patch("scripts.database.db_writer.inspect")
     def test_get_table_info_nonexistent_table(self, mock_inspect):
         """Test table info for nonexistent table."""
         mock_engine = Mock(spec=Engine)
@@ -738,7 +738,7 @@ class TestErrorHandling:
             }
         )
 
-        with patch("db_writer.insert") as mock_insert:
+        with patch("scripts.database.db_writer.insert") as mock_insert:
             mock_stmt = Mock()
             mock_insert.return_value = mock_stmt
             mock_excluded = Mock()

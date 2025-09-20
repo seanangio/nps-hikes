@@ -29,10 +29,12 @@ from shapely.ops import nearest_points
 import difflib
 
 # Add project root to path for imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
-from db_writer import get_postgres_engine, DatabaseWriter
+from scripts.database.db_writer import get_postgres_engine, DatabaseWriter
 from utils.logging import setup_logging
 
 

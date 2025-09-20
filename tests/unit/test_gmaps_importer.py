@@ -15,7 +15,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 
-from gmaps_hiking_importer import GMapsHikingImporter
+from scripts.collectors.gmaps_hiking_importer import GMapsHikingImporter
 
 
 class TestGMapsHikingImporter:

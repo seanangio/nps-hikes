@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch, MagicMock
 import tempfile
 import os
 
-from osm_hikes_collector import OSMHikesCollector
+from scripts.collectors.osm_hikes_collector import OSMHikesCollector
 from config.settings import config
 
 

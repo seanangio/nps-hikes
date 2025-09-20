@@ -23,9 +23,9 @@ To regenerate all artifacts:
 rm artifacts/*
 
 # Re-run collection scripts
-python nps_collector.py --write-db
-python osm_hikes_collector.py --write-db
-python tnm_hikes_collector.py --write-db
+python scripts/collectors/nps_collector.py --write-db
+python scripts/collectors/osm_hikes_collector.py --write-db
+python scripts/collectors/tnm_hikes_collector.py --write-db
 ```
 
 ## Notes

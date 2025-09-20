@@ -27,10 +27,10 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 
 # Add project root to path for imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
 from config.settings import config
-from db_writer import DatabaseWriter, get_postgres_engine
+from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from sqlalchemy import text
 
 # Configure logging

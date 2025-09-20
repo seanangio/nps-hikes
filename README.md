@@ -43,9 +43,18 @@ This project enables researchers, park enthusiasts, and data analysts to:
 
 ```
 nps-hikes/
-├── nps_collector.py           # NPS API data collection
-├── osm_hikes_collector.py     # OpenStreetMap trail extraction
-├── db_writer.py               # Unified database operations
+├── scripts/                   # Data collection and processing scripts
+│   ├── collectors/            # Data collection from external sources
+│   │   ├── nps_collector.py           # NPS API data collection
+│   │   ├── osm_hikes_collector.py     # OpenStreetMap trail extraction
+│   │   ├── tnm_hikes_collector.py     # The National Map trail data
+│   │   ├── usgs_elevation_collector.py # USGS elevation data
+│   │   └── gmaps_hiking_importer.py   # Google Maps hiking locations
+│   ├── processors/            # Data processing and analysis
+│   │   └── trail_matcher.py           # Trail matching and correlation
+│   └── database/              # Database management utilities
+│       ├── db_writer.py               # Unified database operations
+│       └── reset_database.py          # Database reset utilities
 ├── config/                    # Configuration and settings
 ├── profiling/                 # Data quality analysis modules
 │   ├── modules/               # Individual profiling modules
@@ -93,19 +102,19 @@ nps-hikes/
 ### 1. Collect Park Data
 ```bash
 # Collect park metadata and boundaries
-python nps_collector.py --write-db
+python scripts/collectors/nps_collector.py --write-db
 
 # Test with specific parks
-python nps_collector.py --parks YELL,GRCA --test-limit 2
+python scripts/collectors/nps_collector.py --parks YELL,GRCA --test-limit 2
 ```
 
 ### 2. Extract Hiking Trails
 ```bash
 # Collect trails for all parks
-python osm_hikes_collector.py --write-db
+python scripts/collectors/osm_hikes_collector.py --write-db
 
 # Process specific parks with rate limiting
-python osm_hikes_collector.py --parks YELL,ZION --rate-limit 1.0
+python scripts/collectors/osm_hikes_collector.py --parks YELL,ZION --rate-limit 1.0
 ```
 
 ### 3. Analyze Data Quality
@@ -206,7 +215,7 @@ python -m profiling.orchestrator --help
 ### Load and Analyze Data
 ```python
 import geopandas as gpd
-from db_writer import get_postgres_engine
+from scripts.database.db_writer import get_postgres_engine
 
 # Load park boundaries
 engine = get_postgres_engine()

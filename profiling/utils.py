@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from config.settings import config
-from db_writer import get_postgres_engine
+from scripts.database.db_writer import get_postgres_engine
 
 # Load environment variables
 load_dotenv()
