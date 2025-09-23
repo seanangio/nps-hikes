@@ -128,6 +128,7 @@ class Config:
     # Orchestration Settings
     ORCHESTRATOR_LOG_FILE: str = "logs/orchestrator.log"
     ORCHESTRATOR_STEP_TIMEOUT: int = 3600  # 1 hour max per step
+    ORCHESTRATOR_ELEVATION_TIMEOUT: int = 7200  # 2 hours for elevation collection
 
     # Logging Configuration
     LOG_LEVEL: str = "INFO"

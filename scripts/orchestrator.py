@@ -196,11 +196,15 @@ class DataCollectionOrchestrator:
         # Execute the command
         try:
             self.logger.info(f"⚙️  Executing: {step_name}")
+            
+            # Use longer timeout for elevation collection
+            timeout = config.ORCHESTRATOR_ELEVATION_TIMEOUT if "Elevation Collection" in step_name else config.ORCHESTRATOR_STEP_TIMEOUT
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=config.ORCHESTRATOR_STEP_TIMEOUT,
+                timeout=timeout,
                 cwd=os.path.join(os.path.dirname(__file__), ".."),  # Run from project root
             )
 
@@ -219,8 +223,9 @@ class DataCollectionOrchestrator:
                 return False
 
         except subprocess.TimeoutExpired:
+            timeout_used = config.ORCHESTRATOR_ELEVATION_TIMEOUT if "Elevation Collection" in step_name else config.ORCHESTRATOR_STEP_TIMEOUT
             self.logger.error(
-                f"❌ {step_name} timed out after {config.ORCHESTRATOR_STEP_TIMEOUT} seconds"
+                f"❌ {step_name} timed out after {timeout_used} seconds"
             )
             return False
         except Exception as e:
