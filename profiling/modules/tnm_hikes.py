@@ -28,7 +28,9 @@ from sqlalchemy import Engine, text
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+# Add project root to path for imports
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, project_root)
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -38,7 +40,7 @@ load_dotenv(
 )
 
 from config.settings import config
-from db_writer import get_postgres_engine
+from scripts.database.db_writer import get_postgres_engine
 from utils.logging import setup_tnm_collector_logging
 
 

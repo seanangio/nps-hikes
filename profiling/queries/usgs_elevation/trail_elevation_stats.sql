@@ -3,7 +3,7 @@
 
 WITH elevation_data AS (
     SELECT 
-        trail_id,
+        gmaps_location_id,
         trail_name,
         park_code,
         source,
@@ -20,7 +20,7 @@ WITH elevation_data AS (
 ),
 elevation_changes AS (
     SELECT 
-        trail_id,
+        gmaps_location_id,
         trail_name,
         park_code,
         source,
@@ -32,11 +32,11 @@ elevation_changes AS (
         distance_m,
         elevation_m,
         -- Calculate elevation change from previous point
-        elevation_m - LAG(elevation_m) OVER (PARTITION BY trail_id ORDER BY point_index) as elevation_change_m
+        elevation_m - LAG(elevation_m) OVER (PARTITION BY gmaps_location_id ORDER BY point_index) as elevation_change_m
     FROM elevation_data
 )
 SELECT 
-    trail_id,
+    gmaps_location_id,
     trail_name,
     park_code,
     source,
@@ -55,5 +55,5 @@ SELECT
     MAX(distance_m) as trail_length_m,
     created_at
 FROM elevation_changes
-GROUP BY trail_id, trail_name, park_code, source, collection_status, total_points_count, failed_points_count, created_at
+GROUP BY gmaps_location_id, trail_name, park_code, source, collection_status, total_points_count, failed_points_count, created_at
 ORDER BY park_code, trail_name;

@@ -4,7 +4,7 @@
 
 WITH elevation_segments AS (
     SELECT 
-        trail_id,
+        gmaps_location_id,
         trail_name,
         park_code,
         source,
@@ -13,16 +13,16 @@ WITH elevation_segments AS (
         (elevation_point->>'elevation_m')::numeric as elevation_m,
         -- Calculate distance and elevation change from previous point
         (elevation_point->>'distance_m')::numeric - 
-        LAG((elevation_point->>'distance_m')::numeric) OVER (PARTITION BY trail_id ORDER BY (elevation_point->>'point_index')::int) as segment_distance_m,
+        LAG((elevation_point->>'distance_m')::numeric) OVER (PARTITION BY gmaps_location_id ORDER BY (elevation_point->>'point_index')::int) as segment_distance_m,
         (elevation_point->>'elevation_m')::numeric - 
-        LAG((elevation_point->>'elevation_m')::numeric) OVER (PARTITION BY trail_id ORDER BY (elevation_point->>'point_index')::int) as segment_elevation_change_m
+        LAG((elevation_point->>'elevation_m')::numeric) OVER (PARTITION BY gmaps_location_id ORDER BY (elevation_point->>'point_index')::int) as segment_elevation_change_m
     FROM usgs_trail_elevations,
          jsonb_array_elements(elevation_points) as elevation_point
     WHERE collection_status IN ('COMPLETE', 'PARTIAL')
 ),
 grade_calculations AS (
     SELECT 
-        trail_id,
+        gmaps_location_id,
         trail_name,
         park_code,
         source,
@@ -47,7 +47,7 @@ grade_calculations AS (
     WHERE segment_distance_m IS NOT NULL
 )
 SELECT 
-    trail_id,
+    gmaps_location_id,
     trail_name,
     park_code,
     source,
@@ -70,5 +70,5 @@ SELECT
     -- Trail length
     MAX(distance_m) as trail_length_m
 FROM grade_calculations
-GROUP BY trail_id, trail_name, park_code, source
+GROUP BY gmaps_location_id, trail_name, park_code, source
 ORDER BY park_code, trail_name;

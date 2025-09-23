@@ -9,7 +9,8 @@ from sqlalchemy import text
 from dotenv import load_dotenv
 
 # Add project root to path for imports
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+project_root = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, project_root)
 
 from config.settings import config
 from scripts.database.db_writer import get_postgres_engine

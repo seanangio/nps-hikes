@@ -3,7 +3,7 @@
 
 WITH elevation_segments AS (
     SELECT 
-        trail_id,
+        gmaps_location_id,
         trail_name,
         park_code,
         source,
@@ -14,16 +14,16 @@ WITH elevation_segments AS (
         (elevation_point->>'longitude')::numeric as longitude,
         -- Calculate distance and elevation change from previous point
         (elevation_point->>'distance_m')::numeric - 
-        LAG((elevation_point->>'distance_m')::numeric) OVER (PARTITION BY trail_id ORDER BY (elevation_point->>'point_index')::int) as segment_distance_m,
+        LAG((elevation_point->>'distance_m')::numeric) OVER (PARTITION BY gmaps_location_id ORDER BY (elevation_point->>'point_index')::int) as segment_distance_m,
         (elevation_point->>'elevation_m')::numeric - 
-        LAG((elevation_point->>'elevation_m')::numeric) OVER (PARTITION BY trail_id ORDER BY (elevation_point->>'point_index')::int) as segment_elevation_change_m
+        LAG((elevation_point->>'elevation_m')::numeric) OVER (PARTITION BY gmaps_location_id ORDER BY (elevation_point->>'point_index')::int) as segment_elevation_change_m
     FROM usgs_trail_elevations,
          jsonb_array_elements(elevation_points) as elevation_point
     WHERE collection_status IN ('COMPLETE', 'PARTIAL')
 ),
 grade_calculations AS (
     SELECT 
-        trail_id,
+        gmaps_location_id,
         trail_name,
         park_code,
         source,
@@ -51,7 +51,7 @@ grade_calculations AS (
 ),
 steepest_per_trail AS (
     SELECT 
-        trail_id,
+        gmaps_location_id,
         trail_name,
         park_code,
         source,
@@ -64,11 +64,11 @@ steepest_per_trail AS (
         segment_elevation_change_m,
         grade_percent,
         absolute_grade_percent,
-        ROW_NUMBER() OVER (PARTITION BY trail_id ORDER BY absolute_grade_percent DESC) as steepness_rank
+        ROW_NUMBER() OVER (PARTITION BY gmaps_location_id ORDER BY absolute_grade_percent DESC) as steepness_rank
     FROM grade_calculations
 )
 SELECT 
-    trail_id,
+    gmaps_location_id,
     trail_name,
     park_code,
     source,
@@ -82,11 +82,11 @@ SELECT
     grade_percent,
     absolute_grade_percent,
     -- Calculate position along trail as percentage
-    ROUND((distance_m / MAX(distance_m) OVER (PARTITION BY trail_id)) * 100, 1) as position_percent_of_trail,
+    ROUND((distance_m / MAX(distance_m) OVER (PARTITION BY gmaps_location_id)) * 100, 1) as position_percent_of_trail,
     -- Trail statistics for context
-    MAX(distance_m) OVER (PARTITION BY trail_id) as total_trail_length_m,
-    MAX(elevation_m) OVER (PARTITION BY trail_id) as trail_max_elevation_m,
-    MIN(elevation_m) OVER (PARTITION BY trail_id) as trail_min_elevation_m
+    MAX(distance_m) OVER (PARTITION BY gmaps_location_id) as total_trail_length_m,
+    MAX(elevation_m) OVER (PARTITION BY gmaps_location_id) as trail_max_elevation_m,
+    MIN(elevation_m) OVER (PARTITION BY gmaps_location_id) as trail_min_elevation_m
 FROM steepest_per_trail
 WHERE steepness_rank <= 5  -- Top 5 steepest segments per trail
 ORDER BY park_code, trail_name, absolute_grade_percent DESC;
