@@ -379,23 +379,31 @@ class NPSDataCollector:
 
                 # Identify parks that still need processing
                 if not existing_data.empty and "park_name" in existing_data.columns:
-                    existing_park_names = list(existing_data["park_name"].tolist())
-                    parks_to_process = parks_df[
-                        ~parks_df["park_name"].isin(existing_park_names)
-                    ]
-
-                    skipped_count = len(parks_df) - len(parks_to_process)
-                    if skipped_count > 0:
-                        logger.info(
-                            f"Incremental processing: Skipping {skipped_count} parks already collected"
-                        )
-                        logger.info(
-                            f"Processing {len(parks_to_process)} new/missing parks"
-                        )
+                    # Check if existing data has been deduplicated (has combined park names)
+                    has_combined_names = existing_data["park_name"].str.contains(" / ").any()
+                    
+                    if has_combined_names:
+                        logger.info("Found existing data with deduplicated park names. Processing all parks to ensure consistency.")
+                        parks_to_process = parks_df.copy()
                     else:
-                        logger.info(
-                            "All parks already collected, no new processing needed"
-                        )
+                        # Original logic for non-deduplicated data
+                        existing_park_names = list(existing_data["park_name"].tolist())
+                        parks_to_process = parks_df[
+                            ~parks_df["park_name"].isin(existing_park_names)
+                        ]
+
+                        skipped_count = len(parks_df) - len(parks_to_process)
+                        if skipped_count > 0:
+                            logger.info(
+                                f"Incremental processing: Skipping {skipped_count} parks already collected"
+                            )
+                            logger.info(
+                                f"Processing {len(parks_to_process)} new/missing parks"
+                            )
+                        else:
+                            logger.info(
+                                "All parks already collected, no new processing needed"
+                            )
 
             except Exception as e:
                 logger.warning(f"Could not load existing data from {output_path}: {e}")
@@ -1122,9 +1130,17 @@ class NPSDataCollector:
         df = df[df["park_code"].notna() & (df["park_code"] != "")]
 
         def join_unique(series):
-            return " / ".join(
-                sorted(set(x for x in series if pd.notnull(x) and str(x).strip() != ""))
-            )
+            # Split any already-combined values and flatten the list
+            all_values = []
+            for x in series:
+                if pd.notnull(x) and str(x).strip() != "":
+                    # Split by " / " to handle already-combined values
+                    values = str(x).split(" / ")
+                    all_values.extend([v.strip() for v in values if v.strip()])
+            
+            # Remove duplicates and sort
+            unique_values = sorted(set(all_values))
+            return " / ".join(unique_values)
 
         agg_dict = {}
         for col in df.columns:
