@@ -509,6 +509,291 @@
           </coordinates>
         </Point>
       </Placemark>
+      <Placemark>
+        <name>Norumbega Mountain Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -68.2918368,44.3091437,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>badl</name>
+      <Placemark>
+        <name>Cliff Shelf Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -101.9308683,43.7504658,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Door Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -101.9266703,43.7635635,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Window Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -101.9279627,43.7601821,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Notch Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -101.9282035,43.7600599,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Fossil Exhibit National Recreation Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -102.003218,43.7722494,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>wica</name>
+      <Placemark>
+        <name>Rankin Ridge Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.4857814,43.6228166,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>thro</name>
+      <Placemark>
+        <name>Boicourt Overlook Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.4042993,46.9582575,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Buck Hill Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.389422,46.9265702,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Wind Canyon Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.4853037,46.988627,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Skyline Vista Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.5318297,46.9344559,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Little Mo Nature Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.3339316,47.5947496,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Caprock Coulee Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -103.3559014,47.6098876,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>romo</name>
+      <Placemark>
+        <name>Bear Lake Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.6460112,40.3119922,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Nymph Lake</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.6516084,40.3102019,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Dream Lake-Lake Haiyaha Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.661355,40.30925,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Emerald Lake</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.6668425,40.3097375,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lake Haiyaha Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.6594895,40.30337,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Sprague Lake Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.6048642,40.3205073,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Bierstadt Lake Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.623891,40.3206103,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Deer Mountain Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.6098293,40.3869848,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mills Lake</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.6416192,40.289387,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mills-Black Lake Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.6420046,40.2912699,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>The Loch Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.6556282,40.2938085,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Tundra Communities Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.7329176,40.412238,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Copeland Falls Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -105.5691618,40.2065847,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>blca</name>
+      <Placemark>
+        <name>Warner Point Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -107.7420174,38.5624978,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cedar Point Nature Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -107.7206064,38.5764051,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Oak Flat Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -107.6869049,38.5550732,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Chasm View Nature Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -107.7089591,38.5848502,0
+          </coordinates>
+        </Point>
+      </Placemark>
     </Folder>
   </Document>
 </kml>
