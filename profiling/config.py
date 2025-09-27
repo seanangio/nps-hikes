@@ -99,7 +99,7 @@ PROFILING_MODULES = {
         "dependencies": ["gmaps_hiking_locations"],
         "output_prefix": "trail_matching",
     },
-    "usgs_elevation": {
+    "usgs_elevation_stats": {
         "enabled": True,
         "description": "USGS elevation data analysis and quality metrics",
         "queries": [
@@ -112,6 +112,13 @@ PROFILING_MODULES = {
         ],
         "dependencies": ["trail_matching"],
         "output_prefix": "usgs_elevation",
+    },
+    "usgs_elevation_viz": {
+        "enabled": True,
+        "description": "USGS elevation visualization and matrix generation",
+        "queries": [],  # visualization is done in Python
+        "dependencies": ["usgs_elevation_stats"],
+        "output_prefix": "usgs_elevation_viz",
     },
 }
 

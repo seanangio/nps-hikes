@@ -278,44 +278,97 @@ class USGSTrailElevationProfiler:
                 raise
             return None
 
+    def get_parks_with_elevation_data(self):
+        """Get list of all parks that have elevation data."""
+        query = """
+            SELECT DISTINCT park_code 
+            FROM usgs_trail_elevations 
+            WHERE collection_status IN ('COMPLETE', 'PARTIAL')
+            ORDER BY park_code
+        """
+        
+        with self.engine.connect() as conn:
+            result = conn.execute(text(query))
+            parks = [row[0] for row in result.fetchall()]
+        
+        return parks
+
+    def run_all_parks_elevation_profiling(self):
+        """Generate elevation matrices for all parks with elevation data."""
+        self.logger.info("🔍 Finding parks with elevation data...")
+        
+        parks = self.get_parks_with_elevation_data()
+        self.logger.info(f"📊 Found {len(parks)} parks with elevation data: {', '.join(parks)}")
+        
+        if not parks:
+            self.logger.error("❌ No parks with elevation data found!")
+            return {"successful": 0, "failed": 0, "total": 0}
+        
+        self.logger.info(f"🎨 Generating elevation matrices for {len(parks)} parks...")
+        
+        successful = 0
+        failed = 0
+        
+        for i, park_code in enumerate(parks, 1):
+            self.logger.info(f"📋 Processing park {i}/{len(parks)}: {park_code}")
+            
+            try:
+                result = self.run_park_elevation_profiling(park_code)
+                
+                if result and result.get('matrix_path'):
+                    self.logger.success(f"✅ Successfully generated elevation matrix for {park_code}")
+                    self.logger.info(f"   📁 Saved to: {result['matrix_path']}")
+                    successful += 1
+                else:
+                    self.logger.warning(f"⚠️  No elevation data found for {park_code}")
+                    failed += 1
+                    
+            except Exception as e:
+                self.logger.error(f"❌ Failed to process {park_code}: {str(e)}")
+                failed += 1
+        
+        self.logger.success(f"🎉 Processing complete!")
+        self.logger.info(f"✅ Successful: {successful}")
+        self.logger.info(f"❌ Failed: {failed}")
+        self.logger.info(f"📁 Elevation matrices saved to: profiling_results/elevation_changes/")
+        
+        return {"successful": successful, "failed": failed, "total": len(parks)}
+
     def run_all(self, park_code: str = None):
         """Run all elevation profiling analyses."""
         if park_code:
             return self.run_park_elevation_profiling(park_code)
         else:
-            self.logger.error("Park code is required for elevation profiling")
-            return None
+            # If no park code provided, run for all parks
+            return self.run_all_parks_elevation_profiling()
 
 
 # Convenience function
-def run_usgs_trail_elevation_profiling(park_code: str):
-    """Convenience function to run USGS trail elevation profiling."""
+def run_usgs_elevation_viz():
+    """Convenience function to run USGS elevation visualization profiling."""
     profiler = USGSTrailElevationProfiler()
-    return profiler.run_park_elevation_profiling(park_code)
+    return profiler.run_all()
 
 
-def run_usgs_trail_elevation():
-    """Top-level function to run USGS trail elevation profiling."""
+if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Profile USGS trail elevation data")
-    parser.add_argument("park_code", help="Park code to profile")
+    parser = argparse.ArgumentParser(description="Profile USGS elevation visualization data")
+    parser.add_argument("park_code", nargs="?", help="Park code to profile (optional, defaults to all parks)")
 
     args = parser.parse_args()
 
     profiler = USGSTrailElevationProfiler()
-    result = profiler.run_park_elevation_profiling(args.park_code)
-
-    if result:
-        print(f"Elevation matrix created: {result['matrix_path']}")
-        if result["summary_data"] is not None:
-            print(f"Summary data:")
-            print(result["summary_data"].to_string(index=False))
+    
+    if args.park_code:
+        result = profiler.run_park_elevation_profiling(args.park_code)
+        if result:
+            print(f"Elevation matrix created: {result['matrix_path']}")
+            if result["summary_data"] is not None:
+                print(f"Summary data:")
+                print(result["summary_data"].to_string(index=False))
+        else:
+            print("No elevation data found for this park")
     else:
-        print("No elevation data found for this park")
-
-    return result
-
-
-if __name__ == "__main__":
-    run_usgs_trail_elevation()
+        result = profiler.run_all_parks_elevation_profiling()
+        print(f"Batch processing complete: {result['successful']} successful, {result['failed']} failed")
