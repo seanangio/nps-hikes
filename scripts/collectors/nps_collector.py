@@ -57,6 +57,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 # Local application imports
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
@@ -380,10 +381,14 @@ class NPSDataCollector:
                 # Identify parks that still need processing
                 if not existing_data.empty and "park_name" in existing_data.columns:
                     # Check if existing data has been deduplicated (has combined park names)
-                    has_combined_names = existing_data["park_name"].str.contains(" / ").any()
-                    
+                    has_combined_names = (
+                        existing_data["park_name"].str.contains(" / ").any()
+                    )
+
                     if has_combined_names:
-                        logger.info("Found existing data with deduplicated park names. Processing all parks to ensure consistency.")
+                        logger.info(
+                            "Found existing data with deduplicated park names. Processing all parks to ensure consistency."
+                        )
                         parks_to_process = parks_df.copy()
                     else:
                         # Original logic for non-deduplicated data
@@ -1137,7 +1142,7 @@ class NPSDataCollector:
                     # Split by " / " to handle already-combined values
                     values = str(x).split(" / ")
                     all_values.extend([v.strip() for v in values if v.strip()])
-            
+
             # Remove duplicates and sort
             unique_values = sorted(set(all_values))
             return " / ".join(unique_values)

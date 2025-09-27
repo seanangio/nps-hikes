@@ -18,62 +18,70 @@ This will:
 import logging
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from sqlalchemy import text
 
+
 def setup_logging():
     """Set up logging for the reset process."""
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler('logs/database_reset.log', mode='a')
-        ]
+            logging.FileHandler("logs/database_reset.log", mode="a"),
+        ],
     )
     return logging.getLogger(__name__)
+
 
 def main():
     """Main function to reset the database."""
     logger = setup_logging()
-    
+
     try:
         logger.info("Starting database reset process...")
-        
+
         # Create database engine and writer
         engine = get_postgres_engine()
         writer = DatabaseWriter(engine, logger)
-        
+
         logger.info("Step 1: Dropping all existing tables and sequences...")
         writer.drop_all_tables()
-        
+
         logger.info("Step 2: Creating all tables with new standardized schema...")
         writer._create_all_tables()
-        
+
         logger.info("✅ Database reset completed successfully!")
         logger.info("All tables have been recreated with the new standardized schema.")
-        
+
         # Verify tables were created
         with engine.begin() as conn:
-            result = conn.execute(text("""
+            result = conn.execute(
+                text(
+                    """
                 SELECT tablename FROM pg_tables 
                 WHERE schemaname = 'public' 
                 ORDER BY tablename
-            """))
+            """
+                )
+            )
             tables = [row[0] for row in result]
-            
+
             logger.info(f"Created tables: {', '.join(tables)}")
-            
+
             if len(tables) == 7:
                 logger.info("✅ All expected tables were created successfully!")
             else:
                 logger.warning(f"⚠️  Expected 7 tables, but found {len(tables)}")
-        
+
     except Exception as e:
         logger.error(f"❌ Database reset failed: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

@@ -22,6 +22,7 @@ import argparse
 # Add project root to path for imports
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
@@ -35,7 +36,7 @@ class USGSElevationCollector:
     def __init__(self, write_db: bool = True, logger=None):
         """
         Initialize the collector.
-        
+
         Args:
             write_db (bool): Whether to write results to the database (default: True)
             logger: Logger instance for operation tracking
@@ -193,7 +194,6 @@ class USGSElevationCollector:
 
         return elevation_data, collection_status
 
-
     def collect_park_elevation_data(
         self, park_code: str, force_refresh: bool = False
     ) -> Dict:
@@ -237,7 +237,7 @@ class USGSElevationCollector:
         if not force_refresh and self.write_db:
             # Ensure table exists before querying (consistent with other collectors)
             self.db_writer.ensure_table_exists("usgs_trail_elevations")
-            
+
             existing_query = f"""
                 SELECT gmaps_location_id FROM usgs_trail_elevations 
                 WHERE park_code = '{park_code}'
@@ -502,7 +502,6 @@ Examples:
     try:
         # Initialize collector
         collector = USGSElevationCollector(write_db=args.write_db, logger=logger)
-
 
         # Collect elevation data for all parks
         results = collector.collect_all_parks_elevation_data(

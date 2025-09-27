@@ -65,7 +65,10 @@ class DataCollectionOrchestrator:
         self.start_time = time.time()
 
     def run_full_pipeline(
-        self, test_limit: Optional[int] = None, write_db: bool = False, dry_run: bool = False
+        self,
+        test_limit: Optional[int] = None,
+        write_db: bool = False,
+        dry_run: bool = False,
     ) -> bool:
         """
         Run the complete data collection pipeline.
@@ -79,7 +82,9 @@ class DataCollectionOrchestrator:
             bool: True if pipeline completed successfully, False otherwise
         """
         self.logger.info("🚀 Starting NPS Hikes Data Collection Pipeline")
-        self.logger.info(f"Configuration: test_limit={test_limit}, write_db={write_db}, dry_run={dry_run}")
+        self.logger.info(
+            f"Configuration: test_limit={test_limit}, write_db={write_db}, dry_run={dry_run}"
+        )
 
         # Pre-flight checks
         if not dry_run and not self._pre_flight_checks(write_db):
@@ -88,27 +93,45 @@ class DataCollectionOrchestrator:
         # Define pipeline steps with dependencies and test-limit support
         steps = [
             ("NPS Data Collection", "scripts/collectors/nps_collector.py", True),
-            ("OSM Trails Collection", "scripts/collectors/osm_hikes_collector.py", True),
-            ("TNM Trails Collection", "scripts/collectors/tnm_hikes_collector.py", True),
+            (
+                "OSM Trails Collection",
+                "scripts/collectors/osm_hikes_collector.py",
+                True,
+            ),
+            (
+                "TNM Trails Collection",
+                "scripts/collectors/tnm_hikes_collector.py",
+                True,
+            ),
             ("GMaps Import", "scripts/collectors/gmaps_hiking_importer.py", False),
-            ("Trail Matching", "scripts/processors/trail_matcher.py", False),  # Process all GMaps locations
-            ("Elevation Collection", "scripts/collectors/usgs_elevation_collector.py", True),
+            (
+                "Trail Matching",
+                "scripts/processors/trail_matcher.py",
+                False,
+            ),  # Process all GMaps locations
+            (
+                "Elevation Collection",
+                "scripts/collectors/usgs_elevation_collector.py",
+                True,
+            ),
         ]
 
         # Execute steps sequentially
         total_steps = len(steps)
         for i, (step_name, script_path, supports_test_limit) in enumerate(steps, 1):
             self.logger.info(f"📋 Step {i}/{total_steps}: {step_name}")
-            
+
             # Only pass test_limit to scripts that support it
             effective_test_limit = test_limit if supports_test_limit else None
-            
-            if not self._run_step(step_name, script_path, effective_test_limit, write_db, dry_run):
+
+            if not self._run_step(
+                step_name, script_path, effective_test_limit, write_db, dry_run
+            ):
                 self._log_failure_summary(step_name, i, total_steps)
                 return False
-                
+
             self.logger.info(f"✅ Completed: {step_name}")
-            
+
             # Brief pause between steps to be respectful to systems
             if not dry_run and i < total_steps:
                 time.sleep(2)
@@ -137,13 +160,16 @@ class DataCollectionOrchestrator:
         if write_db:
             try:
                 from sqlalchemy import text
+
                 engine = get_postgres_engine()
                 with engine.connect() as conn:
                     conn.execute(text("SELECT 1"))
                 self.logger.info("✅ Database connectivity verified")
             except Exception as e:
                 self.logger.error(f"❌ Database connectivity check failed: {str(e)}")
-                self.logger.error("Please verify database configuration and connectivity")
+                self.logger.error(
+                    "Please verify database configuration and connectivity"
+                )
                 return False
 
         # Check that log directory exists
@@ -178,7 +204,7 @@ class DataCollectionOrchestrator:
         """
         # Build command
         cmd = ["python", script_path]
-        
+
         # Add common arguments
         if test_limit:
             cmd.extend(["--test-limit", str(test_limit)])
@@ -196,16 +222,22 @@ class DataCollectionOrchestrator:
         # Execute the command
         try:
             self.logger.info(f"⚙️  Executing: {step_name}")
-            
+
             # Use longer timeout for elevation collection
-            timeout = config.ORCHESTRATOR_ELEVATION_TIMEOUT if "Elevation Collection" in step_name else config.ORCHESTRATOR_STEP_TIMEOUT
-            
+            timeout = (
+                config.ORCHESTRATOR_ELEVATION_TIMEOUT
+                if "Elevation Collection" in step_name
+                else config.ORCHESTRATOR_STEP_TIMEOUT
+            )
+
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                cwd=os.path.join(os.path.dirname(__file__), ".."),  # Run from project root
+                cwd=os.path.join(
+                    os.path.dirname(__file__), ".."
+                ),  # Run from project root
             )
 
             if result.returncode == 0:
@@ -215,7 +247,9 @@ class DataCollectionOrchestrator:
                     self.logger.debug(f"Output from {step_name}:\n{result.stdout}")
                 return True
             else:
-                self.logger.error(f"❌ {step_name} failed with exit code: {result.returncode}")
+                self.logger.error(
+                    f"❌ {step_name} failed with exit code: {result.returncode}"
+                )
                 if result.stderr.strip():
                     self.logger.error(f"Error output:\n{result.stderr}")
                 if result.stdout.strip():
@@ -223,10 +257,12 @@ class DataCollectionOrchestrator:
                 return False
 
         except subprocess.TimeoutExpired:
-            timeout_used = config.ORCHESTRATOR_ELEVATION_TIMEOUT if "Elevation Collection" in step_name else config.ORCHESTRATOR_STEP_TIMEOUT
-            self.logger.error(
-                f"❌ {step_name} timed out after {timeout_used} seconds"
+            timeout_used = (
+                config.ORCHESTRATOR_ELEVATION_TIMEOUT
+                if "Elevation Collection" in step_name
+                else config.ORCHESTRATOR_STEP_TIMEOUT
             )
+            self.logger.error(f"❌ {step_name} timed out after {timeout_used} seconds")
             return False
         except Exception as e:
             self.logger.error(f"❌ {step_name} failed with exception: {str(e)}")
@@ -244,7 +280,9 @@ class DataCollectionOrchestrator:
         self.logger.info(f"⏱️  Total runtime: {elapsed_str}")
         self.logger.info("📋 All data collection and processing steps finished")
 
-    def _log_failure_summary(self, failed_step: str, failed_at: int, total_steps: int) -> None:
+    def _log_failure_summary(
+        self, failed_step: str, failed_at: int, total_steps: int
+    ) -> None:
         """Log pipeline failure summary."""
         elapsed = time.time() - self.start_time
         elapsed_str = f"{elapsed:.1f} seconds"
@@ -255,7 +293,9 @@ class DataCollectionOrchestrator:
         self.logger.error(f"❌ Failed at step {failed_at}/{total_steps}: {failed_step}")
         self.logger.error(f"⏱️  Runtime before failure: {elapsed_str}")
         self.logger.error("🔧 Check the logs above for detailed error information")
-        self.logger.error("💡 You can use scripts/database/reset_database.py to start fresh")
+        self.logger.error(
+            "💡 You can use scripts/database/reset_database.py to start fresh"
+        )
 
 
 def main() -> int:

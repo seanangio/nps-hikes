@@ -47,6 +47,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 # Local application imports
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config

@@ -51,6 +51,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 # Local application imports
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
@@ -242,70 +243,83 @@ class TNMHikesCollector:
     def _map_api_columns_to_db_columns(self, gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         """
         Map TNM API column names to database column names.
-        
+
         Args:
             gdf: GeoDataFrame with API column names
-            
+
         Returns:
             GeoDataFrame with database column names
         """
         # Column mapping from API names to database names
         column_mapping = {
-            'permanentidentifier': 'permanent_identifier',
-            'objectid': 'object_id', 
-            'namealternate': 'name_alternate',
-            'trailnumber': 'trail_number',
-            'trailnumberalternate': 'trail_number_alternate',
-            'sourcefeatureid': 'source_feature_id',
-            'sourcedatasetid': 'source_dataset_id',
-            'sourceoriginator': 'source_originator',
-            'loaddate': 'load_date',
-            'trailtype': 'trail_type',
-            'hikerpedestrian': 'hiker_pedestrian',
-            'packsaddle': 'pack_saddle',
-            'ohvover50inches': 'ohv_over_50_inches',
-            'crosscountryski': 'cross_country_ski',
-            'nonmotorizedwatercraft': 'non_motorized_watercraft',
-            'motorizedwatercraft': 'motorized_watercraft',
-            'primarytrailmaintainer': 'primary_trail_maintainer',
-            'nationaltraildesignation': 'national_trail_designation',
-            'lengthmiles': 'length_miles',
-            'networklength': 'network_length',
-            'shape_Length': 'shape_length',
-            'sourcedatadecscription': 'source_data_description',
-            'globalid': 'global_id'
+            "permanentidentifier": "permanent_identifier",
+            "objectid": "object_id",
+            "namealternate": "name_alternate",
+            "trailnumber": "trail_number",
+            "trailnumberalternate": "trail_number_alternate",
+            "sourcefeatureid": "source_feature_id",
+            "sourcedatasetid": "source_dataset_id",
+            "sourceoriginator": "source_originator",
+            "loaddate": "load_date",
+            "trailtype": "trail_type",
+            "hikerpedestrian": "hiker_pedestrian",
+            "packsaddle": "pack_saddle",
+            "ohvover50inches": "ohv_over_50_inches",
+            "crosscountryski": "cross_country_ski",
+            "nonmotorizedwatercraft": "non_motorized_watercraft",
+            "motorizedwatercraft": "motorized_watercraft",
+            "primarytrailmaintainer": "primary_trail_maintainer",
+            "nationaltraildesignation": "national_trail_designation",
+            "lengthmiles": "length_miles",
+            "networklength": "network_length",
+            "shape_Length": "shape_length",
+            "sourcedatadecscription": "source_data_description",
+            "globalid": "global_id",
         }
-        
+
         # Rename columns that exist in the dataframe
         existing_columns = [col for col in column_mapping.keys() if col in gdf.columns]
         if existing_columns:
             rename_dict = {col: column_mapping[col] for col in existing_columns}
             gdf = gdf.rename(columns=rename_dict)
-            self.logger.debug(f"Mapped TNM columns: {list(rename_dict.keys())} -> {list(rename_dict.values())}")
-        
+            self.logger.debug(
+                f"Mapped TNM columns: {list(rename_dict.keys())} -> {list(rename_dict.values())}"
+            )
+
         # Add required metadata columns for database
         if not gdf.empty:
             gdf["collected_at"] = self.timestamp
             gdf["geometry_type"] = gdf.geometry.type
-            
+
             # Map boolean-like fields from "Yes"/"No" to "Y"/"N" for VARCHAR(1) columns
             boolean_fields = [
-                'hiker_pedestrian', 'bicycle', 'pack_saddle', 'atv', 'motorcycle',
-                'ohv_over_50_inches', 'snowshoe', 'cross_country_ski', 'dogsled',
-                'snowmobile', 'non_motorized_watercraft', 'motorized_watercraft'
+                "hiker_pedestrian",
+                "bicycle",
+                "pack_saddle",
+                "atv",
+                "motorcycle",
+                "ohv_over_50_inches",
+                "snowshoe",
+                "cross_country_ski",
+                "dogsled",
+                "snowmobile",
+                "non_motorized_watercraft",
+                "motorized_watercraft",
             ]
-            
+
             for field in boolean_fields:
                 if field in gdf.columns:
-                    gdf[field] = gdf[field].replace({
-                        'Yes': 'Y',
-                        'No': 'N',
-                        'yes': 'Y',
-                        'no': 'N',
-                        'YES': 'Y',
-                        'NO': 'N'
-                    })
-        
+                    gdf[field] = gdf[field].replace(
+                        {
+                            "Yes": "Y",
+                            "No": "N",
+                            "yes": "Y",
+                            "no": "N",
+                            "YES": "Y",
+                            "NO": "N",
+                        }
+                    )
+
         return gdf
 
     def filter_named_trails(
