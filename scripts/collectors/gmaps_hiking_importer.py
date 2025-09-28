@@ -33,13 +33,13 @@ from config.settings import config
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from sqlalchemy import text
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, config.LOG_LEVEL),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("logs/gmaps_importer.log"), logging.StreamHandler()],
+# Configure logging using centralized utility
+from utils.logging import setup_logging
+logger = setup_logging(
+    log_level=config.LOG_LEVEL,
+    log_file=config.GMAPS_LOG_FILE,
+    logger_name="gmaps_importer"
 )
-logger = logging.getLogger("gmaps_importer")
 
 
 class GMapsHikingImporter:

@@ -93,16 +93,32 @@ def print_results_summary(df, title):
 
 
 class ProfilingLogger:
-    """Simple logging for profiling operations."""
+    """Hybrid logging for profiling operations - console output + proper logging."""
 
     def __init__(self, module_name):
         self.module_name = module_name
+        # Set up proper logging alongside console output
+        import logging
+        from utils.logging import setup_logging
+        self.logger = setup_logging(
+            log_file=f"logs/profiling_{module_name}.log",
+            logger_name=f"profiling_{module_name}"
+        )
 
     def info(self, message):
+        # Console output for user visibility
         print(f"[{self.module_name}] {message}")
+        # Proper logging for audit trail
+        self.logger.info(f"[{self.module_name}] {message}")
 
     def error(self, message):
+        # Console output for user visibility
         print(f"[{self.module_name}] ERROR: {message}")
+        # Proper logging for audit trail
+        self.logger.error(f"[{self.module_name}] ERROR: {message}")
 
     def success(self, message):
+        # Console output for user visibility
         print(f"[{self.module_name}] ✓ {message}")
+        # Proper logging for audit trail
+        self.logger.info(f"[{self.module_name}] ✓ {message}")

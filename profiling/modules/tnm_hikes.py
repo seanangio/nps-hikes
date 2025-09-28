@@ -640,8 +640,10 @@ def main():
     # Generate comprehensive report
     report = profiler.generate_comprehensive_report(park_codes)
 
-    # Print summary
+    # Print summary (hybrid approach: console + log)
     print("\n=== TNM Hikes Analysis Summary ===")
+    profiler.logger.info("=== TNM Hikes Analysis Summary ===")
+    
     if report["trail_statistics"]:
         summary = report["trail_statistics"]["summary"]
         print(f"Total Parks: {summary['total_parks']}")
@@ -649,6 +651,12 @@ def main():
         print(f"Total Length: {summary['total_length_miles']:.2f} miles")
         print(f"Average Trails per Park: {summary['avg_trails_per_park']:.1f}")
         print(f"Average Length per Trail: {summary['avg_length_per_trail']:.2f} miles")
+        
+        profiler.logger.info(f"Total Parks: {summary['total_parks']}")
+        profiler.logger.info(f"Total Trails: {summary['total_trails']}")
+        profiler.logger.info(f"Total Length: {summary['total_length_miles']:.2f} miles")
+        profiler.logger.info(f"Average Trails per Park: {summary['avg_trails_per_park']:.1f}")
+        profiler.logger.info(f"Average Length per Trail: {summary['avg_length_per_trail']:.2f} miles")
 
     if report["data_quality_metrics"]:
         quality = report["data_quality_metrics"]["overall_quality"]
@@ -656,6 +664,10 @@ def main():
         print(f"  Name Completeness: {quality['name_completeness']}%")
         print(f"  Length Completeness: {quality['length_completeness']}%")
         print(f"  Geometry Completeness: {quality['geometry_completeness']}%")
+        
+        profiler.logger.info(f"Data Quality - Name Completeness: {quality['name_completeness']}%")
+        profiler.logger.info(f"Data Quality - Length Completeness: {quality['length_completeness']}%")
+        profiler.logger.info(f"Data Quality - Geometry Completeness: {quality['geometry_completeness']}%")
 
     if report["osm_comparison"]:
         comparison = report["osm_comparison"]["summary"]
@@ -663,11 +675,16 @@ def main():
         print(f"  TNM Trails: {comparison['total_tnm_trails']}")
         print(f"  OSM Trails: {comparison['total_osm_trails']}")
         print(f"  Parks with Both: {comparison['parks_with_both']}")
+        
+        profiler.logger.info(f"OSM Comparison - TNM Trails: {comparison['total_tnm_trails']}")
+        profiler.logger.info(f"OSM Comparison - OSM Trails: {comparison['total_osm_trails']}")
+        profiler.logger.info(f"OSM Comparison - Parks with Both: {comparison['parks_with_both']}")
 
     # Export if requested
     if args.export:
         exported_files = profiler.export_analysis_results(args.output_dir, park_codes)
         print(f"\nExported {len(exported_files)} files to {args.output_dir}")
+        profiler.logger.info(f"Exported {len(exported_files)} files to {args.output_dir}")
 
 
 if __name__ == "__main__":

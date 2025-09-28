@@ -30,15 +30,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 def setup_logging():
     """Set up logging for the verification process."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler("logs/schema_verification.log", mode="a"),
-        ],
+    from utils.logging import setup_logging as setup_centralized_logging
+    return setup_centralized_logging(
+        log_level="INFO",
+        log_file="logs/schema_verification.log",
+        logger_name="schema_verification"
     )
-    return logging.getLogger(__name__)
 
 
 def verify_coordinate_precision(engine, logger) -> bool:

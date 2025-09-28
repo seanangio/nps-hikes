@@ -1177,6 +1177,7 @@ class NPSDataCollector:
             park_output_csv (str): Path where park data was saved
             boundary_output_gpkg (str): Path where boundary data was saved
         """
+        # User-friendly console output
         print("\n" + "=" * 60)
         print("COLLECTION SUMMARY")
         print("=" * 60)
@@ -1194,6 +1195,20 @@ class NPSDataCollector:
             print(f"  CRS: {boundary_data.crs}")
         else:
             print(f"Boundary data: No boundaries collected")
+
+        # Also log the summary for audit trail
+        logger.info("=" * 60)
+        logger.info("COLLECTION SUMMARY")
+        logger.info("=" * 60)
+        logger.info(f"Parks processed: {len(park_data)}")
+        logger.info(f"Park output saved to: {park_output_csv}")
+        if not boundary_data.empty:
+            logger.info(f"Boundaries processed: {len(boundary_data)}")
+            logger.info(f"Boundary output saved to: {boundary_output_gpkg}")
+            logger.info(f"CRS: {boundary_data.crs}")
+        else:
+            logger.info("No boundaries collected")
+        logger.info("=" * 60)
 
 
 def main():

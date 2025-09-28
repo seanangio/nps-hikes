@@ -27,15 +27,12 @@ from sqlalchemy import text
 
 def setup_logging():
     """Set up logging for the reset process."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler("logs/database_reset.log", mode="a"),
-        ],
+    from utils.logging import setup_logging as setup_centralized_logging
+    return setup_centralized_logging(
+        log_level="INFO",
+        log_file="logs/database_reset.log",
+        logger_name="database_reset"
     )
-    return logging.getLogger(__name__)
 
 
 def main():

@@ -265,8 +265,9 @@ if __name__ == "__main__":
     if args.verbose:
         # Set logging level to DEBUG for verbose output
         import logging
-
         logging.getLogger().setLevel(logging.DEBUG)
+        # Also update our orchestrator logger
+        orchestrator.logger.setLevel(logging.DEBUG)
 
     if args.modules:
         # Run specific modules

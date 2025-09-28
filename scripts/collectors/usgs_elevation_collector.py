@@ -257,12 +257,19 @@ class USGSElevationCollector:
         failed_count = 0
         partial_count = 0
         complete_count = 0
+        total_trails = len(trails_df)
+        
+        print(f"    📍 Processing {total_trails} trails in {park_code}...")
 
-        for _, trail in trails_df.iterrows():
+        for i, (_, trail) in enumerate(trails_df.iterrows(), 1):
             trail_id = trail["gmaps_location_id"]
             trail_name = trail["matched_trail_name"]
             trail_geometry = trail["matched_trail_geometry"]
             source = trail["source"]
+
+            # Show progress for individual trails (every 5th trail or last trail)
+            if i % 5 == 0 or i == total_trails:
+                print(f"      [{i:2d}/{total_trails}] Processing: {trail_name}")
 
             self.logger.info(f"Processing trail: {trail_name}")
 
@@ -429,7 +436,14 @@ class USGSElevationCollector:
         total_partial = 0
         total_failed = 0
 
+        print(f"\n🚀 Starting elevation data collection for {total_parks} parks...")
+        print("=" * 60)
+
         for i, park_code in enumerate(available_parks, 1):
+            # Progress indicator for user
+            progress_pct = (i / total_parks) * 100
+            print(f"[{i:3d}/{total_parks}] ({progress_pct:5.1f}%) Processing: {park_code}")
+            
             self.logger.info(f"Processing park {i}/{total_parks}: {park_code}")
 
             try:
@@ -438,7 +452,15 @@ class USGSElevationCollector:
                 total_complete += results["complete_count"]
                 total_partial += results["partial_count"]
                 total_failed += results["failed_count"]
+                
+                # Show progress summary
+                print(f"    ✓ Processed: {results['processed_count']} trails "
+                      f"(Complete: {results['complete_count']}, "
+                      f"Partial: {results['partial_count']}, "
+                      f"Failed: {results['failed_count']})")
+                      
             except Exception as e:
+                print(f"    ✗ Failed to process park {park_code}: {e}")
                 self.logger.error(f"Failed to process park {park_code}: {e}")
                 continue
 
@@ -508,7 +530,18 @@ Examples:
             test_limit=args.test_limit, force_refresh=args.force_refresh
         )
 
-        # Print summary
+        # Print summary (hybrid approach: console + log)
+        print("\n" + "=" * 60)
+        print("🎯 USGS ELEVATION DATA COLLECTION SUMMARY")
+        print("=" * 60)
+        print(f"Total Parks Processed: {results['total_parks']}")
+        print(f"Total Trails Processed: {results['total_processed']}")
+        print(f"Total Complete: {results['total_complete']}")
+        print(f"Total Partial: {results['total_partial']}")
+        print(f"Total Failed: {results['total_failed']}")
+        print("=" * 60)
+        
+        # Also log the summary for audit trail
         logger.info("=" * 60)
         logger.info("USGS ELEVATION DATA COLLECTION SUMMARY")
         logger.info("=" * 60)
