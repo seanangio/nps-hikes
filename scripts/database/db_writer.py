@@ -1006,7 +1006,7 @@ class DatabaseWriter:
             gdf (gpd.GeoDataFrame): Matched trail data to write with required columns:
                                    gmaps_location_id, park_code, location_name, latitude, longitude, created_at,
                                    matched_trail_name, source, name_similarity_score,
-                                   min_point_to_trail_distance_m, confidence_score, match_status,
+                                   min_point_to_trail_distance_m, confidence_score, matched,
                                    matched_trail_geometry
             mode (str): Write mode - 'replace' (default) or 'append'
             table_name (str): Target table name (default: 'gmaps_hiking_locations_matched')

@@ -214,7 +214,7 @@ class USGSElevationCollector:
             SELECT gmaps_location_id, matched_trail_name, matched_trail_geometry, source
             FROM gmaps_hiking_locations_matched
             WHERE park_code = '{park_code}' 
-            AND match_status = 'MATCHED'
+            AND matched = TRUE
             AND matched_trail_geometry IS NOT NULL
             ORDER BY matched_trail_name
         """
@@ -385,7 +385,7 @@ class USGSElevationCollector:
         query = """
             SELECT DISTINCT park_code 
             FROM gmaps_hiking_locations_matched 
-            WHERE match_status = 'MATCHED'
+            WHERE matched = TRUE
             ORDER BY park_code
         """
 

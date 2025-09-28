@@ -4,12 +4,12 @@
 SELECT 
     park_code,
     COUNT(*) as total_points,
-    COUNT(CASE WHEN match_status = 'MATCHED' THEN 1 END) as matched_points,
-    COUNT(CASE WHEN match_status = 'NO_MATCH' THEN 1 END) as unmatched_points,
+    COUNT(CASE WHEN matched = TRUE THEN 1 END) as matched_points,
+    COUNT(CASE WHEN matched = FALSE THEN 1 END) as unmatched_points,
     COUNT(CASE WHEN source = 'TNM' THEN 1 END) as tnm_matches,
     COUNT(CASE WHEN source = 'OSM' THEN 1 END) as osm_matches,
     ROUND(
-        (COUNT(CASE WHEN match_status = 'MATCHED' THEN 1 END)::float / COUNT(*) * 100)::numeric, 
+        (COUNT(CASE WHEN matched = TRUE THEN 1 END)::float / COUNT(*) * 100)::numeric, 
         1
     ) as match_rate_percent,
     ROUND(AVG(confidence_score)::numeric, 3) as avg_confidence_score,

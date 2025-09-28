@@ -348,7 +348,7 @@ class TrailMatcher:
                         "min_point_to_trail_distance_m"
                     ],
                     "confidence_score": best_match["confidence_score"],
-                    "match_status": "MATCHED",
+                    "matched": True,
                     "matched_trail_geometry": best_match["trail_geometry"],
                 }
 
@@ -371,7 +371,7 @@ class TrailMatcher:
                         "min_point_to_trail_distance_m"
                     ],
                     "confidence_score": best_match["confidence_score"],
-                    "match_status": "MATCHED",
+                    "matched": True,
                     "matched_trail_geometry": best_match["trail_geometry"],
                 }
 
@@ -385,7 +385,7 @@ class TrailMatcher:
             "name_similarity_score": None,
             "min_point_to_trail_distance_m": None,
             "confidence_score": None,
-            "match_status": "NO_MATCH",
+            "matched": False,
             "matched_trail_geometry": None,
         }
 
@@ -417,7 +417,7 @@ class TrailMatcher:
             "name_similarity_score",
             "min_point_to_trail_distance_m",
             "confidence_score",
-            "match_status",
+            "matched",
             "matched_trail_geometry",
         ]
         gdf = gdf[column_order]

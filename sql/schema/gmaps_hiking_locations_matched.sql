@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS gmaps_hiking_locations_matched (
     name_similarity_score DECIMAL(5, 4),
     min_point_to_trail_distance_m DECIMAL(10, 2),
     confidence_score DECIMAL(5, 4),
-    match_status VARCHAR(20),
+    matched BOOLEAN DEFAULT FALSE,
     matched_trail_geometry geometry(GEOMETRY, 4326),
 
     CONSTRAINT fk_gmaps_hiking_locations_matched_gmaps_location_id_gmaps_hiking_locations
@@ -37,7 +37,7 @@ CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_matched_geometry ON gmaps_
 CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_matched_park_code ON gmaps_hiking_locations_matched (park_code);
 CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_matched_gmaps_location_id ON gmaps_hiking_locations_matched (gmaps_location_id);
 CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_matched_confidence_score ON gmaps_hiking_locations_matched (confidence_score);
-CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_matched_match_status ON gmaps_hiking_locations_matched (match_status);
+CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_matched_matched ON gmaps_hiking_locations_matched (matched);
 
 -- Add table comments
 COMMENT ON TABLE gmaps_hiking_locations_matched IS 'Matched hiking locations with trail matching results';

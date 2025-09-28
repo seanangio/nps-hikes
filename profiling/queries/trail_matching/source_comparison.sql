@@ -13,6 +13,6 @@ SELECT
         1
     ) as high_confidence_percent
 FROM gmaps_hiking_locations_matched 
-WHERE match_status = 'MATCHED'
+WHERE matched = TRUE
 GROUP BY source
 ORDER BY source;

@@ -21,7 +21,7 @@ WITH distance_ranges AS (
         END as sort_order,
         confidence_score
     FROM gmaps_hiking_locations_matched 
-    WHERE match_status = 'MATCHED'
+    WHERE matched = TRUE
 )
 SELECT 
     distance_range,

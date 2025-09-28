@@ -8,5 +8,5 @@ SELECT
     longitude,
     'No matching trail found within 100m' as potential_reason
 FROM gmaps_hiking_locations_matched 
-WHERE match_status = 'NO_MATCH'
+WHERE matched = FALSE
 ORDER BY park_code, location_name;
