@@ -98,13 +98,15 @@ class OSMHikesCollector:
             ValueError: If invalid log_level is provided
         """
         self.logger: logging.Logger = setup_osm_collector_logging(log_level)
-        
+
         # Configure OSMnx cache directory
-        osmnx_cache_dir = os.path.join(os.path.dirname(__file__), "..", "..", "cache", "osmnx")
+        osmnx_cache_dir = os.path.join(
+            os.path.dirname(__file__), "..", "..", "cache", "osmnx"
+        )
         os.makedirs(osmnx_cache_dir, exist_ok=True)
         ox.settings.cache_folder = osmnx_cache_dir
         self.logger.info(f"OSMnx cache directory set to: {osmnx_cache_dir}")
-        
+
         self.output_gpkg: str = output_gpkg
         self.rate_limit: float = rate_limit
         self.parks: Optional[List[str]] = parks
