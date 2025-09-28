@@ -28,7 +28,7 @@ SELECT
     COUNT(*) as total_records,
     ROUND((COUNT(park_code) * 100.0 / COUNT(*))::numeric, 1) || '%' as park_code_complete,
     ROUND((COUNT(name) * 100.0 / COUNT(*))::numeric, 1) || '%' as name_complete,
-    ROUND((COUNT(length_mi) * 100.0 / COUNT(*))::numeric, 1) || '%' as length_complete,
+    ROUND((COUNT(length_miles) * 100.0 / COUNT(*))::numeric, 1) || '%' as length_complete,
     ROUND((COUNT(highway) * 100.0 / COUNT(*))::numeric, 1) || '%' as highway_complete
 
 ORDER BY table_name;

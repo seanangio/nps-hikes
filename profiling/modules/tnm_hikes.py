@@ -416,9 +416,9 @@ class TNMHikesProfiler:
             COUNT(DISTINCT t.permanentidentifier) as tnm_trail_count,
             COUNT(DISTINCT o.osm_id) as osm_trail_count,
             COALESCE(SUM(t.lengthmiles), 0) as tnm_total_length,
-            COALESCE(SUM(o.length_mi), 0) as osm_total_length,
+            COALESCE(SUM(o.length_miles), 0) as osm_total_length,
             COALESCE(AVG(t.lengthmiles), 0) as tnm_avg_length,
-            COALESCE(AVG(o.length_mi), 0) as osm_avg_length
+            COALESCE(AVG(o.length_miles), 0) as osm_avg_length
         FROM tnm_hikes t
         FULL OUTER JOIN osm_hikes o ON t.park_code = o.park_code
         {park_filter}

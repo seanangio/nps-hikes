@@ -244,9 +244,9 @@ class OSMHikesCollector:
             )
 
         # Remove trails with unrealistic lengths (< 0.01 miles or > 50 miles)
-        if "length_mi" in trails.columns:
-            reasonable_length = (trails["length_mi"] >= 0.01) & (
-                trails["length_mi"] <= 50.0
+        if "length_miles" in trails.columns:
+            reasonable_length = (trails["length_miles"] >= 0.01) & (
+                trails["length_miles"] <= 50.0
             )
             trails = trails[reasonable_length]
             if not reasonable_length.all():
@@ -295,7 +295,7 @@ class OSMHikesCollector:
 
         Returns:
             gpd.GeoDataFrame: Processed trail data with standardized columns including:
-                             osm_id, park_code, highway, name, source, length_mi,
+                             osm_id, park_code, highway, name, source, length_miles,
                              geometry_type, geometry, and timestamp. Returns empty
                              GeoDataFrame if no valid trails found after processing.
 
@@ -320,7 +320,7 @@ class OSMHikesCollector:
 
         # Compute length in miles
         trails_proj = trails.to_crs(config.OSM_LENGTH_CRS)
-        trails["length_mi"] = trails_proj.geometry.length / 1609.34
+        trails["length_miles"] = trails_proj.geometry.length / 1609.34
 
         # Add park_code
         trails["park_code"] = park_code
@@ -337,7 +337,7 @@ class OSMHikesCollector:
                 "highway",
                 "name",
                 "source",
-                "length_mi",
+                "length_miles",
                 "geometry_type",
                 "geometry",
             ]
@@ -435,7 +435,7 @@ class OSMHikesCollector:
 
                             # Only keep trails that meet minimum length requirement
                             if length_miles >= 0.01:  # OSM minimum length
-                                trail_copy["length_mi"] = length_miles
+                                trail_copy["length_miles"] = length_miles
                                 clipped_trails.append(trail_copy)
                                 total_clipped_length += length_miles
 

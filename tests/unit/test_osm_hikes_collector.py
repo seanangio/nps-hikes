@@ -25,7 +25,7 @@ def sample_trails_gdf():
         "highway": ["path", "footway", "path", "path", "footway"],
         "name": ["Trail A", "Trail B", "", "Trail D", "Trail E"],
         "source": ["GPS", None, "survey", "GPS", None],
-        "length_mi": [1.5, 0.8, 0.005, 25.0, 2.3],  # Includes edge cases
+        "length_miles": [1.5, 0.8, 0.005, 25.0, 2.3],  # Includes edge cases
         "geometry_type": [
             "LineString",
             "LineString",
@@ -56,7 +56,7 @@ def sample_invalid_trails_gdf():
         "highway": ["path", "footway", "path", "path"],
         "name": ["Valid Trail", "Another Valid", "Short Trail", "Duplicate ID"],
         "source": [None, None, None, None],
-        "length_mi": [1.5, 0.008, 100.0, 2.0],  # Too short and too long
+        "length_miles": [1.5, 0.008, 100.0, 2.0],  # Too short and too long
         "geometry_type": ["LineString", "LineString", "LineString", "LineString"],
         "park_code": ["test", "test", "test", "test"],
         "timestamp": ["2024-01-01T00:00:00Z"] * 4,
@@ -130,7 +130,7 @@ class TestOSMHikesCollector:
         result = mock_collector.validate_trails(sample_invalid_trails_gdf, "test")
 
         # Should remove trails that are too short (<0.01 mi) or too long (>50 mi)
-        assert all(0.01 <= length <= 50.0 for length in result["length_mi"])
+        assert all(0.01 <= length <= 50.0 for length in result["length_miles"])
 
     def test_validate_trails_removes_duplicates(
         self, mock_collector, sample_invalid_trails_gdf
@@ -257,7 +257,7 @@ class TestDataValidation:
             "highway": ["path"] * 4,
             "name": ["Trail"] * 4,
             "source": [None] * 4,
-            "length_mi": [
+            "length_miles": [
                 0.009,
                 0.01,
                 50.0,
@@ -274,7 +274,7 @@ class TestDataValidation:
 
         # Should keep only the middle two (0.01 and 50.0)
         assert len(result) == 2
-        assert set(result["length_mi"]) == {0.01, 50.0}
+        assert set(result["length_miles"]) == {0.01, 50.0}
 
     def test_geometry_validation_types(self, mock_collector):
         """Test that validation works with different geometry types."""
@@ -283,7 +283,7 @@ class TestDataValidation:
             "highway": ["path"] * 3,
             "name": ["Trail"] * 3,
             "source": [None] * 3,
-            "length_mi": [1.0] * 3,  # All valid lengths
+            "length_miles": [1.0] * 3,  # All valid lengths
             "geometry_type": ["LineString"] * 3,
             "park_code": ["test"] * 3,
             "timestamp": ["2024-01-01T00:00:00Z"] * 3,
@@ -359,9 +359,9 @@ class TestIntegration:
         assert len(result) == 1
         assert result.iloc[0]["park_code"] == "test"
         assert result.iloc[0]["osm_id"] == 12345
-        assert "length_mi" in result.columns
+        assert "length_miles" in result.columns
         assert (
-            result.iloc[0]["length_mi"] >= 0.01
+            result.iloc[0]["length_miles"] >= 0.01
         )  # Should meet minimum length requirement
 
 

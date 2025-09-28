@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS tnm_hikes (
     motorized_watercraft VARCHAR(1),
     primary_trail_maintainer VARCHAR(100),
     national_trail_designation VARCHAR(500),
-    length_miles DOUBLE PRECISION,
+    length_miles DECIMAL(8,3),
     network_length DOUBLE PRECISION,
     shape_length DOUBLE PRECISION,
     source_data_description VARCHAR(500),
@@ -39,7 +39,10 @@ CREATE TABLE IF NOT EXISTS tnm_hikes (
     geometry geometry(GEOMETRY, 4326) NOT NULL,
     
     CONSTRAINT fk_tnm_hikes_park_code_parks 
-        FOREIGN KEY (park_code) REFERENCES parks(park_code)
+        FOREIGN KEY (park_code) REFERENCES parks(park_code),
+    
+    -- Length validation constraint
+    CONSTRAINT chk_tnm_length CHECK (length_miles > 0 AND length_miles < 1000)
 );
 
 -- Create spatial index for geometry queries
@@ -75,6 +78,6 @@ COMMENT ON COLUMN tnm_hikes.park_code IS '4-character lowercase park identifier,
 COMMENT ON COLUMN tnm_hikes.trail_type IS 'Type of trail (Terra Trail, etc.)';
 COMMENT ON COLUMN tnm_hikes.hiker_pedestrian IS 'Allows hiking/pedestrian use (Y/N)';
 COMMENT ON COLUMN tnm_hikes.bicycle IS 'Allows bicycle use (Y/N)';
-COMMENT ON COLUMN tnm_hikes.length_miles IS 'Trail length in miles from TNM data';
+COMMENT ON COLUMN tnm_hikes.length_miles IS 'Trail length in miles with 3 decimal places precision (0.001 mile = ~5 feet)';
 COMMENT ON COLUMN tnm_hikes.primary_trail_maintainer IS 'Organization responsible for trail maintenance';
 COMMENT ON COLUMN tnm_hikes.geometry IS 'Trail geometry in WGS84 (EPSG:4326)';

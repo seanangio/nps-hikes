@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS gmaps_hiking_locations_matched (
     gmaps_location_id INTEGER PRIMARY KEY,
     park_code VARCHAR(4) NOT NULL CHECK (park_code ~ '^[a-z]{4}$'),
     location_name VARCHAR(500) NOT NULL,
-    latitude DECIMAL(15, 12),
-    longitude DECIMAL(16, 12),
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     matched_trail_name VARCHAR(500),
     source VARCHAR(10),
@@ -21,7 +21,15 @@ CREATE TABLE IF NOT EXISTS gmaps_hiking_locations_matched (
     CONSTRAINT fk_gmaps_hiking_locations_matched_gmaps_location_id_gmaps_hiking_locations
         FOREIGN KEY (gmaps_location_id) REFERENCES gmaps_hiking_locations(id),
     CONSTRAINT fk_gmaps_hiking_locations_matched_park_code_parks
-        FOREIGN KEY (park_code) REFERENCES parks(park_code)
+        FOREIGN KEY (park_code) REFERENCES parks(park_code),
+    
+    -- Coordinate validation constraints
+    CONSTRAINT chk_matched_latitude CHECK (latitude BETWEEN -90 AND 90),
+    CONSTRAINT chk_matched_longitude CHECK (longitude BETWEEN -180 AND 180),
+    
+    -- Score validation constraints
+    CONSTRAINT chk_confidence_score CHECK (confidence_score BETWEEN 0 AND 1),
+    CONSTRAINT chk_similarity_score CHECK (name_similarity_score BETWEEN 0 AND 1)
 );
 
 -- Create performance indexes
@@ -36,4 +44,6 @@ COMMENT ON TABLE gmaps_hiking_locations_matched IS 'Matched hiking locations wit
 COMMENT ON COLUMN gmaps_hiking_locations_matched.gmaps_location_id IS 'Primary key referencing original location in gmaps_hiking_locations (1:1 relationship)';
 COMMENT ON COLUMN gmaps_hiking_locations_matched.confidence_score IS 'Confidence score for trail match (0.0 to 1.0)';
 COMMENT ON COLUMN gmaps_hiking_locations_matched.min_point_to_trail_distance_m IS 'Distance in meters between location and matched trail';
+COMMENT ON COLUMN gmaps_hiking_locations_matched.latitude IS 'Latitude coordinate with 8 decimal places precision (~1 meter accuracy)';
+COMMENT ON COLUMN gmaps_hiking_locations_matched.longitude IS 'Longitude coordinate with 8 decimal places precision (~1 meter accuracy)';
 COMMENT ON COLUMN gmaps_hiking_locations_matched.source IS 'Source of matched trail data (osm or tnm)';

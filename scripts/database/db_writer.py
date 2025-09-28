@@ -830,7 +830,7 @@ class DatabaseWriter:
         Args:
             gdf (gpd.GeoDataFrame): Trail data to write with required columns:
                                    osm_id, park_code, highway, name, source,
-                                   length_mi, geometry_type, geometry, timestamp
+                                   length_miles, geometry_type, geometry, timestamp
             mode (str): Write mode - 'append' (default) or 'upsert'
             table_name (str): Target table name (default: 'osm_hikes')
 

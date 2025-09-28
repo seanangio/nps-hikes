@@ -90,7 +90,7 @@ class VisualizationProfiler:
 
         # Get OSM trails for this park - use f-string instead of params
         osm_query = f"""
-        SELECT name, length_mi, geometry
+        SELECT name, length_miles, geometry
         FROM osm_hikes 
         WHERE park_code = '{park_code}'
         """
@@ -98,7 +98,7 @@ class VisualizationProfiler:
 
         # Get TNM trails for this park - use f-string instead of params
         tnm_query = f"""
-        SELECT name, lengthmiles as length_mi, geometry
+        SELECT name, lengthmiles as length_miles, geometry
         FROM tnm_hikes 
         WHERE park_code = '{park_code}'
         """
@@ -163,8 +163,8 @@ class VisualizationProfiler:
         osm_count = len(osm_trails)
         tnm_count = len(tnm_trails)
         gmaps_count = len(gmaps_locations)
-        osm_length = osm_trails["length_mi"].sum() if not osm_trails.empty else 0
-        tnm_length = tnm_trails["length_mi"].sum() if not tnm_trails.empty else 0
+        osm_length = osm_trails["length_miles"].sum() if not osm_trails.empty else 0
+        tnm_length = tnm_trails["length_miles"].sum() if not tnm_trails.empty else 0
 
         # Plot OSM trails with blue color and reduced opacity for better overlap visibility
         if not osm_trails.empty:
@@ -349,14 +349,14 @@ class VisualizationProfiler:
 
             # Get all OSM trails
             osm_query = """
-            SELECT park_code, name, length_mi, geometry
+            SELECT park_code, name, length_miles, geometry
             FROM osm_hikes
             """
             osm_trails = gpd.read_postgis(osm_query, engine, geom_col="geometry")
 
             # Get all TNM trails
             tnm_query = """
-            SELECT park_code, name, lengthmiles as length_mi, geometry
+            SELECT park_code, name, lengthmiles as length_miles, geometry
             FROM tnm_hikes
             """
             tnm_trails = gpd.read_postgis(tnm_query, engine, geom_col="geometry")
@@ -393,7 +393,7 @@ class VisualizationProfiler:
             # Get OSM trails for these parks
             park_codes = "', '".join(parks_df["park_code"].tolist())
             osm_query = f"""
-            SELECT park_code, name, length_mi, geometry
+            SELECT park_code, name, length_miles, geometry
             FROM osm_hikes
             WHERE park_code IN ('{park_codes}')
             LIMIT 50
@@ -402,7 +402,7 @@ class VisualizationProfiler:
 
             # Get TNM trails for these parks
             tnm_query = f"""
-            SELECT park_code, name, lengthmiles as length_mi, geometry
+            SELECT park_code, name, lengthmiles as length_miles, geometry
             FROM tnm_hikes
             WHERE park_code IN ('{park_codes}')
             LIMIT 50
@@ -495,7 +495,7 @@ class VisualizationProfiler:
                     popup=folium.Popup(
                         f"<b>OSM Trail</b><br>"
                         f"Name: {trail['name'] or 'Unnamed'}<br>"
-                        f"Length: {trail['length_mi']:.2f} mi<br>"
+                        f"Length: {trail['length_miles']:.2f} mi<br>"
                         f"Park: {trail['park_code'].upper()}"
                     ),
                 ).add_to(osm_trails_fg)
@@ -520,7 +520,7 @@ class VisualizationProfiler:
                     popup=folium.Popup(
                         f"<b>TNM Trail</b><br>"
                         f"Name: {trail['name'] or 'Unnamed'}<br>"
-                        f"Length: {trail['length_mi']:.2f} mi<br>"
+                        f"Length: {trail['length_miles']:.2f} mi<br>"
                         f"Park: {trail['park_code'].upper()}"
                     ),
                 ).add_to(tnm_trails_fg)

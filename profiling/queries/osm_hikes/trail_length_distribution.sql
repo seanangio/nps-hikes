@@ -4,26 +4,26 @@
 WITH length_stats AS (
     SELECT 
         COUNT(*) as total_trails,
-        ROUND(AVG(length_mi)::numeric, 3) as avg_length,
-        ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY length_mi)::numeric, 3) as q1_length,
-        ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY length_mi)::numeric, 3) as median_length,
-        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY length_mi)::numeric, 3) as q3_length,
-        ROUND(MAX(length_mi)::numeric, 3) as max_length
+        ROUND(AVG(length_miles)::numeric, 3) as avg_length,
+        ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY length_miles)::numeric, 3) as q1_length,
+        ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY length_miles)::numeric, 3) as median_length,
+        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY length_miles)::numeric, 3) as q3_length,
+        ROUND(MAX(length_miles)::numeric, 3) as max_length
     FROM osm_hikes 
-    WHERE length_mi IS NOT NULL
+    WHERE length_miles IS NOT NULL
 ),
 length_buckets AS (
     SELECT 
         CASE 
-            WHEN length_mi < 0.5 THEN 'Under 0.5 mi'
-            WHEN length_mi < 1.0 THEN '0.5 - 1.0 mi'
-            WHEN length_mi < 2.0 THEN '1.0 - 2.0 mi'  
-            WHEN length_mi < 5.0 THEN '2.0 - 5.0 mi'
+            WHEN length_miles < 0.5 THEN 'Under 0.5 mi'
+            WHEN length_miles < 1.0 THEN '0.5 - 1.0 mi'
+            WHEN length_miles < 2.0 THEN '1.0 - 2.0 mi'  
+            WHEN length_miles < 5.0 THEN '2.0 - 5.0 mi'
             ELSE 'Over 5.0 mi'
         END as length_bucket,
         COUNT(*) as trail_count
     FROM osm_hikes
-    WHERE length_mi IS NOT NULL
+    WHERE length_miles IS NOT NULL
     GROUP BY 1
 )
 SELECT 'Length Statistics' as analysis_type, 

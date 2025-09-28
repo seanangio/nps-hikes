@@ -75,7 +75,7 @@ class Config:
         "highway",
         "geometry",
         "geometry_type",
-        "length_mi",
+        "length_miles",
     ]
     OSM_ALL_COLUMNS: list = [
         "osm_id",
@@ -83,7 +83,7 @@ class Config:
         "highway",
         "name",
         "source",
-        "length_mi",
+        "length_miles",
         "geometry_type",
         "geometry",
     ]
