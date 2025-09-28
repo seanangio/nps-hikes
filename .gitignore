@@ -5,7 +5,7 @@ artifacts/*
 profiling_results/*
 scratch*
 
-# osmnx cache
+# OSMnx and USGS elevation cache
 cache/
 
 # logs
