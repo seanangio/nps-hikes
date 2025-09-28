@@ -197,6 +197,34 @@ python -m profiling.orchestrator --help
 - Data freshness monitoring with staleness thresholds
 - Cross-table referential integrity validation
 
+### Profiling Results Organization
+
+Profiling outputs are organized in `profiling_results/` by module for easy navigation:
+
+```
+profiling_results/
+├── data_freshness/           # Collection status and completeness
+├── data_quality/            # Data consistency and validation checks
+├── gmaps_hiking_locations/  # Google Maps analysis and coverage
+├── nps_geography/           # Geographic boundary and coordinate analysis
+├── nps_parks/              # NPS parks collection and state counts
+├── osm_hikes/              # OpenStreetMap trail analysis
+├── tnm_hikes/              # The National Map hikes analysis
+├── trail_matching/         # Trail matching confidence and distance analysis
+├── usgs_elevation/         # USGS elevation data analysis
+│   ├── park_summaries/     # Park-specific elevation summaries
+│   └── park_stats/         # Park-specific elevation statistics
+└── visualizations/          # Maps and charts
+    ├── elevation_changes/   # Elevation change matrices (PNG)
+    ├── interactive_maps/    # Interactive trail maps (HTML)
+    └── static_maps/        # Static map visualizations (PNG)
+```
+
+**File Naming Convention:**
+- General analysis files use descriptive names (e.g., `collection_status_summary.csv`)
+- Park-specific files use park codes (e.g., `acad.csv` for Acadia National Park)
+- Statistical files include `_stats` suffix (e.g., `acad_stats.csv`)
+
 ## 🔧 Database Schema
 
 ### Core Tables
