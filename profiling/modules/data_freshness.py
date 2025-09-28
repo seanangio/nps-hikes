@@ -256,14 +256,14 @@ class DataFreshnessMonitor:
         print(f"Fresh threshold: {self.fresh_threshold.days} days")
         print(f"Warning threshold: {self.warning_threshold.days} days")
         print()
-        
+
         # Also log the report header for audit trail
-        self.logger.info("=" * 80)
-        self.logger.info("DATA FRESHNESS MONITORING REPORT")
-        self.logger.info("=" * 80)
-        self.logger.info(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        self.logger.info(f"Fresh threshold: {self.fresh_threshold.days} days")
-        self.logger.info(f"Warning threshold: {self.warning_threshold.days} days")
+        print("=" * 80)
+        print("DATA FRESHNESS MONITORING REPORT")
+        print("=" * 80)
+        print(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Fresh threshold: {self.fresh_threshold.days} days")
+        print(f"Warning threshold: {self.warning_threshold.days} days")
 
         # Get summary
         summary = self.get_freshness_summary()
@@ -339,10 +339,9 @@ def run_data_freshness() -> Dict[str, Any]:
         summary = monitor.get_freshness_summary()
         monitor.print_freshness_report()
         return summary
-        except Exception as e:
-            print(f"Error running data freshness monitoring: {e}")
-            self.logger.error(f"Error running data freshness monitoring: {e}")
-            raise
+    except Exception as e:
+        print(f"Error running data freshness monitoring: {e}")
+        raise
 
 
 def run_data_freshness_monitoring() -> None:
@@ -354,10 +353,9 @@ def run_data_freshness_monitoring() -> None:
     try:
         monitor = DataFreshnessMonitor()
         monitor.print_freshness_report()
-        except Exception as e:
-            print(f"Error running data freshness monitoring: {e}")
-            self.logger.error(f"Error running data freshness monitoring: {e}")
-            raise
+    except Exception as e:
+        print(f"Error running data freshness monitoring: {e}")
+        raise
 
 
 if __name__ == "__main__":
