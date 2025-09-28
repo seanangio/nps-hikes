@@ -100,9 +100,10 @@ class ProfilingLogger:
         # Set up proper logging alongside console output
         import logging
         from utils.logging import setup_logging
+
         self.logger = setup_logging(
             log_file=f"logs/profiling_{module_name}.log",
-            logger_name=f"profiling_{module_name}"
+            logger_name=f"profiling_{module_name}",
         )
 
     def info(self, message):

@@ -28,10 +28,11 @@ from sqlalchemy import text
 def setup_logging():
     """Set up logging for the reset process."""
     from utils.logging import setup_logging as setup_centralized_logging
+
     return setup_centralized_logging(
         log_level="INFO",
         log_file="logs/database_reset.log",
-        logger_name="database_reset"
+        logger_name="database_reset",
     )
 
 
@@ -62,6 +63,10 @@ def main():
                     """
                 SELECT tablename FROM pg_tables 
                 WHERE schemaname = 'public' 
+                AND tablename NOT IN (
+                    'spatial_ref_sys', 'geometry_columns', 'geography_columns',
+                    'raster_columns', 'raster_overviews'
+                )
                 ORDER BY tablename
             """
                 )

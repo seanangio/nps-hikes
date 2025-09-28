@@ -31,10 +31,11 @@ from sqlalchemy.exc import SQLAlchemyError
 def setup_logging():
     """Set up logging for the verification process."""
     from utils.logging import setup_logging as setup_centralized_logging
+
     return setup_centralized_logging(
         log_level="INFO",
         log_file="logs/schema_verification.log",
-        logger_name="schema_verification"
+        logger_name="schema_verification",
     )
 
 
@@ -249,8 +250,18 @@ def verify_table_structure(engine, logger) -> bool:
         inspector = inspect(engine)
         existing_tables = inspector.get_table_names()
 
+        # Filter out PostGIS system tables
+        postgis_system_tables = {
+            "spatial_ref_sys",
+            "geometry_columns",
+            "geography_columns",
+            "raster_columns",
+            "raster_overviews",
+        }
+        user_tables = [t for t in existing_tables if t not in postgis_system_tables]
+
         for table_name in expected_tables:
-            if table_name in existing_tables:
+            if table_name in user_tables:
                 logger.info(f"✅ Table {table_name} - Found")
             else:
                 logger.error(f"❌ Table {table_name} - Missing")

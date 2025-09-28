@@ -35,10 +35,11 @@ from sqlalchemy import text
 
 # Configure logging using centralized utility
 from utils.logging import setup_logging
+
 logger = setup_logging(
     log_level=config.LOG_LEVEL,
     log_file=config.GMAPS_LOG_FILE,
-    logger_name="gmaps_importer"
+    logger_name="gmaps_importer",
 )
 
 
