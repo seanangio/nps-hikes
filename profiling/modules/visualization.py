@@ -1,7 +1,7 @@
 """
 Enhanced visualization profiling module.
 
-This module creates both static and interactive visualizations of collected data
+This module creates static visualizations of collected data
 to validate spatial coverage and data quality.
 """
 
@@ -24,7 +24,6 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from sqlalchemy import text
-import folium
 from shapely.geometry import Point, box
 from shapely import wkb
 
@@ -37,13 +36,9 @@ class VisualizationProfiler:
         self.logger = ProfilingLogger("visualization")
         self.results = {}
 
-        # Create output directories with better organization
+        # Create output directories
         self.static_dir = f"{PROFILING_SETTINGS['output_directory']}/static_maps"
-        self.interactive_dir = (
-            f"{PROFILING_SETTINGS['output_directory']}/interactive_maps"
-        )
         os.makedirs(self.static_dir, exist_ok=True)
-        os.makedirs(self.interactive_dir, exist_ok=True)
 
     def run_individual_park_maps(self):
         """Create static maps for each individual park."""
@@ -330,225 +325,10 @@ class VisualizationProfiler:
                 return True
         return False
 
-    def run_interactive_map(self):
-        """Create one comprehensive interactive map with all parks and trails."""
-        try:
-            self.logger.info("Creating comprehensive interactive map...")
-
-            engine = get_db_connection()
-
-            # Get all parks with boundaries
-            parks_query = """
-            SELECT p.park_code, p.park_name, p.latitude, p.longitude,
-                   b.geometry as boundary_geom
-            FROM parks p
-            JOIN park_boundaries b ON p.park_code = b.park_code
-            WHERE b.geometry IS NOT NULL AND p.latitude IS NOT NULL
-            """
-            parks_df = pd.read_sql(parks_query, engine)
-
-            # Get all OSM trails
-            osm_query = """
-            SELECT park_code, name, length_miles, geometry
-            FROM osm_hikes
-            """
-            osm_trails = gpd.read_postgis(osm_query, engine, geom_col="geometry")
-
-            # Get all TNM trails
-            tnm_query = """
-            SELECT park_code, name, lengthmiles as length_miles, geometry
-            FROM tnm_hikes
-            """
-            tnm_trails = gpd.read_postgis(tnm_query, engine, geom_col="geometry")
-
-            # Create the interactive map
-            self._create_interactive_map(parks_df, osm_trails, tnm_trails)
-
-            self.logger.success("Interactive map created successfully")
-            self.results["interactive_map"] = True
-
-        except Exception as e:
-            self.logger.error(f"Failed to create interactive map: {e}")
-            if not PROFILING_SETTINGS["continue_on_error"]:
-                raise
-
-    def run_test_interactive_map(self):
-        """Create a test interactive map with just a few parks to verify functionality."""
-        try:
-            self.logger.info("Creating test interactive map...")
-
-            engine = get_db_connection()
-
-            # Get just a few parks for testing
-            parks_query = """
-            SELECT p.park_code, p.park_name, p.latitude, p.longitude,
-                   b.geometry as boundary_geom
-            FROM parks p
-            JOIN park_boundaries b ON p.park_code = b.park_code
-            WHERE b.geometry IS NOT NULL AND p.latitude IS NOT NULL
-            LIMIT 5
-            """
-            parks_df = pd.read_sql(parks_query, engine)
-
-            # Get OSM trails for these parks
-            park_codes = "', '".join(parks_df["park_code"].tolist())
-            osm_query = f"""
-            SELECT park_code, name, length_miles, geometry
-            FROM osm_hikes
-            WHERE park_code IN ('{park_codes}')
-            LIMIT 50
-            """
-            osm_trails = gpd.read_postgis(osm_query, engine, geom_col="geometry")
-
-            # Get TNM trails for these parks
-            tnm_query = f"""
-            SELECT park_code, name, lengthmiles as length_miles, geometry
-            FROM tnm_hikes
-            WHERE park_code IN ('{park_codes}')
-            LIMIT 50
-            """
-            tnm_trails = gpd.read_postgis(tnm_query, engine, geom_col="geometry")
-
-            # Create the test interactive map
-            self._create_interactive_map(parks_df, osm_trails, tnm_trails, is_test=True)
-
-            self.logger.success("Test interactive map created successfully")
-            self.results["test_interactive_map"] = True
-
-        except Exception as e:
-            self.logger.error(f"Failed to create test interactive map: {e}")
-            if not PROFILING_SETTINGS["continue_on_error"]:
-                raise
-
-    def _create_interactive_map(self, parks_df, osm_trails, tnm_trails, is_test=False):
-        """Create the comprehensive interactive map."""
-        # Calculate center point for map initialization
-        center_lat = parks_df["latitude"].mean()
-        center_lon = parks_df["longitude"].mean()
-
-        self.logger.info(
-            f"Creating interactive map centered at: {center_lat:.4f}, {center_lon:.4f}"
-        )
-        self.logger.info(
-            f"Found {len(parks_df)} parks, {len(osm_trails)} OSM trails, {len(tnm_trails)} TNM trails"
-        )
-
-        # Create base map with better tile layer
-        zoom_level = 8 if is_test else 6  # Higher zoom for test map
-        m = folium.Map(
-            location=[center_lat, center_lon],
-            zoom_start=zoom_level,  # Increased zoom level to make trails more visible
-            tiles="CartoDB positron",  # Better background for trail visibility
-        )
-
-        # Add layer control
-        folium.LayerControl().add_to(m)
-
-        # Create feature groups for different layers
-        park_boundaries_fg = folium.FeatureGroup(name="Park Boundaries", show=True)
-        osm_trails_fg = folium.FeatureGroup(name="OSM Trails", show=True)
-        tnm_trails_fg = folium.FeatureGroup(name="TNM Trails", show=True)
-
-        # Add park boundaries with better styling
-        boundary_count = 0
-        for _, park in parks_df.iterrows():
-            if park["boundary_geom"]:
-                try:
-                    # Convert WKB string to Shapely geometry
-                    boundary_geom = wkb.loads(park["boundary_geom"], hex=True)
-                    boundary_data = [{"geometry": boundary_geom}]
-                    boundary_gdf = gpd.GeoDataFrame(boundary_data, crs="EPSG:4326")
-
-                    folium.GeoJson(
-                        boundary_gdf,
-                        name=f"{park['park_name']} Boundary",
-                        style_function=lambda x: {
-                            "fillColor": "#e8f5e8",
-                            "color": "#2d5016",
-                            "weight": 1.5,
-                            "fillOpacity": 0.3,
-                        },
-                        popup=folium.Popup(
-                            f"<b>{park['park_name']}</b><br>Code: {park['park_code'].upper()}"
-                        ),
-                    ).add_to(park_boundaries_fg)
-                    boundary_count += 1
-                except Exception as e:
-                    self.logger.debug(
-                        f"Could not add boundary for {park['park_code']}: {e}"
-                    )
-
-        # Add OSM trails with better styling
-        osm_count = 0
-        for _, trail in osm_trails.iterrows():
-            try:
-                trail_data = [{"geometry": trail["geometry"]}]
-                trail_gdf = gpd.GeoDataFrame(trail_data, crs="EPSG:4326")
-
-                folium.GeoJson(
-                    trail_gdf,
-                    style_function=lambda x: {
-                        "color": "#007bff",
-                        "weight": 1.5,
-                        "opacity": 0.7,
-                    },
-                    popup=folium.Popup(
-                        f"<b>OSM Trail</b><br>"
-                        f"Name: {trail['name'] or 'Unnamed'}<br>"
-                        f"Length: {trail['length_miles']:.2f} mi<br>"
-                        f"Park: {trail['park_code'].upper()}"
-                    ),
-                ).add_to(osm_trails_fg)
-                osm_count += 1
-            except Exception as e:
-                self.logger.debug(f"Could not add OSM trail: {e}")
-
-        # Add TNM trails with better styling
-        tnm_count = 0
-        for _, trail in tnm_trails.iterrows():
-            try:
-                trail_data = [{"geometry": trail["geometry"]}]
-                trail_gdf = gpd.GeoDataFrame(trail_data, crs="EPSG:4326")
-
-                folium.GeoJson(
-                    trail_gdf,
-                    style_function=lambda x: {
-                        "color": "#fd7e14",
-                        "weight": 1.5,
-                        "opacity": 0.7,
-                    },
-                    popup=folium.Popup(
-                        f"<b>TNM Trail</b><br>"
-                        f"Name: {trail['name'] or 'Unnamed'}<br>"
-                        f"Length: {trail['length_miles']:.2f} mi<br>"
-                        f"Park: {trail['park_code'].upper()}"
-                    ),
-                ).add_to(tnm_trails_fg)
-                tnm_count += 1
-            except Exception as e:
-                self.logger.debug(f"Could not add TNM trail: {e}")
-
-        self.logger.info(
-            f"Added {boundary_count} boundaries, {osm_count} OSM trails, {tnm_count} TNM trails to map"
-        )
-
-        # Add all feature groups to map
-        park_boundaries_fg.add_to(m)
-        osm_trails_fg.add_to(m)
-        tnm_trails_fg.add_to(m)
-
-        # Save the map
-        suffix = "_test" if is_test else ""
-        output_path = f"{self.interactive_dir}/trails_map{suffix}.html"
-        m.save(output_path)
-
-        self.logger.info(f"Interactive map saved to: {output_path}")
 
     def run_all(self):
         """Run all visualization methods."""
         self.run_individual_park_maps()
-        self.run_interactive_map()
-        self.run_test_interactive_map()  # Add test map for debugging
         return self.results
 
 

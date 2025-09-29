@@ -37,7 +37,7 @@ This project enables researchers, park enthusiasts, and data analysts to:
 - **PostgreSQL/PostGIS**: Production-ready spatial database with proper indexing
 - **GeoPackage**: Portable spatial data format for desktop GIS applications
 - **CSV/JSON**: Standard formats for data interchange and analysis
-- **Interactive Maps**: HTML visualizations using Folium
+- **Static Maps**: PNG visualizations for data validation
 
 ## 📊 Project Structure
 
@@ -216,7 +216,6 @@ profiling_results/
 │   └── park_stats/         # Park-specific elevation statistics
 └── visualizations/          # Maps and charts
     ├── elevation_changes/   # Elevation change matrices (PNG)
-    ├── interactive_maps/    # Interactive trail maps (HTML)
     └── static_maps/        # Static map visualizations (PNG)
 ```
 
@@ -259,21 +258,20 @@ trails = gpd.read_postgis(
 summary = trails.groupby('park_code')['length_mi'].sum()
 ```
 
-### Create Interactive Maps
+### Create Static Maps
 ```python
-import folium
-from profiling.modules.visualization import create_park_map
+from profiling.modules.visualization import VisualizationProfiler
 
-# Create interactive map with park boundaries and trails
-map_obj = create_park_map(parks, trails)
-map_obj.save('park_trails_map.html')
+# Create static maps for all parks
+profiler = VisualizationProfiler()
+profiler.run_all()
 ```
 
 ## 🙏 Acknowledgments
 
 - **National Park Service** for providing comprehensive park data via their API
 - **OpenStreetMap community** for maintaining detailed trail information
-- **Python geospatial ecosystem**: GeoPandas, Shapely, OSMnx, Folium, and PostGIS
+- **Python geospatial ecosystem**: GeoPandas, Shapely, OSMnx, and PostGIS
 
 ## 📞 Support
 
