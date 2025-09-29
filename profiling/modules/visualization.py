@@ -325,7 +325,6 @@ class VisualizationProfiler:
                 return True
         return False
 
-
     def run_all(self):
         """Run all visualization methods."""
         self.run_individual_park_maps()
