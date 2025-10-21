@@ -5,6 +5,10 @@ artifacts/*
 profiling_results/*
 scratch*
 
+# MCP configuration files
+cursor-mcp-config.json
+start_pgmcp.sh
+
 # OSMnx and USGS elevation cache
 cache/
 
