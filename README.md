@@ -52,9 +52,10 @@ nps-hikes/
 │   │   └── gmaps_hiking_importer.py   # Google Maps hiking locations
 │   ├── processors/            # Data processing and analysis
 │   │   └── trail_matcher.py           # Trail matching and correlation
-│   └── database/              # Database management utilities
-│       ├── db_writer.py               # Unified database operations
-│       └── reset_database.py          # Database reset utilities
+│   ├── database/              # Database management utilities
+│   │   ├── db_writer.py               # Unified database operations
+│   │   └── reset_database.py          # Database reset utilities
+│   └── orchestrator.py        # Complete pipeline orchestration
 ├── config/                    # Configuration and settings
 ├── profiling/                 # Data quality analysis modules
 │   ├── modules/               # Individual profiling modules
@@ -63,6 +64,7 @@ nps-hikes/
 │   ├── unit/                  # Unit tests with mocking
 │   └── integration/           # Integration tests
 ├── utils/                     # Logging and utility functions
+├── cursor-mcp-config.json    # MCP PostgreSQL server configuration
 ```
 
 ## 🛠️ Installation
@@ -99,22 +101,37 @@ nps-hikes/
 
 ## 🎯 Quick Start
 
-### 1. Collect Park Data
+### Option 1: Complete Pipeline (Recommended)
 ```bash
-# Collect park metadata and boundaries
-python scripts/collectors/nps_collector.py --write-db
+# Run the entire data collection pipeline
+python scripts/orchestrator.py --write-db
 
-# Test with specific parks
-python scripts/collectors/nps_collector.py --parks YELL,GRCA --test-limit 2
+# Test with limited parks for development
+python scripts/orchestrator.py --test-limit 3 --write-db
+
+# Dry run to see execution plan
+python scripts/orchestrator.py --dry-run --write-db
 ```
 
-### 2. Extract Hiking Trails
+### Option 2: Individual Components
 ```bash
-# Collect trails for all parks
+# 1. Collect park metadata and boundaries
+python scripts/collectors/nps_collector.py --write-db
+
+# 2. Extract hiking trails from OpenStreetMap
 python scripts/collectors/osm_hikes_collector.py --write-db
 
-# Process specific parks with rate limiting
-python scripts/collectors/osm_hikes_collector.py --parks YELL,ZION --rate-limit 1.0
+# 3. Collect additional trails from The National Map
+python scripts/collectors/tnm_hikes_collector.py --write-db
+
+# 4. Import Google Maps hiking locations
+python scripts/collectors/gmaps_hiking_importer.py --write-db
+
+# 5. Match GMaps locations to trail linestrings
+python scripts/processors/trail_matcher.py --write-db
+
+# 6. Collect elevation data for matched trails
+python scripts/collectors/usgs_elevation_collector.py --write-db
 ```
 
 ### 3. Analyze Data Quality
@@ -125,6 +142,83 @@ python -m profiling.orchestrator
 # Profile specific modules
 python -m profiling.orchestrator nps_parks data_quality
 ```
+
+## 🔄 Pipeline Orchestration
+
+The project includes a comprehensive pipeline orchestrator (`scripts/orchestrator.py`) that executes the complete data collection workflow in the correct dependency order:
+
+### Pipeline Steps
+1. **NPS Data Collection** - Collect park metadata and boundaries (foundation)
+2. **OSM Trails Collection** - Collect hiking trails from OpenStreetMap
+3. **TNM Trails Collection** - Collect trails from The National Map
+4. **GMaps Import** - Import Google Maps hiking locations
+5. **Trail Matching** - Match GMaps locations to trail linestrings
+6. **Elevation Collection** - Collect elevation data for matched trails
+
+### Orchestrator Features
+- **Sequential execution** with dependency management
+- **Fail-fast error handling** with detailed logging
+- **Pre-flight checks** for database connectivity and file structure
+- **Dry run support** for testing execution plans
+- **Timeout protection** for long-running processes
+- **Progress tracking** with comprehensive logging
+
+### Usage Examples
+```bash
+# Full pipeline with database writes
+python scripts/orchestrator.py --write-db
+
+# Test mode with limited parks
+python scripts/orchestrator.py --test-limit 3 --write-db
+
+# Dry run to see execution plan
+python scripts/orchestrator.py --dry-run --write-db
+
+# Get help and see all options
+python scripts/orchestrator.py --help
+```
+
+## 🔧 Database Access with MCP Server
+
+The project includes an MCP (Model Context Protocol) PostgreSQL server configuration for enhanced database access and querying capabilities.
+
+### MCP Server Setup
+The MCP server is configured in `cursor-mcp-config.json` and provides:
+- **Read-only database access** with safety restrictions
+- **Data masking** for sensitive information
+- **Structured query capabilities** through the MCP interface
+- **Connection management** with proper environment variable handling
+
+### Configuration
+The MCP server configuration is stored in `cursor-mcp-config.json` and uses environment variables for sensitive credentials:
+
+```json
+{
+    "mcpServers": {
+        "postgresql": {
+            "command": "npx",
+            "args": ["mcp-postgresql-server"],
+            "env": {
+                "POSTGRES_HOST": "localhost",
+                "POSTGRES_PORT": "5432",
+                "POSTGRES_DB": "nps_hikes_db",
+                "POSTGRES_USER": "${POSTGRES_USER}",
+                "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD}",
+                "POSTGRES_QUERY_LEVEL": "readonly",
+                "POSTGRES_DATA_MASKING": "true"
+            }
+        }
+    }
+}
+```
+
+**Important**: Replace `${POSTGRES_USER}` and `${POSTGRES_PASSWORD}` with your actual database credentials or use environment variables.
+
+### Benefits
+- **Enhanced querying** through natural language interfaces
+- **Data exploration** with automatic schema understanding
+- **Safety features** including read-only access and data masking
+- **Integration** with development tools and AI assistants
 
 ## 📋 Configuration
 
@@ -227,15 +321,21 @@ profiling_results/
 ## 🔧 Database Schema
 
 ### Core Tables
-- **parks**: Park metadata (codes, names, coordinates, descriptions)
-- **park_boundaries**: Spatial boundaries as MultiPolygon geometries
-- **osm_hikes**: Trail geometries with attributes (name, length, type) from OpenStreetMap via OSMnx
+- **parks**: Park metadata (codes, names, coordinates, descriptions, visit dates)
+- **park_boundaries**: Spatial boundaries as MultiPolygon geometries in WGS84
+- **osm_hikes**: Trail geometries with attributes (name, length, type) from OpenStreetMap
+- **tnm_hikes**: Trail data from The National Map with detailed trail characteristics
+- **gmaps_hiking_locations**: Google Maps hiking location points with coordinates
+- **gmaps_hiking_locations_matched**: Matched locations with trail correlation results
+- **usgs_trail_elevations**: Elevation profile data for matched trails
 
 ### Key Features
-- Proper spatial indexing for performance
-- Foreign key relationships for data integrity
-- Composite primary keys for trail uniqueness
-- Support for both projected and geographic coordinate systems
+- **Spatial indexing** with PostGIS GIST indexes for performance
+- **Foreign key relationships** for data integrity across tables
+- **Composite primary keys** for trail uniqueness (park_code + osm_id)
+- **Coordinate validation** with proper range constraints
+- **Support for both projected and geographic coordinate systems**
+- **Comprehensive indexing** for common query patterns
 
 ## 📚 Example Usage
 
@@ -277,8 +377,8 @@ profiler.run_all()
 
 For questions, issues, or contributions:
 - Open an issue on GitHub
-- Check existing documentation in the `docs/` folder
 - Review the comprehensive test suite for usage examples
+- Check the project's configuration files and examples in the codebase
 
 ---
 
