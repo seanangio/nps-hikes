@@ -1,0 +1,143 @@
+# Cursor Rules for NPS Hikes Data Engineering Project
+
+## Code Quality & Standards
+- Always follow PEP 8 style guidelines for Python code
+- Use type hints for all function parameters and return values
+- Write comprehensive docstrings for all classes and functions using Google style
+- Prefer explicit imports over wildcard imports
+- Use meaningful variable names that describe their purpose
+- Keep functions focused on a single responsibility
+- Use snake_case for variables and functions, CamelCase for classes
+- Limit line length to 88 characters (Black standard)
+
+## Data Engineering Best Practices
+- Always validate data quality before processing (check for nulls, data types, ranges)
+- Use proper error handling with specific exception types
+- Implement retry logic for external API calls with exponential backoff
+- Log all data processing steps with appropriate log levels
+- Use database transactions for data consistency
+- Validate spatial data geometries before database operations
+- Handle missing data gracefully with appropriate defaults or error messages
+- Use data validation schemas for structured data processing
+
+## Configuration & Environment Management
+- Never hardcode API keys, database credentials, or file paths
+- Use the centralized config/settings.py for all configuration values
+- Validate required environment variables before starting operations
+- Use context-aware validation (API-only vs database operations)
+- Support both .env files and environment variables
+- Use the Config class for all configuration access
+- Implement proper configuration validation methods
+
+## Testing Standards
+- Write unit tests for all business logic with proper mocking
+- Use pytest fixtures for common test data and setup
+- Mock external dependencies (APIs, databases) in unit tests
+- Test both success and error scenarios
+- Aim for high test coverage on critical data processing functions
+- Use descriptive test names that explain the scenario being tested
+- Use the conftest.py fixtures for shared test setup
+- Test data validation and error handling paths
+
+## Logging & Monitoring
+- Use the centralized utils/logging.py for all logging setup
+- Log at appropriate levels: DEBUG for detailed info, INFO for progress, WARNING for issues, ERROR for failures
+- Include relevant context in log messages (park codes, record counts, etc.)
+- Use structured logging for data processing metrics
+- Set up log rotation to prevent disk space issues
+- Use specific logger names for different modules (nps_collector, osm_collector, etc.)
+
+## Database Operations
+- Use the DatabaseWriter class for all database write operations
+- Use GeoPandas read_postgis() for database read operations
+- Use the get_postgres_engine() function for database connections
+- Implement proper error handling for database operations
+- Use transactions for multi-step operations
+- Validate data before writing to database
+- Use appropriate indexes for spatial and non-spatial queries
+- Handle database connection failures gracefully
+- Use SQLAlchemy only through the DatabaseWriter class and get_postgres_engine()
+
+## Spatial Data Handling
+- Always validate geometries before processing
+- Use appropriate coordinate reference systems (CRS)
+- Handle both projected and geographic coordinate systems properly
+- Use GeoPandas for spatial operations
+- Validate spatial data quality (valid geometries, proper bounds)
+- Use PostGIS for spatial database operations
+- Use EPSG:4326 for geographic data, EPSG:5070 for length calculations
+- Validate coordinate ranges (latitude: -90 to 90, longitude: -180 to 180)
+
+## API Integration
+- Implement proper rate limiting for external APIs
+- Use appropriate timeouts for API requests
+- Handle API errors gracefully with retry logic
+- Respect API usage policies and limits
+- Log API response times and success rates
+- Use proper HTTP status code handling
+- Use the NPS API key from environment variables
+- Implement exponential backoff for retries
+
+## File Organization & Structure
+- Keep collectors in scripts/collectors/ directory
+- Keep database utilities in scripts/database/ directory
+- Keep profiling modules in profiling/modules/ directory
+- Use consistent naming conventions (snake_case for files, CamelCase for classes)
+- Group related functionality in modules
+- Keep configuration centralized in config/settings.py
+- Use __init__.py files to make directories Python packages
+- Keep test files in tests/ directory with unit/ and integration/ subdirectories
+
+## Documentation & Comments
+- Write clear docstrings explaining the purpose and usage of each module
+- Document complex algorithms and data transformations
+- Include examples in docstrings where helpful
+- Keep README.md updated with current functionality
+- Document any external dependencies or setup requirements
+- Comment complex business logic, especially spatial operations
+- Use module-level docstrings to explain the overall purpose
+- Document data processing pipelines and workflows
+
+## Error Handling Patterns
+- Use specific exception types rather than generic Exception
+- Implement proper error recovery strategies
+- Log errors with sufficient context for debugging
+- Use try-except blocks around external API calls
+- Handle network timeouts and connection errors
+- Validate input data before processing
+- Use appropriate error messages for different failure scenarios
+
+## Data Processing Pipeline Rules
+- Implement resumable operations for large data collection jobs
+- Use progress tracking for long-running operations
+- Validate data at each stage of the pipeline
+- Use appropriate data formats (CSV for metadata, GPKG for spatial data)
+- Implement data quality checks and validation
+- Use consistent naming conventions for output files
+- Handle partial failures gracefully
+
+## Performance Considerations
+- Use appropriate data structures for large datasets
+- Implement efficient spatial operations
+- Use database indexes for frequently queried columns
+- Implement proper memory management for large files
+- Use streaming processing for large datasets when possible
+- Monitor memory usage during data processing
+- Use appropriate batch sizes for database operations
+
+## Security & Privacy
+- Never commit API keys or credentials to version control
+- Use environment variables for sensitive configuration
+- Validate input data to prevent injection attacks
+- Use parameterized queries for database operations
+- Implement proper access controls for database operations
+- Log security-relevant events appropriately
+
+## Project-Specific Rules
+- Use the --write-db flag only for writing to database operations
+- Use --test-limit for specifying number of parks in testing
+- The nps_collector.py CLI does not support --verbose flag
+- Use 'tnm_' prefix for The National Map database tables
+- Activate Python virtual environment with "workon nps-hikes"
+- Use requirements.in and requirements.txt for dependency management
+- Use pip-tools for dependency compilation
