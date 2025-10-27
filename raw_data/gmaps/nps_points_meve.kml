@@ -168,5 +168,524 @@
         </Point>
       </Placemark>
     </Folder>
+    <Folder>
+      <name>grte</name>
+      <Placemark>
+        <name>Mormon Row</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.6645093,43.6654858,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Taggart Lake Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.7330708,43.6931375,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lakeshore Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.646506,43.905707,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Jenny Lake Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.7254574,43.7515375,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cascade Canyon Trail Trailhead (West Shore Boat Dock)</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.7441663,43.7672068,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Phelps Lake Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.7735603,43.6265775,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>String Lake Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.7278008,43.7848126,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hidden Falls Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.72815,43.78482,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Leigh Lake Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.7307501,43.7886821,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Oxbow Bend Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.5546307,43.8689666,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lunchtree Hill Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.5782331,43.8791711,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Grandview Point Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.5582891,43.8996805,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>yell</name>
+      <Placemark>
+        <name>South Rim Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.5019919,44.7080978,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>North Rim Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.5030597,44.7082598,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mammoth Hot Springs Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.7142001,44.9623595,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name><![CDATA[Artist's Paintpots Trailhead]]></name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.7410291,44.6963048,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Porcelain Basin</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.7146535,44.7513238,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Norris Back Basin</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.7058061,44.7225439,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Grand Prismatic Spring Overlook</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.8398895,44.5234756,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mystic Falls Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.8574509,44.4854541,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Observation Point Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.8275039,44.4622238,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Yellowstone River Picnic Area Trailhead 2K7</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.4004615,44.9167556,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>West Thumb Geyser Basin Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.5722143,44.4168548,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Yellowstone Lake Overlook Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -110.5747836,44.4154878,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>shen</name>
+      <Placemark>
+        <name>Fox Hollow Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -78.2036584,38.8718454,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Compton Peak Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -78.1704837,38.8235182,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Fort Windham Rocks Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -78.1704865,38.8239313,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Marys Rock Summit Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -78.321603,38.659147,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Stony Man Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -78.3755453,38.5931805,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hawksbill Loop Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -78.386965,38.5561582,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Blackrock Summit Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -78.7334061,38.2227546,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Dark Hollow Falls Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -78.4308882,38.5196277,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>grca</name>
+      <Placemark>
+        <name>South Rim Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -112.1273305,36.0582567,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>cany</name>
+      <Placemark>
+        <name>Mesa Arch Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.8679339,38.3891364,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>White Rim Overlook Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.8483534,38.3229769,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Grand View Point Overlook and Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.8565695,38.310774,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Upheaval Dome Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.926172,38.4262823,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>arch</name>
+      <Placemark>
+        <name>Balanced Rock Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.5659852,38.7017256,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Broken Arch Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.5867106,38.7744158,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Delicate Arch Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.5098746,38.7404238,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Double Arch Viewpoint and Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.5383759,38.688301,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Windows Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.5366001,38.6871554,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Landscape Arch Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.604426,38.7905242,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Skyline Arch Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.5909296,38.7720152,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Upper Delicate Arch Viewpoint Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -109.5008256,38.7342081,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>care</name>
+      <Placemark>
+        <name>Goosenecks Overlook</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -111.2979855,38.2988762,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Grand Wash Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -111.19248,38.27823,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Sunset Point Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -111.2959203,38.2979642,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Fremont River Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -111.2505736,38.2816711,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Capitol Gorge Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -111.1691677,38.2095757,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hickman Bridge, Rim Overlook and Navajo Knobs Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -111.2275737,38.2887298,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>brca</name>
+      <Placemark>
+        <name>Bristlecone Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -112.2396314,37.4752665,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Rim Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -112.1629855,37.6284001,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Queens Garden Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -112.1606402,37.6238046,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Navajo Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -112.1637707,37.6206402,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
   </Document>
 </kml>
