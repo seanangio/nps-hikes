@@ -88,7 +88,7 @@ class TestDatabaseWriterInit:
 
             assert writer.engine == mock_engine
             assert writer.logger == mock_default_logger
-            mock_get_logger.assert_called_once_with("db_writer")
+            mock_get_logger.assert_called_once_with("scripts.database.db_writer")
 
     def test_init_sets_up_schemas(self):
         """Test that initialization sets up NPS table schemas."""
@@ -656,8 +656,7 @@ class TestUtilityMethods:
         mock_logger.error.assert_called_once()
 
     @patch("scripts.database.db_writer.inspect")
-    @patch("scripts.database.db_writer.text")
-    def test_get_table_info_existing_table(self, mock_text, mock_inspect):
+    def test_get_table_info_existing_table(self, mock_inspect):
         """Test table info for existing table."""
         mock_engine = Mock(spec=Engine)
         mock_inspector = Mock()

@@ -58,17 +58,19 @@ class TestGMapsHikingImporter:
 
     def test_parse_kml_file_valid(self):
         """Test parsing valid KML file."""
-        # Create temporary KML file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".kml", delete=False) as f:
+        # Create temporary directory with KML file
+        temp_dir = tempfile.mkdtemp()
+        temp_kml_path = os.path.join(temp_dir, "test_parks.kml")
+
+        with open(temp_kml_path, "w") as f:
             f.write(self.sample_kml)
-            temp_kml_path = f.name
 
         try:
-            # Patch the file path
-            self.importer.kml_file_path = temp_kml_path
+            # Patch the directory path
+            self.importer.kml_directory = temp_dir
 
-            # Parse the KML
-            result = self.importer.parse_kml_file()
+            # Parse the KML directory
+            result = self.importer.parse_kml_directory()
 
             # Verify results
             assert len(result) == 2
@@ -90,13 +92,15 @@ class TestGMapsHikingImporter:
         finally:
             # Clean up
             os.unlink(temp_kml_path)
+            os.rmdir(temp_dir)
 
     def test_parse_kml_file_missing(self):
-        """Test parsing non-existent KML file."""
-        self.importer.kml_file_path = "nonexistent.kml"
+        """Test parsing non-existent KML directory."""
+        self.importer.kml_directory = "/nonexistent/directory"
 
-        with pytest.raises(FileNotFoundError):
-            self.importer.parse_kml_file()
+        # Should return empty dict when directory doesn't exist
+        result = self.importer.parse_kml_directory()
+        assert result == {}
 
     def test_validate_location_valid_coords(self):
         """Test validation of location with valid coordinates."""

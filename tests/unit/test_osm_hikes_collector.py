@@ -73,7 +73,7 @@ def sample_invalid_trails_gdf():
 @pytest.fixture
 def mock_collector():
     """Create a mock OSMHikesCollector for testing."""
-    with patch("osm_hikes_collector.get_postgres_engine"):
+    with patch("scripts.collectors.osm_hikes_collector.get_postgres_engine"):
         collector = OSMHikesCollector(
             output_gpkg="test.gpkg",
             rate_limit=0.1,
@@ -90,7 +90,7 @@ class TestOSMHikesCollector:
 
     def test_init_without_db(self):
         """Test collector initialization without database writing."""
-        with patch("osm_hikes_collector.get_postgres_engine"):
+        with patch("scripts.collectors.osm_hikes_collector.get_postgres_engine"):
             collector = OSMHikesCollector(
                 output_gpkg="test.gpkg",
                 rate_limit=1.0,
@@ -320,8 +320,8 @@ def setup_test_environment():
 class TestIntegration:
     """Integration tests for the full collector workflow."""
 
-    @patch("osm_hikes_collector.ox.features.features_from_polygon")
-    @patch("osm_hikes_collector.get_postgres_engine")
+    @patch("scripts.collectors.osm_hikes_collector.ox.features.features_from_polygon")
+    @patch("scripts.collectors.osm_hikes_collector.get_postgres_engine")
     def test_process_trails_full_workflow(self, mock_engine, mock_osm_query):
         """Test the complete trail processing workflow."""
         # Mock OSM query response with a longer trail to pass length validation

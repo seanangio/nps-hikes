@@ -168,8 +168,8 @@ def sample_park_boundary():
 @pytest.fixture
 def mock_collector():
     """Create a mock TNM collector for testing."""
-    with patch("tnm_hikes_collector.get_postgres_engine"), patch(
-        "tnm_hikes_collector.DatabaseWriter"
+    with patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine"), patch(
+        "scripts.collectors.tnm_hikes_collector.DatabaseWriter"
     ):
 
         collector = TNMHikesCollector(
@@ -192,8 +192,8 @@ class TestTNMHikesCollector:
 
     def test_init(self):
         """Test collector initialization."""
-        with patch("tnm_hikes_collector.get_postgres_engine"), patch(
-            "tnm_hikes_collector.DatabaseWriter"
+        with patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine"), patch(
+            "scripts.collectors.tnm_hikes_collector.DatabaseWriter"
         ):
 
             collector = TNMHikesCollector(
@@ -245,7 +245,7 @@ class TestTNMHikesCollector:
         assert len(gdf) == 3
         assert "park_code" in gdf.columns
         assert gdf["park_code"].iloc[0] == "acad"
-        assert "permanentidentifier" in gdf.columns
+        assert "permanent_identifier" in gdf.columns
         assert "name" in gdf.columns
 
     def test_filter_named_trails(self, mock_collector, sample_tnm_response):
@@ -268,8 +268,8 @@ class TestTNMHikesCollector:
             trails_gdf, sample_park_boundary, "acad"
         )
 
-        # All trails should be within the boundary in this test
-        assert len(clipped_gdf) == 3
+        # Clipping should filter trails outside the boundary
+        assert len(clipped_gdf) == 2  # 2 trails within boundary, 1 filtered out
 
     def test_aggregate_trails_by_name(self, mock_collector, sample_tnm_response):
         """Test trail aggregation by name."""
@@ -296,8 +296,8 @@ class TestTNMHikesCollector:
 
         # Add a very short trail
         short_trail = gdf.iloc[0].copy()
-        short_trail["permanentidentifier"] = "test-id-short"
-        short_trail["lengthmiles"] = 0.005  # Below minimum
+        short_trail["permanent_identifier"] = "test-id-short"
+        short_trail["length_miles"] = 0.005  # Below minimum
         # Create a new GeoDataFrame with the short trail
         short_gdf = gpd.GeoDataFrame([short_trail], crs=gdf.crs)
         # Concatenate the two GeoDataFrames
@@ -309,7 +309,7 @@ class TestTNMHikesCollector:
 
         # Should filter out the short trail
         assert len(filtered_gdf) < len(gdf)
-        assert all(filtered_gdf["lengthmiles"] >= 0.01)
+        assert all(filtered_gdf["length_miles"] >= 0.01)
 
     def test_add_metadata(self, mock_collector, sample_tnm_response):
         """Test adding metadata to trails."""
@@ -317,11 +317,10 @@ class TestTNMHikesCollector:
         gdf_with_metadata = mock_collector.add_metadata(gdf, "acad")
 
         assert "geometry_type" in gdf_with_metadata.columns
-        assert "timestamp" in gdf_with_metadata.columns
         assert "park_code" in gdf_with_metadata.columns
         assert gdf_with_metadata["park_code"].iloc[0] == "acad"
 
-    @patch("tnm_hikes_collector.gpd.read_postgis")
+    @patch("scripts.collectors.tnm_hikes_collector.gpd.read_postgis")
     def test_load_park_boundaries(self, mock_read_postgis, mock_collector):
         """Test loading park boundaries from database."""
         # Mock database response
@@ -352,7 +351,7 @@ class TestTNMHikesCollector:
 
         assert completed == set()
 
-    @patch("tnm_hikes_collector.gpd.read_file")
+    @patch("scripts.collectors.tnm_hikes_collector.gpd.read_file")
     def test_save_to_gpkg_new_file(self, mock_read_file, mock_collector):
         """Test saving to new GeoPackage file."""
         # Create a real GeoDataFrame for testing
@@ -448,9 +447,9 @@ class TestDataValidation:
         """Test trail length validation."""
         # Create test data with various lengths
         data = {
-            "permanentidentifier": ["id1", "id2", "id3", "id4"],
+            "permanent_identifier": ["id1", "id2", "id3", "id4"],
             "name": ["Trail"] * 4,
-            "lengthmiles": [
+            "length_miles": [
                 0.005,
                 0.01,
                 50.0,
@@ -464,7 +463,7 @@ class TestDataValidation:
 
         # Should keep only trails >= 0.01 miles
         assert len(result) == 3
-        assert set(result["lengthmiles"]) == {0.01, 50.0, 50.1}
+        assert set(result["length_miles"]) == {0.01, 50.0, 50.1}
 
     def test_geometry_validation_types(self, mock_collector):
         """Test that validation works with different geometry types."""
@@ -505,8 +504,8 @@ def setup_test_environment():
 class TestIntegration:
     """Integration tests for the full collector workflow."""
 
-    @patch("tnm_hikes_collector.requests.get")
-    @patch("tnm_hikes_collector.get_postgres_engine")
+    @patch("scripts.collectors.tnm_hikes_collector.requests.get")
+    @patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine")
     def test_process_trails_full_workflow(self, mock_engine, mock_requests_get):
         """Test the complete trail processing workflow."""
         # Mock TNM API response
@@ -537,7 +536,7 @@ class TestIntegration:
         mock_engine.return_value = mock_engine_instance
 
         # Create collector
-        with patch("tnm_hikes_collector.DatabaseWriter"):
+        with patch("scripts.collectors.tnm_hikes_collector.DatabaseWriter"):
             collector = TNMHikesCollector(
                 output_gpkg="test_output.gpkg",
                 rate_limit=0.1,

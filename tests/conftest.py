@@ -29,7 +29,7 @@ def collector(test_api_key):
     This fixture provides a collector instance that can be used across multiple tests.
     The collector uses a test API key and can be mocked for API calls.
     """
-    from nps_collector import NPSDataCollector
+    from scripts.collectors.nps_collector import NPSDataCollector
 
     return NPSDataCollector(test_api_key)
 
