@@ -35,7 +35,7 @@ class USGSElevationProfiler:
         with self.engine.connect() as conn:
             df = pd.read_sql(query, conn)
 
-        save_results(df, "usgs_elevation_trail_stats.csv")
+        save_results(df, "trail_stats.csv", output_dir="profiling_results/usgs_elevation")
         self.logger.success(f"Trail elevation stats: {len(df)} trails analyzed")
 
         return {"trail_count": len(df)}
@@ -49,7 +49,7 @@ class USGSElevationProfiler:
         with self.engine.connect() as conn:
             df = pd.read_sql(query, conn)
 
-        save_results(df, "usgs_elevation_park_summary.csv")
+        save_results(df, "park_summary.csv", output_dir="profiling_results/usgs_elevation")
         self.logger.success(f"Park elevation summary: {len(df)} parks analyzed")
 
         return {"park_count": len(df)}
@@ -63,7 +63,7 @@ class USGSElevationProfiler:
         with self.engine.connect() as conn:
             df = pd.read_sql(query, conn)
 
-        save_results(df, "usgs_elevation_trail_grades.csv")
+        save_results(df, "trail_grades.csv", output_dir="profiling_results/usgs_elevation")
         self.logger.success(f"Trail grades: {len(df)} trails analyzed")
 
         return {"trail_count": len(df)}
@@ -77,7 +77,7 @@ class USGSElevationProfiler:
         with self.engine.connect() as conn:
             df = pd.read_sql(query, conn)
 
-        save_results(df, "usgs_elevation_steepest_segments.csv")
+        save_results(df, "steepest_segments.csv", output_dir="profiling_results/usgs_elevation")
         self.logger.success(f"Steepest segments: {len(df)} segments analyzed")
 
         return {"segment_count": len(df)}
@@ -91,7 +91,7 @@ class USGSElevationProfiler:
         with self.engine.connect() as conn:
             df = pd.read_sql(query, conn)
 
-        save_results(df, "usgs_elevation_data_quality.csv")
+        save_results(df, "data_quality.csv", output_dir="profiling_results/usgs_elevation")
         self.logger.success(f"Data quality: {len(df)} parks analyzed")
 
         return {"park_count": len(df)}
@@ -119,11 +119,15 @@ class USGSElevationProfiler:
         return all_results
 
 
-def run_usgs_elevation():
+def run_usgs_elevation_stats():
     """Top-level function for USGS elevation profiling."""
     profiler = USGSElevationProfiler()
     return profiler.run_all()
 
 
+# Keep old name for backwards compatibility
+run_usgs_elevation = run_usgs_elevation_stats
+
+
 if __name__ == "__main__":
-    run_usgs_elevation()
+    run_usgs_elevation_stats()

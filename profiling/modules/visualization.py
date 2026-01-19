@@ -37,7 +37,7 @@ class VisualizationProfiler:
         self.results = {}
 
         # Create output directories
-        self.static_dir = f"{PROFILING_SETTINGS['output_directory']}/static_maps"
+        self.static_dir = f"{PROFILING_SETTINGS['output_directory']}/visualizations/static_maps"
         os.makedirs(self.static_dir, exist_ok=True)
 
     def run_individual_park_maps(self):
@@ -93,8 +93,8 @@ class VisualizationProfiler:
 
         # Get TNM trails for this park - use f-string instead of params
         tnm_query = f"""
-        SELECT name, lengthmiles as length_miles, geometry
-        FROM tnm_hikes 
+        SELECT name, length_miles, geometry
+        FROM tnm_hikes
         WHERE park_code = '{park_code}'
         """
         tnm_trails = gpd.read_postgis(tnm_query, engine, geom_col="geometry")

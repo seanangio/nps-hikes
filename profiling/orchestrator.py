@@ -167,14 +167,52 @@ class ProfilingOrchestrator:
         return self.results
 
     def run_specific_modules(self, module_names: List[str]) -> Dict[str, Any]:
-        """Run specific modules by name."""
+        """Run specific modules by name, including their dependencies."""
+        # Build execution order with dependencies
+        modules_to_run = []
         for module_name in module_names:
-            if module_name in PROFILING_MODULES:
-                self.run_module(module_name)
-            else:
+            if module_name not in PROFILING_MODULES:
                 self.logger.error(f"Unknown module: {module_name}")
+                continue
+
+            # Add dependencies first
+            deps = self._get_all_dependencies(module_name)
+            for dep in deps:
+                if dep not in modules_to_run:
+                    modules_to_run.append(dep)
+
+            # Then add the module itself
+            if module_name not in modules_to_run:
+                modules_to_run.append(module_name)
+
+        # Run modules in order
+        self.logger.info(f"Running modules with dependencies: {', '.join(modules_to_run)}")
+        for module_name in modules_to_run:
+            self.run_module(module_name)
 
         return self.results
+
+    def _get_all_dependencies(self, module_name: str) -> List[str]:
+        """Get all dependencies for a module recursively."""
+        if module_name not in PROFILING_MODULES:
+            return []
+
+        all_deps = []
+        module_config = PROFILING_MODULES[module_name]
+        direct_deps = module_config.get("dependencies", [])
+
+        for dep in direct_deps:
+            # Get dependencies of dependencies (recursive)
+            sub_deps = self._get_all_dependencies(dep)
+            for sub_dep in sub_deps:
+                if sub_dep not in all_deps:
+                    all_deps.append(sub_dep)
+
+            # Add the direct dependency
+            if dep not in all_deps:
+                all_deps.append(dep)
+
+        return all_deps
 
 
 # Convenience functions for external use

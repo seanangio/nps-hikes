@@ -181,7 +181,7 @@ class USGSTrailElevationProfiler:
         plt.tight_layout()
 
         # Save
-        output_dir = "profiling_results/elevation_changes"
+        output_dir = "profiling_results/visualizations/elevation_changes"
         os.makedirs(output_dir, exist_ok=True)
         output_path = f"{output_dir}/{park_code}_elevation_matrix.png"
         plt.savefig(output_path, dpi=300, bbox_inches="tight")
@@ -192,7 +192,8 @@ class USGSTrailElevationProfiler:
         # Save trail statistics
         if trail_stats:
             stats_df = pd.DataFrame(trail_stats)
-            stats_path = f"profiling_results/{park_code}_usgs_elevation_stats.csv"
+            stats_path = f"profiling_results/usgs_elevation/park_stats/{park_code}_stats.csv"
+            os.makedirs("profiling_results/usgs_elevation/park_stats", exist_ok=True)
             stats_df.to_csv(stats_path, index=False)
             self.logger.info(f"Saved elevation statistics: {stats_path}")
 
@@ -236,7 +237,11 @@ class USGSTrailElevationProfiler:
                 )
 
                 # Save results
-                save_results(summary_df, f"usgs_elevation_summary_{park_code}.csv")
+                save_results(
+                    summary_df,
+                    f"{park_code}.csv",
+                    output_dir="profiling_results/usgs_elevation/park_summaries"
+                )
 
                 self.results[f"elevation_summary_{park_code}"] = len(summary_df)
                 self.logger.success(
@@ -335,7 +340,7 @@ class USGSTrailElevationProfiler:
         self.logger.info(f"✅ Successful: {successful}")
         self.logger.info(f"❌ Failed: {failed}")
         self.logger.info(
-            f"📁 Elevation matrices saved to: profiling_results/elevation_changes/"
+            f"📁 Elevation matrices saved to: profiling_results/visualizations/elevation_changes/"
         )
 
         return {"successful": successful, "failed": failed, "total": len(parks)}
