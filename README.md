@@ -11,7 +11,7 @@ A comprehensive Python project for collecting, validating, and analyzing hiking 
 This project enables researchers, park enthusiasts, and data analysts to:
 
 - **Collect** park metadata and boundary data from the National Park Service API
-- **Extract** hiking trail data from OpenStreetMap within park boundaries  
+- **Extract** hiking trail data from OpenStreetMap within park boundaries
 - **Validate** and clean spatial data with comprehensive quality checks
 - **Store** data in both PostgreSQL/PostGIS databases and portable file formats
 - **Analyze** trail patterns, data quality, and park coverage statistics
@@ -97,6 +97,25 @@ nps-hikes/
    ```sql
    CREATE DATABASE nps_hikes;
    CREATE EXTENSION postgis;
+   ```
+
+### Development Setup
+
+For contributors and developers working on the codebase:
+
+1. **Install development dependencies**
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+2. **Set up pre-commit hooks** (auto-formats code with Black on commit)
+   ```bash
+   pre-commit install
+   ```
+
+3. **Test the pre-commit hooks** (optional, runs on all files)
+   ```bash
+   pre-commit run --all-files
    ```
 
 ## 🎯 Quick Start
@@ -225,7 +244,7 @@ The MCP server configuration is stored in `cursor-mcp-config.json` and uses envi
 The project uses a centralized configuration system in `config/settings.py`:
 
 - **Database connections**: PostgreSQL/PostGIS settings
-- **API settings**: NPS API endpoints and rate limits  
+- **API settings**: NPS API endpoints and rate limits
 - **Data validation**: Quality thresholds and filters
 - **File paths**: Output directories and file formats
 - **Coordinate systems**: CRS definitions for spatial operations
@@ -276,7 +295,7 @@ python -m profiling.orchestrator --help
 
 ### Available Modules
 - **nps_parks**: NPS park statistics and data analysis
-- **nps_geography**: NPS geographic and spatial analysis  
+- **nps_geography**: NPS geographic and spatial analysis
 - **data_quality**: Cross-table data quality and validation checks
 - **visualization**: Data visualization and maps
 - **osm_hikes**: OSM hiking trails analysis
@@ -350,7 +369,7 @@ parks = gpd.read_postgis("SELECT * FROM park_boundaries", engine)
 
 # Load trails for a specific park
 trails = gpd.read_postgis(
-    "SELECT * FROM osm_hikes WHERE park_code = 'YELL'", 
+    "SELECT * FROM osm_hikes WHERE park_code = 'YELL'",
     engine
 )
 
@@ -383,6 +402,6 @@ For questions, issues, or contributions:
 ---
 
 **Data Sources:**
-- Park boundaries and metadata: [National Park Service API](https://www.nps.gov/subjects/developer/)  
+- Park boundaries and metadata: [National Park Service API](https://www.nps.gov/subjects/developer/)
 - Trail data: [OpenStreetMap](https://www.openstreetmap.org/) via Overpass API
 - Coordinate systems: EPSG:4326 (WGS84) for geographic data
