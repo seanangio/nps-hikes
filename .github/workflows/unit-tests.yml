@@ -1,0 +1,49 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: ['**']  # Run on all branches
+  pull_request:
+    branches: ['**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'  # Cache pip dependencies for faster runs
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run tests with pytest
+        env:
+          # Set test environment variables
+          NPS_API_KEY: ${{ secrets.NPS_API_KEY || 'test_api_key_12345' }}
+          POSTGRES_PASSWORD: test_password
+        run: |
+          pytest tests/ -v --tb=short
+
+      - name: Generate coverage report (optional)
+        if: always()  # Run even if tests fail
+        run: |
+          pytest tests/ --cov=. --cov-report=term-missing --cov-report=html
+        continue-on-error: true  # Don't fail the build if coverage fails
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 7
+        continue-on-error: true

@@ -1,6 +1,6 @@
 # NPS Hikes - National Park Hiking Trail Data Collection & Analysis
 
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)]() [![Python](https://img.shields.io/badge/python-3.12-blue)]()
+[![Unit Tests](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml) [![Python](https://img.shields.io/badge/python-3.13-blue)]()
 
 A comprehensive Python project for collecting, validating, and analyzing hiking trail data from U.S. National Parks. The project combines official National Park Service (NPS) data with OpenStreetMap (OSM) trail information to create a rich dataset of park boundaries and hiking trails.
 
