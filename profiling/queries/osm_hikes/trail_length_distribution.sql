@@ -2,22 +2,22 @@
 -- Shows quartiles and length buckets to understand trail length patterns
 
 WITH length_stats AS (
-    SELECT 
+    SELECT
         COUNT(*) as total_trails,
         ROUND(AVG(length_miles)::numeric, 3) as avg_length,
         ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY length_miles)::numeric, 3) as q1_length,
         ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY length_miles)::numeric, 3) as median_length,
         ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY length_miles)::numeric, 3) as q3_length,
         ROUND(MAX(length_miles)::numeric, 3) as max_length
-    FROM osm_hikes 
+    FROM osm_hikes
     WHERE length_miles IS NOT NULL
 ),
 length_buckets AS (
-    SELECT 
-        CASE 
+    SELECT
+        CASE
             WHEN length_miles < 0.5 THEN 'Under 0.5 mi'
             WHEN length_miles < 1.0 THEN '0.5 - 1.0 mi'
-            WHEN length_miles < 2.0 THEN '1.0 - 2.0 mi'  
+            WHEN length_miles < 2.0 THEN '1.0 - 2.0 mi'
             WHEN length_miles < 5.0 THEN '2.0 - 5.0 mi'
             ELSE 'Over 5.0 mi'
         END as length_bucket,
@@ -26,7 +26,7 @@ length_buckets AS (
     WHERE length_miles IS NOT NULL
     GROUP BY 1
 )
-SELECT 'Length Statistics' as analysis_type, 
+SELECT 'Length Statistics' as analysis_type,
        CAST(total_trails as varchar) as value1,
        CAST(avg_length as varchar) as value2,
        CAST(median_length as varchar) as value3,

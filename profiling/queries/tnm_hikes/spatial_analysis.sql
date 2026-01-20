@@ -1,7 +1,7 @@
 -- TNM Spatial Analysis Query
 -- This query performs spatial analysis on TNM trail data
 
-SELECT 
+SELECT
     park_code,
     COUNT(*) as trail_count,
     ST_Length(ST_Union(geometry)) as total_geometry_length,
@@ -10,4 +10,4 @@ SELECT
     ST_AsText(ST_Envelope(ST_Union(geometry))) as bounding_box
 FROM tnm_hikes
 GROUP BY park_code
-ORDER BY trail_count DESC; 
+ORDER BY trail_count DESC;

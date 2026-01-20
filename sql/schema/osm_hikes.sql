@@ -12,34 +12,34 @@ CREATE TABLE IF NOT EXISTS osm_hikes (
     collected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     geometry_type VARCHAR(50) NOT NULL,
     geometry geometry(LINESTRING, 4326) NOT NULL,
-    
+
     PRIMARY KEY (park_code, osm_id),
-    
-    CONSTRAINT fk_osm_hikes_park_code_parks 
+
+    CONSTRAINT fk_osm_hikes_park_code_parks
         FOREIGN KEY (park_code) REFERENCES parks(park_code),
-    
+
     -- Length validation constraint
     CONSTRAINT chk_osm_length CHECK (length_miles > 0 AND length_miles < 1000)
 );
 
 -- Create spatial index for geometry queries
-CREATE INDEX IF NOT EXISTS idx_osm_hikes_geometry 
+CREATE INDEX IF NOT EXISTS idx_osm_hikes_geometry
     ON osm_hikes USING GIST (geometry);
 
 -- Create performance indexes
-CREATE INDEX IF NOT EXISTS idx_osm_hikes_park_code 
+CREATE INDEX IF NOT EXISTS idx_osm_hikes_park_code
     ON osm_hikes (park_code);
-CREATE INDEX IF NOT EXISTS idx_osm_hikes_collected_at 
+CREATE INDEX IF NOT EXISTS idx_osm_hikes_collected_at
     ON osm_hikes (collected_at);
-CREATE INDEX IF NOT EXISTS idx_osm_hikes_highway 
+CREATE INDEX IF NOT EXISTS idx_osm_hikes_highway
     ON osm_hikes (highway);
-CREATE INDEX IF NOT EXISTS idx_osm_hikes_length_miles 
+CREATE INDEX IF NOT EXISTS idx_osm_hikes_length_miles
     ON osm_hikes (length_miles);
 
 -- Create composite indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_osm_hikes_park_code_highway 
+CREATE INDEX IF NOT EXISTS idx_osm_hikes_park_code_highway
     ON osm_hikes (park_code, highway);
-CREATE INDEX IF NOT EXISTS idx_osm_hikes_park_code_length 
+CREATE INDEX IF NOT EXISTS idx_osm_hikes_park_code_length
     ON osm_hikes (park_code, length_miles);
 
 -- Add table comments

@@ -11,23 +11,23 @@ CREATE TABLE IF NOT EXISTS park_boundaries (
     collected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     geometry_type VARCHAR(50),
     geometry geometry(MULTIPOLYGON, 4326),
-    
+
     PRIMARY KEY (park_code),
-    
-    CONSTRAINT fk_park_boundaries_park_code_parks 
+
+    CONSTRAINT fk_park_boundaries_park_code_parks
         FOREIGN KEY (park_code) REFERENCES parks(park_code)
 );
 
 -- Create spatial index for geometry queries
-CREATE INDEX IF NOT EXISTS idx_park_boundaries_geometry 
+CREATE INDEX IF NOT EXISTS idx_park_boundaries_geometry
     ON park_boundaries USING GIST (geometry);
 
 -- Create performance indexes
-CREATE INDEX IF NOT EXISTS idx_park_boundaries_collected_at 
+CREATE INDEX IF NOT EXISTS idx_park_boundaries_collected_at
     ON park_boundaries (collected_at);
-CREATE INDEX IF NOT EXISTS idx_park_boundaries_collection_status 
+CREATE INDEX IF NOT EXISTS idx_park_boundaries_collection_status
     ON park_boundaries (collection_status);
-CREATE INDEX IF NOT EXISTS idx_park_boundaries_boundary_source 
+CREATE INDEX IF NOT EXISTS idx_park_boundaries_boundary_source
     ON park_boundaries (boundary_source);
 
 -- Add table comments

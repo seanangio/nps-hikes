@@ -192,7 +192,9 @@ class USGSTrailElevationProfiler:
         # Save trail statistics
         if trail_stats:
             stats_df = pd.DataFrame(trail_stats)
-            stats_path = f"profiling_results/usgs_elevation/park_stats/{park_code}_stats.csv"
+            stats_path = (
+                f"profiling_results/usgs_elevation/park_stats/{park_code}_stats.csv"
+            )
             os.makedirs("profiling_results/usgs_elevation/park_stats", exist_ok=True)
             stats_df.to_csv(stats_path, index=False)
             self.logger.info(f"Saved elevation statistics: {stats_path}")
@@ -206,7 +208,7 @@ class USGSTrailElevationProfiler:
 
             # Query elevation data summary
             query = f"""
-                SELECT 
+                SELECT
                     COUNT(*) as total_trails,
                     COUNT(CASE WHEN collection_status = 'COMPLETE' THEN 1 END) as complete_trails,
                     COUNT(CASE WHEN collection_status = 'PARTIAL' THEN 1 END) as partial_trails,
@@ -240,7 +242,7 @@ class USGSTrailElevationProfiler:
                 save_results(
                     summary_df,
                     f"{park_code}.csv",
-                    output_dir="profiling_results/usgs_elevation/park_summaries"
+                    output_dir="profiling_results/usgs_elevation/park_summaries",
                 )
 
                 self.results[f"elevation_summary_{park_code}"] = len(summary_df)
@@ -286,8 +288,8 @@ class USGSTrailElevationProfiler:
     def get_parks_with_elevation_data(self):
         """Get list of all parks that have elevation data."""
         query = """
-            SELECT DISTINCT park_code 
-            FROM usgs_trail_elevations 
+            SELECT DISTINCT park_code
+            FROM usgs_trail_elevations
             WHERE collection_status IN ('COMPLETE', 'PARTIAL')
             ORDER BY park_code
         """

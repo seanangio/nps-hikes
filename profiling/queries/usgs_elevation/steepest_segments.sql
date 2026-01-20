@@ -2,7 +2,7 @@
 -- Identifies the steepest segments on each trail and where they occur
 
 WITH elevation_segments AS (
-    SELECT 
+    SELECT
         gmaps_location_id,
         trail_name,
         park_code,
@@ -13,16 +13,16 @@ WITH elevation_segments AS (
         (elevation_point->>'latitude')::numeric as latitude,
         (elevation_point->>'longitude')::numeric as longitude,
         -- Calculate distance and elevation change from previous point
-        (elevation_point->>'distance_m')::numeric - 
+        (elevation_point->>'distance_m')::numeric -
         LAG((elevation_point->>'distance_m')::numeric) OVER (PARTITION BY gmaps_location_id ORDER BY (elevation_point->>'point_index')::int) as segment_distance_m,
-        (elevation_point->>'elevation_m')::numeric - 
+        (elevation_point->>'elevation_m')::numeric -
         LAG((elevation_point->>'elevation_m')::numeric) OVER (PARTITION BY gmaps_location_id ORDER BY (elevation_point->>'point_index')::int) as segment_elevation_change_m
     FROM usgs_trail_elevations,
          jsonb_array_elements(elevation_points) as elevation_point
     WHERE collection_status IN ('COMPLETE', 'PARTIAL')
 ),
 grade_calculations AS (
-    SELECT 
+    SELECT
         gmaps_location_id,
         trail_name,
         park_code,
@@ -35,14 +35,14 @@ grade_calculations AS (
         segment_distance_m,
         segment_elevation_change_m,
         -- Calculate grade as percentage
-        CASE 
-            WHEN segment_distance_m > 0 
+        CASE
+            WHEN segment_distance_m > 0
             THEN (segment_elevation_change_m / segment_distance_m) * 100
             ELSE 0
         END as grade_percent,
         -- Calculate absolute grade (steepness regardless of direction)
-        CASE 
-            WHEN segment_distance_m > 0 
+        CASE
+            WHEN segment_distance_m > 0
             THEN ABS(segment_elevation_change_m / segment_distance_m) * 100
             ELSE 0
         END as absolute_grade_percent
@@ -50,7 +50,7 @@ grade_calculations AS (
     WHERE segment_distance_m IS NOT NULL AND segment_distance_m > 0
 ),
 steepest_per_trail AS (
-    SELECT 
+    SELECT
         gmaps_location_id,
         trail_name,
         park_code,
@@ -67,7 +67,7 @@ steepest_per_trail AS (
         ROW_NUMBER() OVER (PARTITION BY gmaps_location_id ORDER BY absolute_grade_percent DESC) as steepness_rank
     FROM grade_calculations
 )
-SELECT 
+SELECT
     gmaps_location_id,
     trail_name,
     park_code,

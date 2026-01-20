@@ -186,7 +186,9 @@ class ProfilingOrchestrator:
                 modules_to_run.append(module_name)
 
         # Run modules in order
-        self.logger.info(f"Running modules with dependencies: {', '.join(modules_to_run)}")
+        self.logger.info(
+            f"Running modules with dependencies: {', '.join(modules_to_run)}"
+        )
         for module_name in modules_to_run:
             self.run_module(module_name)
 

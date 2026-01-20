@@ -37,38 +37,38 @@ CREATE TABLE IF NOT EXISTS tnm_hikes (
     collected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     geometry_type VARCHAR(50) NOT NULL,
     geometry geometry(GEOMETRY, 4326) NOT NULL,
-    
-    CONSTRAINT fk_tnm_hikes_park_code_parks 
+
+    CONSTRAINT fk_tnm_hikes_park_code_parks
         FOREIGN KEY (park_code) REFERENCES parks(park_code),
-    
+
     -- Length validation constraint
     CONSTRAINT chk_tnm_length CHECK (length_miles > 0 AND length_miles < 1000)
 );
 
 -- Create spatial index for geometry queries
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_geometry 
+CREATE INDEX IF NOT EXISTS idx_tnm_hikes_geometry
     ON tnm_hikes USING GIST (geometry);
 
 -- Create performance indexes
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code 
+CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code
     ON tnm_hikes (park_code);
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_collected_at 
+CREATE INDEX IF NOT EXISTS idx_tnm_hikes_collected_at
     ON tnm_hikes (collected_at);
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_trail_type 
+CREATE INDEX IF NOT EXISTS idx_tnm_hikes_trail_type
     ON tnm_hikes (trail_type);
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_hiker_pedestrian 
+CREATE INDEX IF NOT EXISTS idx_tnm_hikes_hiker_pedestrian
     ON tnm_hikes (hiker_pedestrian);
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_length_miles 
+CREATE INDEX IF NOT EXISTS idx_tnm_hikes_length_miles
     ON tnm_hikes (length_miles);
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_primary_trail_maintainer 
+CREATE INDEX IF NOT EXISTS idx_tnm_hikes_primary_trail_maintainer
     ON tnm_hikes (primary_trail_maintainer);
 
 -- Create composite indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code_trail_type 
+CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code_trail_type
     ON tnm_hikes (park_code, trail_type);
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code_hiker_pedestrian 
+CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code_hiker_pedestrian
     ON tnm_hikes (park_code, hiker_pedestrian);
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code_length 
+CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code_length
     ON tnm_hikes (park_code, length_miles);
 
 -- Add table comments

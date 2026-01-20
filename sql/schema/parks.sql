@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS parks (
     error_message TEXT,
     collection_status VARCHAR(20),
     collected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     PRIMARY KEY (park_code),
-    
+
     -- Coordinate validation constraints
     CONSTRAINT chk_parks_latitude CHECK (latitude BETWEEN -90 AND 90),
     CONSTRAINT chk_parks_longitude CHECK (longitude BETWEEN -180 AND 180)

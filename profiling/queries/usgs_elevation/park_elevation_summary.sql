@@ -2,7 +2,7 @@
 -- Aggregates trail-level stats to park level
 
 WITH trail_stats AS (
-    SELECT 
+    SELECT
         gmaps_location_id,
         trail_name,
         park_code,
@@ -18,7 +18,7 @@ WITH trail_stats AS (
         MAX(elevation_m) - MIN(elevation_m) as total_elevation_change_m,
         MAX(distance_m) as trail_length_m
     FROM (
-        SELECT 
+        SELECT
             gmaps_location_id,
             trail_name,
             park_code,
@@ -29,7 +29,7 @@ WITH trail_stats AS (
             (elevation_point->>'point_index')::int as point_index,
             (elevation_point->>'distance_m')::numeric as distance_m,
             (elevation_point->>'elevation_m')::numeric as elevation_m,
-            (elevation_point->>'elevation_m')::numeric - 
+            (elevation_point->>'elevation_m')::numeric -
             LAG((elevation_point->>'elevation_m')::numeric) OVER (PARTITION BY gmaps_location_id ORDER BY (elevation_point->>'point_index')::int) as elevation_change_m
         FROM usgs_trail_elevations,
              jsonb_array_elements(elevation_points) as elevation_point
@@ -37,7 +37,7 @@ WITH trail_stats AS (
     ) elevation_changes
     GROUP BY gmaps_location_id, trail_name, park_code, source, collection_status, total_points_count, failed_points_count
 )
-SELECT 
+SELECT
     park_code,
     COUNT(*) as total_trails,
     COUNT(CASE WHEN collection_status = 'COMPLETE' THEN 1 END) as complete_trails,

@@ -2,7 +2,7 @@
 -- Provides min, max, mean elevation and elevation gain/loss for each trail
 
 WITH elevation_data AS (
-    SELECT 
+    SELECT
         gmaps_location_id,
         trail_name,
         park_code,
@@ -19,7 +19,7 @@ WITH elevation_data AS (
     WHERE collection_status IN ('COMPLETE', 'PARTIAL')
 ),
 elevation_changes AS (
-    SELECT 
+    SELECT
         gmaps_location_id,
         trail_name,
         park_code,
@@ -35,7 +35,7 @@ elevation_changes AS (
         elevation_m - LAG(elevation_m) OVER (PARTITION BY gmaps_location_id ORDER BY point_index) as elevation_change_m
     FROM elevation_data
 )
-SELECT 
+SELECT
     gmaps_location_id,
     trail_name,
     park_code,

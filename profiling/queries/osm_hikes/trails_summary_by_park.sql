@@ -2,7 +2,7 @@
 -- Shows total trails, average/min/max length per park_code
 -- Uses parks table as base to show ALL parks, including those with 0 trails
 
-SELECT 
+SELECT
     p.park_code,
     p.full_name,
     COALESCE(COUNT(o.osm_id), 0) as total_trails,

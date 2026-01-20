@@ -3,7 +3,7 @@
 -- Grade is calculated as (elevation_change / horizontal_distance) * 100
 
 WITH elevation_segments AS (
-    SELECT 
+    SELECT
         gmaps_location_id,
         trail_name,
         park_code,
@@ -12,16 +12,16 @@ WITH elevation_segments AS (
         (elevation_point->>'distance_m')::numeric as distance_m,
         (elevation_point->>'elevation_m')::numeric as elevation_m,
         -- Calculate distance and elevation change from previous point
-        (elevation_point->>'distance_m')::numeric - 
+        (elevation_point->>'distance_m')::numeric -
         LAG((elevation_point->>'distance_m')::numeric) OVER (PARTITION BY gmaps_location_id ORDER BY (elevation_point->>'point_index')::int) as segment_distance_m,
-        (elevation_point->>'elevation_m')::numeric - 
+        (elevation_point->>'elevation_m')::numeric -
         LAG((elevation_point->>'elevation_m')::numeric) OVER (PARTITION BY gmaps_location_id ORDER BY (elevation_point->>'point_index')::int) as segment_elevation_change_m
     FROM usgs_trail_elevations,
          jsonb_array_elements(elevation_points) as elevation_point
     WHERE collection_status IN ('COMPLETE', 'PARTIAL')
 ),
 grade_calculations AS (
-    SELECT 
+    SELECT
         gmaps_location_id,
         trail_name,
         park_code,
@@ -32,21 +32,21 @@ grade_calculations AS (
         segment_distance_m,
         segment_elevation_change_m,
         -- Calculate grade as percentage (elevation_change / horizontal_distance * 100)
-        CASE 
-            WHEN segment_distance_m > 0 
+        CASE
+            WHEN segment_distance_m > 0
             THEN (segment_elevation_change_m / segment_distance_m) * 100
             ELSE 0
         END as grade_percent,
         -- Calculate absolute grade (steepness regardless of direction)
-        CASE 
-            WHEN segment_distance_m > 0 
+        CASE
+            WHEN segment_distance_m > 0
             THEN ABS(segment_elevation_change_m / segment_distance_m) * 100
             ELSE 0
         END as absolute_grade_percent
     FROM elevation_segments
     WHERE segment_distance_m IS NOT NULL
 )
-SELECT 
+SELECT
     gmaps_location_id,
     trail_name,
     park_code,

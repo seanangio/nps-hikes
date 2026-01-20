@@ -213,7 +213,7 @@ class USGSElevationCollector:
         query = f"""
             SELECT gmaps_location_id, matched_trail_name, matched_trail_geometry, source
             FROM gmaps_hiking_locations_matched
-            WHERE park_code = '{park_code}' 
+            WHERE park_code = '{park_code}'
             AND matched = TRUE
             AND matched_trail_geometry IS NOT NULL
             ORDER BY matched_trail_name
@@ -239,7 +239,7 @@ class USGSElevationCollector:
             self.db_writer.ensure_table_exists("usgs_trail_elevations")
 
             existing_query = f"""
-                SELECT gmaps_location_id FROM usgs_trail_elevations 
+                SELECT gmaps_location_id FROM usgs_trail_elevations
                 WHERE park_code = '{park_code}'
             """
             try:
@@ -311,8 +311,8 @@ class USGSElevationCollector:
                 # Ensure table exists before writing (consistent with other collectors)
                 self.db_writer.ensure_table_exists("usgs_trail_elevations")
                 insert_sql = """
-                    INSERT INTO usgs_trail_elevations 
-                    (gmaps_location_id, trail_name, park_code, source, elevation_points, 
+                    INSERT INTO usgs_trail_elevations
+                    (gmaps_location_id, trail_name, park_code, source, elevation_points,
                      collection_status, failed_points_count, total_points_count)
                     VALUES (:gmaps_location_id, :trail_name, :park_code, :source, :elevation_points,
                             :collection_status, :failed_points_count, :total_points_count)
@@ -390,8 +390,8 @@ class USGSElevationCollector:
 
         # Get list of parks with matched trails
         query = """
-            SELECT DISTINCT park_code 
-            FROM gmaps_hiking_locations_matched 
+            SELECT DISTINCT park_code
+            FROM gmaps_hiking_locations_matched
             WHERE matched = TRUE
             ORDER BY park_code
         """

@@ -37,7 +37,9 @@ class VisualizationProfiler:
         self.results = {}
 
         # Create output directories
-        self.static_dir = f"{PROFILING_SETTINGS['output_directory']}/visualizations/static_maps"
+        self.static_dir = (
+            f"{PROFILING_SETTINGS['output_directory']}/visualizations/static_maps"
+        )
         os.makedirs(self.static_dir, exist_ok=True)
 
     def run_individual_park_maps(self):
@@ -86,7 +88,7 @@ class VisualizationProfiler:
         # Get OSM trails for this park - use f-string instead of params
         osm_query = f"""
         SELECT name, length_miles, geometry
-        FROM osm_hikes 
+        FROM osm_hikes
         WHERE park_code = '{park_code}'
         """
         osm_trails = gpd.read_postgis(osm_query, engine, geom_col="geometry")
@@ -102,7 +104,7 @@ class VisualizationProfiler:
         # Get GMaps locations for this park
         gmaps_query = f"""
         SELECT location_name as name, longitude as lon, latitude as lat
-        FROM gmaps_hiking_locations 
+        FROM gmaps_hiking_locations
         WHERE park_code = '{park_code}'
         """
         gmaps_locations = pd.read_sql(gmaps_query, engine)

@@ -88,7 +88,7 @@ class TNMHikesProfiler:
             park_filter = ""
 
         sql = f"""
-        SELECT 
+        SELECT
             park_code,
             COUNT(*) as trail_count,
             COUNT(CASE WHEN name IS NOT NULL AND name != '' THEN 1 END) as named_trail_count,
@@ -155,7 +155,7 @@ class TNMHikesProfiler:
 
         # Trail type breakdown
         type_sql = f"""
-        SELECT 
+        SELECT
             trailtype,
             COUNT(*) as count,
             AVG(lengthmiles) as avg_length_miles,
@@ -168,7 +168,7 @@ class TNMHikesProfiler:
 
         # National designation breakdown
         designation_sql = f"""
-        SELECT 
+        SELECT
             nationaltraildesignation,
             COUNT(*) as count,
             AVG(lengthmiles) as avg_length_miles,
@@ -232,7 +232,7 @@ class TNMHikesProfiler:
             park_filter = ""
 
         sql = f"""
-        SELECT 
+        SELECT
             park_code,
             COUNT(*) as total_trails,
             COUNT(CASE WHEN name IS NOT NULL AND name != '' THEN 1 END) as named_trails,
@@ -342,7 +342,7 @@ class TNMHikesProfiler:
             park_filter = ""
 
         sql = f"""
-        SELECT 
+        SELECT
             park_code,
             COUNT(*) as trail_count,
             ST_Length(ST_Union(geometry)) as total_geometry_length,
@@ -411,7 +411,7 @@ class TNMHikesProfiler:
             park_filter = ""
 
         sql = f"""
-        SELECT 
+        SELECT
             t.park_code,
             COUNT(DISTINCT t.permanentidentifier) as tnm_trail_count,
             COUNT(DISTINCT o.osm_id) as osm_trail_count,

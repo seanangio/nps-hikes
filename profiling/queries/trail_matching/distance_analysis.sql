@@ -2,8 +2,8 @@
 -- Shows geographic accuracy of matches
 
 WITH distance_ranges AS (
-    SELECT 
-        CASE 
+    SELECT
+        CASE
             WHEN min_point_to_trail_distance_m = 0 THEN '0m (exact)'
             WHEN min_point_to_trail_distance_m <= 10 THEN '1-10m'
             WHEN min_point_to_trail_distance_m <= 25 THEN '11-25m'
@@ -11,7 +11,7 @@ WITH distance_ranges AS (
             WHEN min_point_to_trail_distance_m <= 100 THEN '51-100m'
             ELSE '>100m'
         END as distance_range,
-        CASE 
+        CASE
             WHEN min_point_to_trail_distance_m = 0 THEN 0
             WHEN min_point_to_trail_distance_m <= 10 THEN 1
             WHEN min_point_to_trail_distance_m <= 25 THEN 2
@@ -20,10 +20,10 @@ WITH distance_ranges AS (
             ELSE 5
         END as sort_order,
         confidence_score
-    FROM gmaps_hiking_locations_matched 
+    FROM gmaps_hiking_locations_matched
     WHERE matched = TRUE
 )
-SELECT 
+SELECT
     distance_range,
     COUNT(*) as match_count,
     ROUND((COUNT(*)::float / SUM(COUNT(*)) OVER() * 100)::numeric, 1) as percentage,

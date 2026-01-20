@@ -55,7 +55,9 @@ class Trail3DVisualizer:
         self.engine = get_db_connection()
 
         # Create output directory
-        self.output_dir = f"{PROFILING_SETTINGS['output_directory']}/visualizations/3d_trails"
+        self.output_dir = (
+            f"{PROFILING_SETTINGS['output_directory']}/visualizations/3d_trails"
+        )
         os.makedirs(self.output_dir, exist_ok=True)
 
     def get_utm_crs(self, longitude: float, latitude: float) -> str:
@@ -70,8 +72,8 @@ class Trail3DVisualizer:
             EPSG code string (e.g., "EPSG:32612" for UTM Zone 12N)
         """
         utm_zone = int((longitude + 180) / 6) + 1
-        hemisphere = 'north' if latitude >= 0 else 'south'
-        epsg_code = 32600 + utm_zone if hemisphere == 'north' else 32700 + utm_zone
+        hemisphere = "north" if latitude >= 0 else "south"
+        epsg_code = 32600 + utm_zone if hemisphere == "north" else 32700 + utm_zone
         return f"EPSG:{epsg_code}"
 
     def sanitize_filename(self, name: str) -> str:
@@ -89,13 +91,13 @@ class Trail3DVisualizer:
         # Convert to lowercase
         name = name.lower()
         # Replace spaces with underscores
-        name = name.replace(' ', '_')
+        name = name.replace(" ", "_")
         # Remove special characters except underscores and hyphens
-        name = re.sub(r'[^a-z0-9_-]', '', name)
+        name = re.sub(r"[^a-z0-9_-]", "", name)
         # Remove multiple underscores
-        name = re.sub(r'_+', '_', name)
+        name = re.sub(r"_+", "_", name)
         # Remove leading/trailing underscores
-        name = name.strip('_')
+        name = name.strip("_")
         return name
 
     def get_parks_with_trails(self) -> pd.DataFrame:
@@ -200,13 +202,13 @@ class Trail3DVisualizer:
 
                 # Extract data from row
                 trail_data = {
-                    'gmaps_location_id': row[0],
-                    'trail_name': row[1],
-                    'park_code': row[2],
-                    'elevation_points': row[3],  # Already parsed as list by psycopg2
-                    'collection_status': row[4],
-                    'total_points_count': row[5],
-                    'failed_points_count': row[6],
+                    "gmaps_location_id": row[0],
+                    "trail_name": row[1],
+                    "park_code": row[2],
+                    "elevation_points": row[3],  # Already parsed as list by psycopg2
+                    "collection_status": row[4],
+                    "total_points_count": row[5],
+                    "failed_points_count": row[6],
                 }
 
                 return trail_data
@@ -228,8 +230,8 @@ class Trail3DVisualizer:
         if not elevation_points:
             return {}
 
-        elevations = [point['elevation_m'] for point in elevation_points]
-        distances = [point['distance_m'] for point in elevation_points]
+        elevations = [point["elevation_m"] for point in elevation_points]
+        distances = [point["distance_m"] for point in elevation_points]
 
         # Calculate elevation gain/loss
         total_gain = sum(
@@ -242,19 +244,19 @@ class Trail3DVisualizer:
         )
 
         stats = {
-            'total_distance_km': distances[-1] / 1000,
-            'total_distance_mi': distances[-1] / 1609.34,
-            'elevation_gain_m': total_gain,
-            'elevation_gain_ft': total_gain * 3.28084,
-            'elevation_loss_m': total_loss,
-            'elevation_loss_ft': total_loss * 3.28084,
-            'max_elevation_m': max(elevations),
-            'max_elevation_ft': max(elevations) * 3.28084,
-            'min_elevation_m': min(elevations),
-            'min_elevation_ft': min(elevations) * 3.28084,
-            'elevation_range_m': max(elevations) - min(elevations),
-            'elevation_range_ft': (max(elevations) - min(elevations)) * 3.28084,
-            'num_points': len(elevation_points),
+            "total_distance_km": distances[-1] / 1000,
+            "total_distance_mi": distances[-1] / 1609.34,
+            "elevation_gain_m": total_gain,
+            "elevation_gain_ft": total_gain * 3.28084,
+            "elevation_loss_m": total_loss,
+            "elevation_loss_ft": total_loss * 3.28084,
+            "max_elevation_m": max(elevations),
+            "max_elevation_ft": max(elevations) * 3.28084,
+            "min_elevation_m": min(elevations),
+            "min_elevation_ft": min(elevations) * 3.28084,
+            "elevation_range_m": max(elevations) - min(elevations),
+            "elevation_range_ft": (max(elevations) - min(elevations)) * 3.28084,
+            "num_points": len(elevation_points),
         }
 
         return stats
@@ -283,7 +285,7 @@ class Trail3DVisualizer:
         if not trail_data:
             return None
 
-        elevation_points = trail_data['elevation_points']
+        elevation_points = trail_data["elevation_points"]
         if not elevation_points:
             self.logger.error("No elevation points found")
             return None
@@ -293,18 +295,30 @@ class Trail3DVisualizer:
 
         # Display stats
         self.logger.info(f"Trail Statistics:")
-        self.logger.info(f"  Distance: {stats['total_distance_mi']:.2f} mi ({stats['total_distance_km']:.2f} km)")
-        self.logger.info(f"  Elevation Gain: {stats['elevation_gain_ft']:.0f} ft ({stats['elevation_gain_m']:.0f} m)")
-        self.logger.info(f"  Elevation Loss: {stats['elevation_loss_ft']:.0f} ft ({stats['elevation_loss_m']:.0f} m)")
-        self.logger.info(f"  Elevation Range: {stats['elevation_range_ft']:.0f} ft ({stats['elevation_range_m']:.0f} m)")
-        self.logger.info(f"  Max Elevation: {stats['max_elevation_ft']:.0f} ft ({stats['max_elevation_m']:.0f} m)")
-        self.logger.info(f"  Min Elevation: {stats['min_elevation_ft']:.0f} ft ({stats['min_elevation_m']:.0f} m)")
+        self.logger.info(
+            f"  Distance: {stats['total_distance_mi']:.2f} mi ({stats['total_distance_km']:.2f} km)"
+        )
+        self.logger.info(
+            f"  Elevation Gain: {stats['elevation_gain_ft']:.0f} ft ({stats['elevation_gain_m']:.0f} m)"
+        )
+        self.logger.info(
+            f"  Elevation Loss: {stats['elevation_loss_ft']:.0f} ft ({stats['elevation_loss_m']:.0f} m)"
+        )
+        self.logger.info(
+            f"  Elevation Range: {stats['elevation_range_ft']:.0f} ft ({stats['elevation_range_m']:.0f} m)"
+        )
+        self.logger.info(
+            f"  Max Elevation: {stats['max_elevation_ft']:.0f} ft ({stats['max_elevation_m']:.0f} m)"
+        )
+        self.logger.info(
+            f"  Min Elevation: {stats['min_elevation_ft']:.0f} ft ({stats['min_elevation_m']:.0f} m)"
+        )
         self.logger.info(f"  Data Points: {stats['num_points']}")
 
         # Extract coordinates
-        lats = [point['latitude'] for point in elevation_points]
-        lons = [point['longitude'] for point in elevation_points]
-        elevations = [point['elevation_m'] for point in elevation_points]
+        lats = [point["latitude"] for point in elevation_points]
+        lons = [point["longitude"] for point in elevation_points]
+        elevations = [point["elevation_m"] for point in elevation_points]
 
         # Calculate trail center for CRS
         center_lon = sum(lons) / len(lons)
@@ -316,11 +330,10 @@ class Trail3DVisualizer:
 
         # Convert to GeoDataFrame and project to UTM
         from shapely.geometry import Point
+
         geometry = [Point(lon, lat) for lon, lat in zip(lons, lats)]
         gdf = gpd.GeoDataFrame(
-            {'elevation': elevations},
-            geometry=geometry,
-            crs='EPSG:4326'
+            {"elevation": elevations}, geometry=geometry, crs="EPSG:4326"
         )
         gdf_projected = gdf.to_crs(utm_crs)
 
@@ -348,73 +361,77 @@ class Trail3DVisualizer:
         fig = go.Figure()
 
         # Add the trail as a 3D line with color gradient
-        fig.add_trace(go.Scatter3d(
-            x=x_coords,
-            y=y_coords,
-            z=z_coords,
-            mode='lines+markers',
-            line=dict(
-                color=elevations,
-                colorscale='Earth',  # Classic terrain colors (green -> yellow -> brown -> white)
-                width=6,
-                colorbar=dict(
-                    title='Elevation (m)',
-                    x=1.1,
+        fig.add_trace(
+            go.Scatter3d(
+                x=x_coords,
+                y=y_coords,
+                z=z_coords,
+                mode="lines+markers",
+                line=dict(
+                    color=elevations,
+                    colorscale="Earth",  # Classic terrain colors (green -> yellow -> brown -> white)
+                    width=6,
+                    colorbar=dict(
+                        title="Elevation (m)",
+                        x=1.1,
+                    ),
                 ),
-            ),
-            marker=dict(
-                size=2,
-                color=elevations,
-                colorscale='Earth',
-            ),
-            name=trail_name,
-            hovertemplate=(
-                '<b>Distance</b>: %{text}<br>'
-                '<b>Elevation</b>: %{marker.color:.0f} m<br>'
-                '<b>X</b>: %{x:.0f} m<br>'
-                '<b>Y</b>: %{y:.0f} m<br>'
-                '<extra></extra>'
-            ),
-            text=[f"{point['distance_m']/1000:.2f} km" for point in elevation_points],
-        ))
+                marker=dict(
+                    size=2,
+                    color=elevations,
+                    colorscale="Earth",
+                ),
+                name=trail_name,
+                hovertemplate=(
+                    "<b>Distance</b>: %{text}<br>"
+                    "<b>Elevation</b>: %{marker.color:.0f} m<br>"
+                    "<b>X</b>: %{x:.0f} m<br>"
+                    "<b>Y</b>: %{y:.0f} m<br>"
+                    "<extra></extra>"
+                ),
+                text=[
+                    f"{point['distance_m']/1000:.2f} km" for point in elevation_points
+                ],
+            )
+        )
 
         # Update layout for better 3D visualization
         fig.update_layout(
             title=dict(
                 text=f"{trail_name}<br><sub>{park_code.upper()} | "
-                     f"{stats['total_distance_mi']:.2f} mi | "
-                     f"+{stats['elevation_gain_ft']:.0f} ft / -{stats['elevation_loss_ft']:.0f} ft | "
-                     f"Z-scale: {z_exaggeration}x</sub>",
+                f"{stats['total_distance_mi']:.2f} mi | "
+                f"+{stats['elevation_gain_ft']:.0f} ft / -{stats['elevation_loss_ft']:.0f} ft | "
+                f"Z-scale: {z_exaggeration}x</sub>",
                 x=0.5,
-                xanchor='center',
+                xanchor="center",
             ),
             scene=dict(
                 xaxis=dict(
-                    title='Distance (m)',
+                    title="Distance (m)",
                     backgroundcolor="rgb(240, 240, 240)",
                     gridcolor="white",
                     showbackground=True,
                 ),
                 yaxis=dict(
-                    title='Distance (m)',
+                    title="Distance (m)",
                     backgroundcolor="rgb(240, 240, 240)",
                     gridcolor="white",
                     showbackground=True,
                 ),
                 zaxis=dict(
-                    title=f'Elevation (m, {z_exaggeration}x exaggeration)',
+                    title=f"Elevation (m, {z_exaggeration}x exaggeration)",
                     backgroundcolor="rgb(240, 240, 240)",
                     gridcolor="white",
                     showbackground=True,
                 ),
-                aspectmode='data',
+                aspectmode="data",
                 camera=dict(
                     eye=dict(x=1.5, y=1.5, z=1.2),
                     center=dict(x=0, y=0, z=0),
                 ),
             ),
             showlegend=False,
-            hovermode='closest',
+            hovermode="closest",
             width=1200,
             height=800,
         )
@@ -454,14 +471,16 @@ class Trail3DVisualizer:
         print("AVAILABLE PARKS WITH ELEVATION DATA")
         print("=" * 70)
         for idx, row in parks_df.iterrows():
-            print(f"{idx + 1:2d}. {row['park_name']:40s} ({row['park_code']}) - {row['trail_count']} trails")
+            print(
+                f"{idx + 1:2d}. {row['park_name']:40s} ({row['park_code']}) - {row['trail_count']} trails"
+            )
         print("=" * 70)
 
         # Select park
         while True:
             try:
                 park_choice = input("\nSelect park number (or 'q' to quit): ").strip()
-                if park_choice.lower() == 'q':
+                if park_choice.lower() == "q":
                     return None
                 park_idx = int(park_choice) - 1
                 if 0 <= park_idx < len(parks_df):
@@ -472,8 +491,8 @@ class Trail3DVisualizer:
                 return None
 
         selected_park = parks_df.iloc[park_idx]
-        park_code = selected_park['park_code']
-        park_name = selected_park['park_name']
+        park_code = selected_park["park_code"]
+        park_name = selected_park["park_name"]
 
         # Get trails for selected park
         trails_df = self.get_trails_for_park(park_code)
@@ -486,9 +505,9 @@ class Trail3DVisualizer:
         print(f"AVAILABLE TRAILS FOR {park_name.upper()} ({park_code.upper()})")
         print("=" * 70)
         for idx, row in trails_df.iterrows():
-            status_icon = row['status_icon']
-            trail_name = row['trail_name']
-            points = row['total_points_count']
+            status_icon = row["status_icon"]
+            trail_name = row["trail_name"]
+            points = row["total_points_count"]
             print(f"{idx + 1:2d}. {status_icon} {trail_name:50s} ({points} points)")
         print("=" * 70)
 
@@ -496,7 +515,7 @@ class Trail3DVisualizer:
         while True:
             try:
                 trail_choice = input("\nSelect trail number (or 'q' to quit): ").strip()
-                if trail_choice.lower() == 'q':
+                if trail_choice.lower() == "q":
                     return None
                 trail_idx = int(trail_choice) - 1
                 if 0 <= trail_idx < len(trails_df):
@@ -507,15 +526,17 @@ class Trail3DVisualizer:
                 return None
 
         selected_trail = trails_df.iloc[trail_idx]
-        trail_name = selected_trail['trail_name']
+        trail_name = selected_trail["trail_name"]
 
         # Ask about z-exaggeration
         print(f"\nCurrent Z-axis exaggeration: {z_exaggeration}x")
         adjust = input("Adjust Z-axis exaggeration? (y/N): ").strip().lower()
-        if adjust == 'y':
+        if adjust == "y":
             while True:
                 try:
-                    new_z = input(f"Enter Z-axis exaggeration factor (current: {z_exaggeration}): ").strip()
+                    new_z = input(
+                        f"Enter Z-axis exaggeration factor (current: {z_exaggeration}): "
+                    ).strip()
                     z_exaggeration = float(new_z)
                     if z_exaggeration > 0:
                         break
@@ -527,7 +548,9 @@ class Trail3DVisualizer:
         print()
         return self.create_3d_visualization(park_code, trail_name, z_exaggeration)
 
-    def run_all(self, park_code: str = None, trail_name: str = None, z_exaggeration: float = 5.0):
+    def run_all(
+        self, park_code: str = None, trail_name: str = None, z_exaggeration: float = 5.0
+    ):
         """
         Run 3D visualization profiling.
 
@@ -541,20 +564,24 @@ class Trail3DVisualizer:
         """
         if park_code and trail_name:
             # Direct mode
-            output_path = self.create_3d_visualization(park_code, trail_name, z_exaggeration)
+            output_path = self.create_3d_visualization(
+                park_code, trail_name, z_exaggeration
+            )
             if output_path:
-                return {'output_path': output_path, 'mode': 'direct'}
-            return {'error': 'Failed to create visualization', 'mode': 'direct'}
+                return {"output_path": output_path, "mode": "direct"}
+            return {"error": "Failed to create visualization", "mode": "direct"}
         else:
             # Interactive mode
             output_path = self.interactive_selection(z_exaggeration)
             if output_path:
-                return {'output_path': output_path, 'mode': 'interactive'}
-            return {'cancelled': True, 'mode': 'interactive'}
+                return {"output_path": output_path, "mode": "interactive"}
+            return {"cancelled": True, "mode": "interactive"}
 
 
 # Convenience function
-def run_trail_3d_viz(park_code: str = None, trail_name: str = None, z_exaggeration: float = 5.0):
+def run_trail_3d_viz(
+    park_code: str = None, trail_name: str = None, z_exaggeration: float = 5.0
+):
     """Convenience function to run trail 3D visualization profiling."""
     visualizer = Trail3DVisualizer()
     return visualizer.run_all(park_code, trail_name, z_exaggeration)
@@ -565,25 +592,25 @@ if __name__ == "__main__":
         description="Create interactive 3D visualizations of trail elevation profiles"
     )
     parser.add_argument(
-        '--park',
+        "--park",
         type=str,
-        help='Park code (e.g., yell, grca)',
+        help="Park code (e.g., yell, grca)",
     )
     parser.add_argument(
-        '--trail',
+        "--trail",
         type=str,
         help='Trail name (e.g., "Mount Washburn Trail")',
     )
     parser.add_argument(
-        '--z-scale',
+        "--z-scale",
         type=float,
         default=5.0,
-        help='Z-axis exaggeration factor (default: 5.0)',
+        help="Z-axis exaggeration factor (default: 5.0)",
     )
     parser.add_argument(
-        '--no-open',
-        action='store_true',
-        help='Do not automatically open the visualization in browser',
+        "--no-open",
+        action="store_true",
+        help="Do not automatically open the visualization in browser",
     )
 
     args = parser.parse_args()
@@ -600,7 +627,7 @@ if __name__ == "__main__":
         result = visualizer.run_all(z_exaggeration=args.z_scale)
 
     # Open in browser if successful
-    if result and 'output_path' in result and not args.no_open:
-        output_path = result['output_path']
+    if result and "output_path" in result and not args.no_open:
+        output_path = result["output_path"]
         print(f"\nOpening visualization in browser...")
-        webbrowser.open(f'file://{os.path.abspath(output_path)}')
+        webbrowser.open(f"file://{os.path.abspath(output_path)}")

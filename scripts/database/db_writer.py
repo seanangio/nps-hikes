@@ -358,7 +358,7 @@ class DatabaseWriter:
                 result = conn.execute(
                     text(
                         """
-                    SELECT tablename FROM pg_tables 
+                    SELECT tablename FROM pg_tables
                     WHERE schemaname = 'public'
                     AND tablename NOT IN (
                         'spatial_ref_sys', 'geometry_columns', 'geography_columns',
@@ -382,7 +382,7 @@ class DatabaseWriter:
                 result = conn.execute(
                     text(
                         """
-                    SELECT sequence_name FROM information_schema.sequences 
+                    SELECT sequence_name FROM information_schema.sequences
                     WHERE sequence_schema = 'public'
                 """
                     )
@@ -493,7 +493,7 @@ class DatabaseWriter:
                 result = conn.execute(
                     text(
                         """
-                    SELECT conname FROM pg_constraint 
+                    SELECT conname FROM pg_constraint
                     WHERE conrelid = 'gmaps_hiking_locations_matched'::regclass
                         AND conname IN ('fk_matched_gmaps_location', 'fk_matched_park_code')
                 """
@@ -508,8 +508,8 @@ class DatabaseWriter:
                         conn.execute(
                             text(
                                 """
-                            UPDATE gmaps_hiking_locations_matched 
-                            SET gmaps_location_id = id 
+                            UPDATE gmaps_hiking_locations_matched
+                            SET gmaps_location_id = id
                             WHERE gmaps_location_id IS NULL
                         """
                             )
@@ -517,7 +517,7 @@ class DatabaseWriter:
                         conn.execute(
                             text(
                                 """
-                            ALTER TABLE gmaps_hiking_locations_matched 
+                            ALTER TABLE gmaps_hiking_locations_matched
                             ALTER COLUMN gmaps_location_id SET NOT NULL
                         """
                             )
@@ -527,8 +527,8 @@ class DatabaseWriter:
                         conn.execute(
                             text(
                                 """
-                            ALTER TABLE gmaps_hiking_locations_matched 
-                            ADD CONSTRAINT fk_matched_gmaps_location 
+                            ALTER TABLE gmaps_hiking_locations_matched
+                            ADD CONSTRAINT fk_matched_gmaps_location
                             FOREIGN KEY (gmaps_location_id) REFERENCES gmaps_hiking_locations(id)
                         """
                             )
@@ -547,7 +547,7 @@ class DatabaseWriter:
                         conn.execute(
                             text(
                                 """
-                            ALTER TABLE gmaps_hiking_locations_matched 
+                            ALTER TABLE gmaps_hiking_locations_matched
                             ALTER COLUMN park_code SET NOT NULL
                         """
                             )
@@ -557,8 +557,8 @@ class DatabaseWriter:
                         conn.execute(
                             text(
                                 """
-                            ALTER TABLE gmaps_hiking_locations_matched 
-                            ADD CONSTRAINT fk_matched_park_code 
+                            ALTER TABLE gmaps_hiking_locations_matched
+                            ADD CONSTRAINT fk_matched_park_code
                             FOREIGN KEY (park_code) REFERENCES parks(park_code)
                         """
                             )

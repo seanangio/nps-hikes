@@ -22,11 +22,11 @@ CREATE TABLE IF NOT EXISTS gmaps_hiking_locations_matched (
         FOREIGN KEY (gmaps_location_id) REFERENCES gmaps_hiking_locations(id),
     CONSTRAINT fk_gmaps_hiking_locations_matched_park_code_parks
         FOREIGN KEY (park_code) REFERENCES parks(park_code),
-    
+
     -- Coordinate validation constraints
     CONSTRAINT chk_matched_latitude CHECK (latitude BETWEEN -90 AND 90),
     CONSTRAINT chk_matched_longitude CHECK (longitude BETWEEN -180 AND 180),
-    
+
     -- Score validation constraints
     CONSTRAINT chk_confidence_score CHECK (confidence_score BETWEEN 0 AND 1),
     CONSTRAINT chk_similarity_score CHECK (name_similarity_score BETWEEN 0 AND 1)

@@ -61,8 +61,8 @@ def main():
             result = conn.execute(
                 text(
                     """
-                SELECT tablename FROM pg_tables 
-                WHERE schemaname = 'public' 
+                SELECT tablename FROM pg_tables
+                WHERE schemaname = 'public'
                 AND tablename NOT IN (
                     'spatial_ref_sys', 'geometry_columns', 'geography_columns',
                     'raster_columns', 'raster_overviews'

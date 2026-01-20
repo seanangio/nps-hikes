@@ -1,7 +1,7 @@
 -- TNM Data Quality Assessment Query
 -- This query assesses data quality and completeness for TNM trail data
 
-SELECT 
+SELECT
     park_code,
     COUNT(*) as total_trails,
     COUNT(CASE WHEN name IS NOT NULL AND name != '' THEN 1 END) as named_trails,
@@ -34,4 +34,4 @@ SELECT
     ) as geometry_completeness_percent
 FROM tnm_hikes
 GROUP BY park_code
-ORDER BY total_trails DESC; 
+ORDER BY total_trails DESC;

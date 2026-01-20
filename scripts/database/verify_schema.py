@@ -59,9 +59,9 @@ def verify_coordinate_precision(engine, logger) -> bool:
                         text(
                             f"""
                         SELECT data_type, numeric_precision, numeric_scale
-                        FROM information_schema.columns 
-                        WHERE table_schema = 'public' 
-                            AND table_name = '{table_name}' 
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                            AND table_name = '{table_name}'
                             AND column_name = '{col_name}'
                     """
                         )
@@ -113,9 +113,9 @@ def verify_trail_length_precision(engine, logger) -> bool:
                     text(
                         f"""
                     SELECT data_type, numeric_precision, numeric_scale
-                    FROM information_schema.columns 
-                    WHERE table_schema = 'public' 
-                        AND table_name = '{table_name}' 
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                        AND table_name = '{table_name}'
                         AND column_name = '{col_name}'
                 """
                     )
@@ -171,8 +171,8 @@ def verify_constraints(engine, logger) -> bool:
                 result = conn.execute(
                     text(
                         f"""
-                    SELECT conname 
-                    FROM pg_constraint 
+                    SELECT conname
+                    FROM pg_constraint
                     WHERE conrelid = '{table_name}'::regclass
                         AND conname = '{constraint_name}'
                 """
@@ -209,9 +209,9 @@ def verify_indexes(engine, logger) -> bool:
                 result = conn.execute(
                     text(
                         f"""
-                    SELECT indexname 
-                    FROM pg_indexes 
-                    WHERE tablename = '{table_name}' 
+                    SELECT indexname
+                    FROM pg_indexes
+                    WHERE tablename = '{table_name}'
                         AND indexname = '{index_name}'
                 """
                     )

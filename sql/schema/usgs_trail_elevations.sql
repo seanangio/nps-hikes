@@ -13,29 +13,29 @@ CREATE TABLE IF NOT EXISTS usgs_trail_elevations (
     failed_points_count INTEGER DEFAULT 0,
     total_points_count INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
-    CONSTRAINT fk_usgs_trail_elevations_gmaps_location_id_gmaps_hiking_locations_matched 
+
+    CONSTRAINT fk_usgs_trail_elevations_gmaps_location_id_gmaps_hiking_locations_matched
         FOREIGN KEY (gmaps_location_id) REFERENCES gmaps_hiking_locations_matched(gmaps_location_id),
-    CONSTRAINT fk_usgs_trail_elevations_park_code_parks 
+    CONSTRAINT fk_usgs_trail_elevations_park_code_parks
         FOREIGN KEY (park_code) REFERENCES parks(park_code)
 );
 
 -- Create performance indexes
-CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_gmaps_location_id 
+CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_gmaps_location_id
     ON usgs_trail_elevations (gmaps_location_id);
-CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_park_code 
+CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_park_code
     ON usgs_trail_elevations (park_code);
-CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_created_at 
+CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_created_at
     ON usgs_trail_elevations (created_at);
-CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_collection_status 
+CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_collection_status
     ON usgs_trail_elevations (collection_status);
-CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_source 
+CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_source
     ON usgs_trail_elevations (source);
 
 -- Create composite indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_park_code_source 
+CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_park_code_source
     ON usgs_trail_elevations (park_code, source);
-CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_status_source 
+CREATE INDEX IF NOT EXISTS idx_usgs_trail_elevations_status_source
     ON usgs_trail_elevations (collection_status, source);
 
 -- Add table comments

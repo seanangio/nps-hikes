@@ -9,25 +9,25 @@ CREATE TABLE IF NOT EXISTS gmaps_hiking_locations (
     latitude DECIMAL(10,8),
     longitude DECIMAL(11,8),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
-    CONSTRAINT fk_gmaps_hiking_locations_park_code_parks 
+
+    CONSTRAINT fk_gmaps_hiking_locations_park_code_parks
         FOREIGN KEY (park_code) REFERENCES parks(park_code),
-    
+
     -- Coordinate validation constraints
     CONSTRAINT chk_gmaps_latitude CHECK (latitude BETWEEN -90 AND 90),
     CONSTRAINT chk_gmaps_longitude CHECK (longitude BETWEEN -180 AND 180)
 );
 
 -- Create performance indexes
-CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_park_code 
+CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_park_code
     ON gmaps_hiking_locations (park_code);
-CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_created_at 
+CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_created_at
     ON gmaps_hiking_locations (created_at);
-CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_location_name 
+CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_location_name
     ON gmaps_hiking_locations (location_name);
 
 -- Create composite indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_park_code_location 
+CREATE INDEX IF NOT EXISTS idx_gmaps_hiking_locations_park_code_location
     ON gmaps_hiking_locations (park_code, location_name);
 
 -- Add table comments

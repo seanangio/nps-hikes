@@ -220,7 +220,7 @@ class TrailMatcher:
         # Query TNM trails for this park
         query = f"""
         SELECT name, length_miles as length_miles, geometry
-        FROM tnm_hikes 
+        FROM tnm_hikes
         WHERE park_code = '{park_code}'
         """
 
@@ -278,7 +278,7 @@ class TrailMatcher:
         # Query OSM trails for this park
         query = f"""
         SELECT name, length_miles, geometry
-        FROM osm_hikes 
+        FROM osm_hikes
         WHERE park_code = '{park_code}'
         """
 

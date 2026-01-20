@@ -1,7 +1,7 @@
 -- Comprehensive missing data summary across all tables
 -- Shows data completeness percentages for key fields
 
-SELECT 
+SELECT
     'parks' as table_name,
     COUNT(*) as total_records,
     ROUND((COUNT(park_code) * 100.0 / COUNT(*))::numeric, 1) || '%' as park_code_complete,
@@ -12,7 +12,7 @@ FROM parks
 
 UNION ALL
 
-SELECT 
+SELECT
     'park_boundaries' as table_name,
     COUNT(*) as total_records,
     ROUND((COUNT(park_code) * 100.0 / COUNT(*))::numeric, 1) || '%' as park_code_complete,
@@ -23,7 +23,7 @@ FROM park_boundaries
 
 UNION ALL
 
-SELECT 
+SELECT
     'osm_hikes' as table_name,
     COUNT(*) as total_records,
     ROUND((COUNT(park_code) * 100.0 / COUNT(*))::numeric, 1) || '%' as park_code_complete,

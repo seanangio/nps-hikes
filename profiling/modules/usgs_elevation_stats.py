@@ -35,7 +35,9 @@ class USGSElevationProfiler:
         with self.engine.connect() as conn:
             df = pd.read_sql(query, conn)
 
-        save_results(df, "trail_stats.csv", output_dir="profiling_results/usgs_elevation")
+        save_results(
+            df, "trail_stats.csv", output_dir="profiling_results/usgs_elevation"
+        )
         self.logger.success(f"Trail elevation stats: {len(df)} trails analyzed")
 
         return {"trail_count": len(df)}
@@ -49,7 +51,9 @@ class USGSElevationProfiler:
         with self.engine.connect() as conn:
             df = pd.read_sql(query, conn)
 
-        save_results(df, "park_summary.csv", output_dir="profiling_results/usgs_elevation")
+        save_results(
+            df, "park_summary.csv", output_dir="profiling_results/usgs_elevation"
+        )
         self.logger.success(f"Park elevation summary: {len(df)} parks analyzed")
 
         return {"park_count": len(df)}
@@ -63,7 +67,9 @@ class USGSElevationProfiler:
         with self.engine.connect() as conn:
             df = pd.read_sql(query, conn)
 
-        save_results(df, "trail_grades.csv", output_dir="profiling_results/usgs_elevation")
+        save_results(
+            df, "trail_grades.csv", output_dir="profiling_results/usgs_elevation"
+        )
         self.logger.success(f"Trail grades: {len(df)} trails analyzed")
 
         return {"trail_count": len(df)}
@@ -77,7 +83,9 @@ class USGSElevationProfiler:
         with self.engine.connect() as conn:
             df = pd.read_sql(query, conn)
 
-        save_results(df, "steepest_segments.csv", output_dir="profiling_results/usgs_elevation")
+        save_results(
+            df, "steepest_segments.csv", output_dir="profiling_results/usgs_elevation"
+        )
         self.logger.success(f"Steepest segments: {len(df)} segments analyzed")
 
         return {"segment_count": len(df)}
@@ -91,7 +99,9 @@ class USGSElevationProfiler:
         with self.engine.connect() as conn:
             df = pd.read_sql(query, conn)
 
-        save_results(df, "data_quality.csv", output_dir="profiling_results/usgs_elevation")
+        save_results(
+            df, "data_quality.csv", output_dir="profiling_results/usgs_elevation"
+        )
         self.logger.success(f"Data quality: {len(df)} parks analyzed")
 
         return {"park_count": len(df)}

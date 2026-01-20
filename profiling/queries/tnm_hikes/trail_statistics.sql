@@ -2,7 +2,7 @@
 -- This query provides comprehensive statistics for TNM hiking trails by park
 -- Uses parks table as base to show ALL parks, including those with 0 trails
 
-SELECT 
+SELECT
     p.park_code,
     p.full_name,
     COALESCE(COUNT(t.permanent_identifier), 0) as trail_count,
@@ -20,4 +20,4 @@ SELECT
 FROM parks p
 LEFT JOIN tnm_hikes t ON p.park_code = t.park_code
 GROUP BY p.park_code, p.full_name
-ORDER BY trail_count DESC, p.park_code; 
+ORDER BY trail_count DESC, p.park_code;

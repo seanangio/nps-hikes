@@ -2,7 +2,7 @@
 -- Provides overview of elevation data collection across all parks
 
 WITH stats AS (
-    SELECT 
+    SELECT
         COUNT(DISTINCT park_code) as total_parks,
         COUNT(*) as total_trails,
         COUNT(CASE WHEN collection_status = 'COMPLETE' THEN 1 END) as complete_trails,
@@ -12,63 +12,63 @@ WITH stats AS (
         SUM(failed_points_count) as total_failed_points
     FROM usgs_trail_elevations
 )
-SELECT 
+SELECT
     'Total Parks' as metric,
     total_parks::text as value
 FROM stats
 
 UNION ALL
 
-SELECT 
+SELECT
     'Total Trails' as metric,
     total_trails::text as value
 FROM stats
 
 UNION ALL
 
-SELECT 
+SELECT
     'Complete Collections' as metric,
     complete_trails::text as value
 FROM stats
 
 UNION ALL
 
-SELECT 
+SELECT
     'Partial Collections' as metric,
     partial_trails::text as value
 FROM stats
 
 UNION ALL
 
-SELECT 
+SELECT
     'Failed Collections' as metric,
     failed_trails::text as value
 FROM stats
 
 UNION ALL
 
-SELECT 
+SELECT
     'Total Elevation Points' as metric,
     total_elevation_points::text as value
 FROM stats
 
 UNION ALL
 
-SELECT 
+SELECT
     'Failed Elevation Points' as metric,
     total_failed_points::text as value
 FROM stats
 
 UNION ALL
 
-SELECT 
+SELECT
     'Success Rate (%)' as metric,
     ROUND(complete_trails::numeric / total_trails * 100, 2)::text as value
 FROM stats
 
 UNION ALL
 
-SELECT 
+SELECT
     'Data Completeness (%)' as metric,
     ROUND((total_elevation_points - total_failed_points)::numeric / NULLIF(total_elevation_points, 0) * 100, 2)::text as value
 FROM stats

@@ -1228,7 +1228,7 @@ def main():
         epilog="""
 Examples:
   %(prog)s                              # Process all parks, skip existing data
-  %(prog)s --test-limit 3               # Test with first 3 parks only  
+  %(prog)s --test-limit 3               # Test with first 3 parks only
   %(prog)s --force-refresh              # Reprocess all parks, overwrite existing
   %(prog)s --delay 2.0                  # Use 2 second delays between API calls
   %(prog)s --test-limit 5 --force-refresh  # Test mode with forced refresh
