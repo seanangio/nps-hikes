@@ -120,6 +120,13 @@ PROFILING_MODULES = {
         "dependencies": ["usgs_elevation_stats"],
         "output_prefix": "usgs_elevation_viz",
     },
+    "trail_3d_viz": {
+        "enabled": True,
+        "description": "Interactive 3D trail elevation visualizations",
+        "queries": [],  # visualization is done in Python with Plotly
+        "dependencies": ["usgs_elevation_stats"],
+        "output_prefix": "trail_3d_viz",
+    },
 }
 
 # Global profiling settings
