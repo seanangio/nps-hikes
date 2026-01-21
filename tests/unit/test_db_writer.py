@@ -300,9 +300,11 @@ class TestParksOperations:
 
         df = pd.DataFrame({"park_code": ["test"], "park_name": ["Test Park"]})
 
-        with patch.object(writer, "ensure_table_exists") as mock_ensure, patch.object(
-            writer, "_check_primary_key"
-        ) as mock_check_pk, patch.object(writer, "_upsert_parks") as mock_upsert:
+        with (
+            patch.object(writer, "ensure_table_exists") as mock_ensure,
+            patch.object(writer, "_check_primary_key") as mock_check_pk,
+            patch.object(writer, "_upsert_parks") as mock_upsert,
+        ):
 
             writer.write_parks(df, mode="upsert")
 
@@ -317,9 +319,10 @@ class TestParksOperations:
 
         df = pd.DataFrame({"park_code": ["test"], "park_name": ["Test Park"]})
 
-        with patch.object(writer, "ensure_table_exists") as mock_ensure, patch.object(
-            writer, "_append_dataframe"
-        ) as mock_append:
+        with (
+            patch.object(writer, "ensure_table_exists") as mock_ensure,
+            patch.object(writer, "_append_dataframe") as mock_append,
+        ):
 
             writer.write_parks(df, mode="append")
 
@@ -477,9 +480,10 @@ class TestHikesOperations:
             {"osm_id": [123], "park_code": ["test"], "geometry": [Point(0, 0)]}
         )
 
-        with patch.object(writer, "ensure_table_exists") as mock_ensure, patch.object(
-            writer, "_append_geodataframe"
-        ) as mock_append:
+        with (
+            patch.object(writer, "ensure_table_exists") as mock_ensure,
+            patch.object(writer, "_append_geodataframe") as mock_append,
+        ):
 
             writer.write_osm_hikes(gdf, mode="append")
 

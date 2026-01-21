@@ -168,8 +168,9 @@ def sample_park_boundary():
 @pytest.fixture
 def mock_collector():
     """Create a mock TNM collector for testing."""
-    with patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine"), patch(
-        "scripts.collectors.tnm_hikes_collector.DatabaseWriter"
+    with (
+        patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine"),
+        patch("scripts.collectors.tnm_hikes_collector.DatabaseWriter"),
     ):
 
         collector = TNMHikesCollector(
@@ -192,8 +193,9 @@ class TestTNMHikesCollector:
 
     def test_init(self):
         """Test collector initialization."""
-        with patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine"), patch(
-            "scripts.collectors.tnm_hikes_collector.DatabaseWriter"
+        with (
+            patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine"),
+            patch("scripts.collectors.tnm_hikes_collector.DatabaseWriter"),
         ):
 
             collector = TNMHikesCollector(
@@ -366,9 +368,10 @@ class TestTNMHikesCollector:
             crs="EPSG:4326",
         )
 
-        with patch("os.path.exists", return_value=False), patch.object(
-            test_gdf, "to_file"
-        ) as mock_to_file:
+        with (
+            patch("os.path.exists", return_value=False),
+            patch.object(test_gdf, "to_file") as mock_to_file,
+        ):
             mock_collector.save_to_gpkg(test_gdf, append=False)
 
             # Should call to_file on the GeoDataFrame
@@ -376,19 +379,17 @@ class TestTNMHikesCollector:
 
     def test_process_trails_full_pipeline(self, mock_collector, sample_park_boundary):
         """Test the complete trail processing pipeline."""
-        with patch.object(mock_collector, "query_tnm_api") as mock_query, patch.object(
-            mock_collector, "load_trails_to_geodataframe"
-        ) as mock_load, patch.object(
-            mock_collector, "filter_named_trails"
-        ) as mock_filter, patch.object(
-            mock_collector, "clip_trails_to_boundary"
-        ) as mock_clip, patch.object(
-            mock_collector, "aggregate_trails_by_name"
-        ) as mock_aggregate, patch.object(
-            mock_collector, "filter_by_minimum_length"
-        ) as mock_length_filter, patch.object(
-            mock_collector, "add_metadata"
-        ) as mock_metadata:
+        with (
+            patch.object(mock_collector, "query_tnm_api") as mock_query,
+            patch.object(mock_collector, "load_trails_to_geodataframe") as mock_load,
+            patch.object(mock_collector, "filter_named_trails") as mock_filter,
+            patch.object(mock_collector, "clip_trails_to_boundary") as mock_clip,
+            patch.object(mock_collector, "aggregate_trails_by_name") as mock_aggregate,
+            patch.object(
+                mock_collector, "filter_by_minimum_length"
+            ) as mock_length_filter,
+            patch.object(mock_collector, "add_metadata") as mock_metadata,
+        ):
 
             # Mock responses
             mock_query.return_value = {
