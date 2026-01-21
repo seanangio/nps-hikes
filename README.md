@@ -1,6 +1,6 @@
 # NPS Hikes - National Park Hiking Trail Data Collection & Analysis
 
-[![Unit Tests](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml) [![Python](https://img.shields.io/badge/python-3.13-blue)]()
+[![Unit Tests](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml) [![Python](https://img.shields.io/badge/python-3.12%2B-blue)]()
 
 A comprehensive Python project for collecting, validating, and analyzing hiking trail data from U.S. National Parks. The project combines official National Park Service (NPS) data with OpenStreetMap (OSM) trail information to create a rich dataset of park boundaries and hiking trails.
 
@@ -70,9 +70,10 @@ nps-hikes/
 ## 🛠️ Installation
 
 ### Prerequisites
-- Python 3.12+
+- Python 3.12+ (3.12.7 currently used, specified in `.python-version`)
 - PostgreSQL with PostGIS extension
 - NPS API key (free from [NPS API](https://www.nps.gov/subjects/developer/api-documentation.htm))
+- Optional: `pyenv` or `asdf` for automatic Python version management
 
 ### Setup
 
@@ -82,18 +83,47 @@ nps-hikes/
    cd nps-hikes
    ```
 
-2. **Install dependencies**
+2. **Set up Python environment**
+
+   The project requires Python 3.12+. Choose your preferred method:
+
+   **Using virtualenvwrapper:**
+   ```bash
+   mkvirtualenv -p python3.12 nps-hikes
+   workon nps-hikes
+   ```
+
+   **Using venv:**
+   ```bash
+   python3.12 -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+   **Using pyenv:**
+   ```bash
+   # pyenv will automatically use the version from .python-version
+   pyenv install 3.12  # If not already installed
+   python --version    # Should show Python 3.12.x
+   ```
+
+3. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Configure environment**
+4. **Configure environment variables**
+
+   Create a `.env` file with your credentials:
    ```bash
    cp .env.example .env
-   # Edit .env with your database credentials and NPS API key
    ```
 
-4. **Set up the database**
+   Edit `.env` and replace the placeholder values:
+   - `NPS_API_KEY`: Your API key from [NPS Developer Portal](https://www.nps.gov/subjects/developer/get-started.htm)
+   - `NPS_USER_EMAIL`: Your email address
+   - `POSTGRES_*`: Your PostgreSQL database credentials
+
+5. **Set up the database**
    ```sql
    CREATE DATABASE nps_hikes;
    CREATE EXTENSION postgis;
