@@ -193,6 +193,8 @@ jupyterlab-widgets==3.0.15
     # via ipywidgets
 kiwisolver==1.4.8
     # via matplotlib
+librt==0.7.8
+    # via mypy
 markupsafe==3.0.2
     # via
     #   jinja2
@@ -205,8 +207,12 @@ matplotlib-inline==0.1.7
     #   ipython
 mistune==3.1.3
     # via nbconvert
+mypy==1.19.1
+    # via -r requirements-dev.in
 mypy-extensions==1.1.0
-    # via black
+    # via
+    #   black
+    #   mypy
 narwhals==2.15.0
     # via plotly
 nbclient==0.10.2
@@ -273,7 +279,9 @@ pandocfilters==1.5.1
 parso==0.8.4
     # via jedi
 pathspec==0.12.1
-    # via black
+    # via
+    #   black
+    #   mypy
 pexpect==4.9.0
     # via ipython
 pillow==11.3.0
@@ -444,6 +452,7 @@ typing-extensions==4.14.0
     # via
     #   anyio
     #   beautifulsoup4
+    #   mypy
     #   referencing
     #   sqlalchemy
 tzdata==2025.2
