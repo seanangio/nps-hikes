@@ -10,22 +10,32 @@ import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-# Try to import config, but use minimal defaults if it fails
+if TYPE_CHECKING:
+    from config.settings import Config
+
+
+# Minimal fallback values only if config unavailable
+class _FallbackConfig:
+    LOG_LEVEL = "INFO"
+    LOG_MAX_BYTES = 5 * 1024 * 1024
+    LOG_BACKUP_COUNT = 3
+    NPS_LOG_FILE = "logs/nps_collector.log"
+    OSM_LOG_FILE = "logs/osm_collector.log"
+    TNM_LOG_FILE = "logs/tnm_collector.log"
+
+
+# Type annotation tells mypy this can be either Config or _FallbackConfig
+config: Config | _FallbackConfig = _FallbackConfig()
+
+# Try to import the real config, fall back to _FallbackConfig if import fails
 try:
-    from config.settings import config
-except Exception:
-    # Minimal fallback values only if config unavailable
-    class _FallbackConfig:
-        LOG_LEVEL = "INFO"
-        LOG_MAX_BYTES = 5 * 1024 * 1024
-        LOG_BACKUP_COUNT = 3
-        NPS_LOG_FILE = "logs/nps_collector.log"
-        OSM_LOG_FILE = "logs/osm_collector.log"
-        TNM_LOG_FILE = "logs/tnm_collector.log"
+    from config.settings import config as imported_config
 
-    config = _FallbackConfig()
+    config = imported_config
+except Exception:
+    pass  # Keep using fallback
 
 
 def setup_logging(

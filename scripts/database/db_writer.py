@@ -42,7 +42,7 @@ Example Usage:
 
 import logging
 import os
-from typing import Set, Optional, Union, Dict, Any, List
+from typing import Set, Optional, Union, Dict, Any, List, TYPE_CHECKING
 import pandas as pd
 import geopandas as gpd
 import shapely.geometry
@@ -64,18 +64,25 @@ from sqlalchemy.dialects.postgresql import insert
 from geoalchemy2 import Geometry
 from sqlalchemy.exc import SQLAlchemyError
 
+if TYPE_CHECKING:
+    from config.settings import Config
+
+# Type annotation allows config to be Config or None
+config: Config | None = None
+CONFIG_AVAILABLE = False
+
 # Try to import config, but handle gracefully if it fails
 try:
     import sys
     import os
 
     sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
-    from config.settings import config
+    from config.settings import config as imported_config
 
+    config = imported_config
     CONFIG_AVAILABLE = True
 except Exception:
-    CONFIG_AVAILABLE = False
-    config = None
+    pass  # config remains None
 
 
 def get_postgres_engine() -> Engine:
@@ -961,7 +968,7 @@ class DatabaseWriter:
                     {"park_code": park_code},
                 )
                 count = result.scalar()
-                return count > 0
+                return count is not None and count > 0
         except Exception as e:
             self.logger.error(f"Failed to check if park {park_code} exists: {e}")
             return False
