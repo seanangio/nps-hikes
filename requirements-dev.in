@@ -5,3 +5,4 @@ pytest-cov
 black
 pre-commit
 mypy
+types-requests

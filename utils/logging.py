@@ -29,11 +29,11 @@ except Exception:
 
 
 def setup_logging(
-    log_level: str = None,
-    log_file: str = None,
-    logger_name: str = None,
-    max_bytes: int = None,
-    backup_count: int = None,
+    log_level: str | None = None,
+    log_file: str | None = None,
+    logger_name: str | None = None,
+    max_bytes: int | None = None,
+    backup_count: int | None = None,
 ) -> logging.Logger:
     """
     Configure logging for the application with both file and console output.
@@ -122,7 +122,7 @@ def setup_logging(
     return logger
 
 
-def setup_nps_collector_logging(log_level: str = None) -> logging.Logger:
+def setup_nps_collector_logging(log_level: str | None = None) -> logging.Logger:
     """
     Convenience function to set up logging specifically for nps_collector.py
 
@@ -137,7 +137,7 @@ def setup_nps_collector_logging(log_level: str = None) -> logging.Logger:
     )
 
 
-def setup_osm_collector_logging(log_level: str = None) -> logging.Logger:
+def setup_osm_collector_logging(log_level: str | None = None) -> logging.Logger:
     """
     Convenience function to set up logging specifically for osm_hikes_collector.py
 
@@ -152,7 +152,7 @@ def setup_osm_collector_logging(log_level: str = None) -> logging.Logger:
     )
 
 
-def setup_tnm_collector_logging(log_level: str = None) -> logging.Logger:
+def setup_tnm_collector_logging(log_level: str | None = None) -> logging.Logger:
     """
     Convenience function to set up logging specifically for tnm_hikes_collector.py
 

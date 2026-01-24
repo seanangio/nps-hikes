@@ -301,7 +301,7 @@ class DatabaseWriter:
             RuntimeError: If circular dependency is detected
             Exception: If any table creation fails
         """
-        created_tables = set()
+        created_tables: set[str] = set()
 
         while len(created_tables) < len(self.table_dependencies):
             progress_made = False

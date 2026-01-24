@@ -42,7 +42,7 @@ import os
 import sys
 import time
 import argparse
-from typing import Dict, List, Optional, Tuple
+from typing import cast, Dict, List, Optional, Tuple
 
 # Third-party imports
 import requests
@@ -78,7 +78,7 @@ class NPSDataCollector:
     spatial boundary data.
     """
 
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str | None = None):
         """
         Initialize the collector with API credentials.
 
@@ -155,8 +155,11 @@ class NPSDataCollector:
             raise
 
     def query_park_api(
-        self, park_name: str, max_retries: int = None, retry_delay: float = None
-    ) -> Optional[Dict]:
+        self,
+        park_name: str,
+        max_retries: int | None = None,
+        retry_delay: float | None = None,
+    ) -> dict | None:
         """
         Query the NPS API for a specific park using fuzzy matching with retry logic.
 
@@ -329,10 +332,10 @@ class NPSDataCollector:
     def process_park_data(
         self,
         csv_path: str,
-        delay_seconds: float = None,
+        delay_seconds: float | None = None,
         limit_for_testing: Optional[int] = None,
         force_refresh: bool = False,
-        output_path: str = None,
+        output_path: str | None = None,
     ) -> pd.DataFrame:
         """
         Main orchestration method that processes all parks and builds the final dataset.
@@ -509,8 +512,11 @@ class NPSDataCollector:
     # ==================================
 
     def query_park_boundaries_api(
-        self, park_code: str, max_retries: int = None, retry_delay: float = None
-    ) -> Optional[Dict]:
+        self,
+        park_code: str,
+        max_retries: int | None = None,
+        retry_delay: float | None = None,
+    ) -> dict | None:
         """
         Query the NPS API for park boundary spatial data with retry logic.
 
@@ -761,10 +767,10 @@ class NPSDataCollector:
     def process_park_boundaries(
         self,
         park_codes: List[str],
-        delay_seconds: float = None,
+        delay_seconds: float | None = None,
         limit_for_testing: Optional[int] = None,
         force_refresh: bool = False,
-        output_path: str = None,
+        output_path: str | None = None,
     ) -> gpd.GeoDataFrame:
         """
         Process boundary data for a list of park codes.
@@ -1047,8 +1053,9 @@ class NPSDataCollector:
             return []
 
         # Remove duplicates to avoid redundant API calls
-        unique_park_codes = (
-            pd.Series(park_data[valid_mask]["park_code"]).drop_duplicates().tolist()
+        unique_park_codes = cast(
+            list[str],
+            pd.Series(park_data[valid_mask]["park_code"]).drop_duplicates().tolist(),
         )
 
         # Log extraction results
