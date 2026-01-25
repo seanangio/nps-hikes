@@ -307,8 +307,8 @@ if __name__ == "__main__":
         import logging
 
         logging.getLogger().setLevel(logging.DEBUG)
-        # Also update our orchestrator logger
-        orchestrator.logger.setLevel(logging.DEBUG)
+        # Also update the orchestrator logger specifically
+        logging.getLogger("orchestrator").setLevel(logging.DEBUG)
 
     if args.modules:
         # Run specific modules

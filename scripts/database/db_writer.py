@@ -40,6 +40,8 @@ Example Usage:
     completed_parks = writer.get_completed_records('osm_hikes', 'park_code')
 """
 
+from __future__ import annotations
+
 import logging
 import os
 from typing import Set, Optional, Union, Dict, Any, List, TYPE_CHECKING

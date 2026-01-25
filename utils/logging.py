@@ -6,6 +6,8 @@ collection scripts and modules in the project. It handles both file and
 console output with proper formatting and rotation.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import sys
