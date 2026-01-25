@@ -8,27 +8,25 @@ Only collects data - no analysis or visualization.
 
 from __future__ import annotations
 
-import requests
+import argparse
+import json
+import logging
+import os
+import sys
 import time
+from typing import Dict, List, Tuple
+
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-import geopandas as gpd
-from shapely.geometry import Point, LineString
+import requests
+from shapely.geometry import LineString, Point
 from sqlalchemy import text
-import json
-import os
-import logging
-from typing import List, Dict, Tuple
-import argparse
-
-# Add project root to path for imports
-import sys
-import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
-from scripts.database.db_writer import get_postgres_engine, DatabaseWriter
+from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from utils.logging import setup_logging
 
 

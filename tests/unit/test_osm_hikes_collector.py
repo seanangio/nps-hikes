@@ -5,16 +5,17 @@ Tests cover data validation, trail processing, and core functionality
 of the OSMHikesCollector class.
 """
 
-import pytest
-import pandas as pd
-import geopandas as gpd
-from shapely.geometry import Point, LineString, MultiLineString
-from unittest.mock import Mock, patch, MagicMock
-import tempfile
 import os
+import tempfile
+from unittest.mock import MagicMock, Mock, patch
 
-from scripts.collectors.osm_hikes_collector import OSMHikesCollector
+import geopandas as gpd
+import pandas as pd
+import pytest
+from shapely.geometry import LineString, MultiLineString, Point
+
 from config.settings import config
+from scripts.collectors.osm_hikes_collector import OSMHikesCollector
 
 
 @pytest.fixture

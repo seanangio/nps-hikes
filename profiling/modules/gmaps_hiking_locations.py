@@ -6,17 +6,19 @@ This module provides analysis and profiling capabilities for Google Maps hiking
 location data, including summary statistics and park-level analysis.
 """
 
+from typing import Any, Dict, Optional
+
+import pandas as pd
+
+from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
+    ProfilingLogger,
     get_db_connection,
     load_sql_query,
+    print_results_summary,
     run_query,
     save_results,
-    print_results_summary,
-    ProfilingLogger,
 )
-from ..config import PROFILING_MODULES, PROFILING_SETTINGS
-import pandas as pd
-from typing import Dict, Any, Optional
 
 
 class GMapsHikingLocationsProfiler:

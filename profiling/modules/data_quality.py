@@ -6,15 +6,15 @@ the parks, park_boundaries, and osm_hikes tables. It focuses on referential
 integrity, consistency, and duplicate detection that spans multiple tables.
 """
 
+from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
+    ProfilingLogger,
     get_db_connection,
     load_sql_query,
+    print_results_summary,
     run_query,
     save_results,
-    print_results_summary,
-    ProfilingLogger,
 )
-from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 
 
 class DataQualityProfiler:

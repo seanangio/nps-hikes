@@ -4,9 +4,10 @@ Enhanced utilities for the profiling system.
 
 import os
 import sys
+
 import pandas as pd
-from sqlalchemy import text
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 # Add project root to path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
@@ -99,6 +100,7 @@ class ProfilingLogger:
         self.module_name = module_name
         # Set up proper logging alongside console output
         import logging
+
         from utils.logging import setup_logging
 
         self.logger = setup_logging(

@@ -6,15 +6,15 @@ populated by nps_collector.py. It provides insights into regional distributions,
 quality, and boundary coverage from NPS API sources.
 """
 
+from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
+    ProfilingLogger,
     get_db_connection,
     load_sql_query,
+    print_results_summary,
     run_query,
     save_results,
-    print_results_summary,
-    ProfilingLogger,
 )
-from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 
 
 class NPSGeographyProfiler:

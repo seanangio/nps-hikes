@@ -5,6 +5,7 @@ Test script to verify configuration management is working correctly.
 
 import os
 import sys
+
 from dotenv import load_dotenv
 
 # Explicitly load .env from the project root

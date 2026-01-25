@@ -7,19 +7,20 @@ including elevation profile charts and quality metrics.
 """
 
 import json
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-from sqlalchemy import text
 import os
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sqlalchemy import text
+
+from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
+    ProfilingLogger,
     get_db_connection,
     save_results,
-    ProfilingLogger,
 )
-from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 
 
 class USGSTrailElevationProfiler:

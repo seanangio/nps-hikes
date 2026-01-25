@@ -23,17 +23,19 @@ import argparse
 import logging
 import os
 import sys
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Dict, List, Tuple, TypedDict
-import xml.etree.ElementTree as ET
+
 import pandas as pd
 
 # Add project root to path for imports
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
+from sqlalchemy import text
+
 from config.settings import config
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
-from sqlalchemy import text
 
 # Configure logging using centralized utility
 from utils.logging import setup_logging

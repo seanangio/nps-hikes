@@ -39,33 +39,28 @@ Stage 2 - Spatial Boundary Data Collection:
 
 from __future__ import annotations
 
-# Standard library imports
+import argparse
 import os
 import sys
 import time
-import argparse
-from typing import cast, Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple, cast
 
-# Third-party imports
-import requests
-import pandas as pd
 import geopandas as gpd
-from shapely.geometry import shape, Point
+import pandas as pd
+import requests
 from dotenv import load_dotenv
+from shapely.geometry import Point, shape
 
 # Load .env before local imports that need env vars
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
-# Local application imports
-import sys
 import os
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
-from scripts.database.db_writer import get_postgres_engine, DatabaseWriter
-
-# Configure logging using centralized utility
+from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from utils.logging import setup_nps_collector_logging
 
 logger = setup_nps_collector_logging()

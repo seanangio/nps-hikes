@@ -7,25 +7,27 @@ to validate spatial coverage and data quality.
 
 import os
 import sys
+
 from dotenv import load_dotenv
 
 # Load environment variables before importing config-dependent modules
 load_dotenv()
 
-import sys
 import os
+import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from ..utils import get_db_connection, ProfilingLogger
-from ..config import PROFILING_MODULES, PROFILING_SETTINGS
-import pandas as pd
 import geopandas as gpd
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from sqlalchemy import text
-from shapely.geometry import Point, box
+import matplotlib.pyplot as plt
+import pandas as pd
 from shapely import wkb
+from shapely.geometry import Point, box
+from sqlalchemy import text
+
+from ..config import PROFILING_MODULES, PROFILING_SETTINGS
+from ..utils import ProfilingLogger, get_db_connection
 
 
 class VisualizationProfiler:

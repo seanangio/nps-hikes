@@ -29,35 +29,32 @@ Data Processing Pipeline:
 
 from __future__ import annotations
 
-# Standard library imports
 import argparse
 import logging
 import os
 import sys
-from datetime import datetime, timezone
-from typing import List, Set, Dict, Any
 import time
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Set
 
-# Third-party imports
 import geopandas as gpd
 import pandas as pd
 import requests
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString
+from dotenv import load_dotenv
+from shapely.geometry import LineString, MultiLineString, MultiPolygon, Polygon
 from shapely.ops import linemerge
 from sqlalchemy import Engine
-from dotenv import load_dotenv
 
 # Load .env before local imports that need env vars
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
-# Local application imports
-import sys
 import os
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
-from scripts.database.db_writer import get_postgres_engine, DatabaseWriter
+from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from utils.logging import setup_tnm_collector_logging
 
 

@@ -5,15 +5,15 @@ This module analyzes data from the osm_hikes table populated by osm_hikes_collec
 It provides insights into trail counts, lengths, types, and data quality from OSM sources.
 """
 
+from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
+    ProfilingLogger,
     get_db_connection,
     load_sql_query,
+    print_results_summary,
     run_query,
     save_results,
-    print_results_summary,
-    ProfilingLogger,
 )
-from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 
 
 class OSMHikesProfiler:

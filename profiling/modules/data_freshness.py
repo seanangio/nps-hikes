@@ -18,10 +18,11 @@ from __future__ import annotations
 import os
 import sys
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Any
+from typing import Any, Dict, List, Tuple
+
 import pandas as pd
-from sqlalchemy import Engine, text
 from dotenv import load_dotenv
+from sqlalchemy import Engine, text
 
 # Load environment variables
 load_dotenv(

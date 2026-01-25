@@ -17,15 +17,16 @@ This will:
 """
 
 import logging
-import sys
 import os
-from typing import Dict, List, Any
+import sys
+from typing import Any, Dict, List
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from scripts.database.db_writer import get_postgres_engine
-from sqlalchemy import text, inspect
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
+
+from scripts.database.db_writer import get_postgres_engine
 
 
 def setup_logging():

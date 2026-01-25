@@ -38,16 +38,17 @@ Examples:
   python profiling/orchestrator.py --verbose osm_hikes
 """
 
-import sys
 import argparse
-from typing import List, Dict, Any, cast
+import sys
+from typing import Any, Dict, List, cast
+
 from dotenv import load_dotenv
 
 # Load environment variables before importing config-dependent modules
 load_dotenv()
 
-import sys
 import os
+import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 

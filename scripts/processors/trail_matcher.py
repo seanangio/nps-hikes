@@ -15,27 +15,24 @@ Usage:
 """
 
 import argparse
+import difflib
 import logging
 import math
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional, TypedDict
-import pandas as pd
+from typing import Dict, List, Optional, Tuple, TypedDict
+
 import geopandas as gpd
-from sqlalchemy import text
+import pandas as pd
 from shapely.geometry import Point
 from shapely.ops import nearest_points
-import difflib
-
-# Add project root to path for imports
-import sys
-import os
+from sqlalchemy import text
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
-from scripts.database.db_writer import get_postgres_engine, DatabaseWriter
+from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from utils.logging import setup_logging
 
 

@@ -27,24 +27,25 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import re
-import webbrowser
 import argparse
+import os
+import re
+import sys
+import webbrowser
 from typing import Dict, List, Tuple
-from sqlalchemy import text
-import pandas as pd
-import geopandas as gpd
-from shapely.geometry import LineString
-import plotly.graph_objects as go
-import numpy as np
 
-from ..utils import (
-    get_db_connection,
-    ProfilingLogger,
-)
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+from shapely.geometry import LineString
+from sqlalchemy import text
+
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
+from ..utils import (
+    ProfilingLogger,
+    get_db_connection,
+)
 
 
 class Trail3DVisualizer:

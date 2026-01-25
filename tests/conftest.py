@@ -5,10 +5,11 @@ This file contains pytest fixtures that can be used across all test modules.
 Fixtures defined here are automatically available to all test files.
 """
 
-import pytest
-import pandas as pd
 import os
 from unittest.mock import Mock, patch
+
+import pandas as pd
+import pytest
 from dotenv import load_dotenv
 
 # Load test environment variables (if any)

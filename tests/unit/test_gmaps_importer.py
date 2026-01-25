@@ -3,15 +3,16 @@
 Unit tests for Google Maps hiking locations importer.
 """
 
-import pytest
-import tempfile
 import os
-from unittest.mock import Mock, patch, MagicMock
-import pandas as pd
-from datetime import datetime
 
 # Add project root to path for imports
 import sys
+import tempfile
+from datetime import datetime
+from unittest.mock import MagicMock, Mock, patch
+
+import pandas as pd
+import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 

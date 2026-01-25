@@ -44,26 +44,27 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Set, Optional, Union, Dict, Any, List, TYPE_CHECKING
-import pandas as pd
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
+
 import geopandas as gpd
+import pandas as pd
 import shapely.geometry
+from geoalchemy2 import Geometry
 from sqlalchemy import (
-    create_engine,
-    Table,
-    MetaData,
     Column,
-    String,
-    Float,
-    Text,
-    text,
-    Engine,
-    inspect,
     DateTime,
+    Engine,
+    Float,
     ForeignKeyConstraint,
+    MetaData,
+    String,
+    Table,
+    Text,
+    create_engine,
+    inspect,
+    text,
 )
 from sqlalchemy.dialects.postgresql import insert
-from geoalchemy2 import Geometry
 from sqlalchemy.exc import SQLAlchemyError
 
 if TYPE_CHECKING:
@@ -75,8 +76,8 @@ CONFIG_AVAILABLE = False
 
 # Try to import config, but handle gracefully if it fails
 try:
-    import sys
     import os
+    import sys
 
     sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
     from config.settings import config as imported_config

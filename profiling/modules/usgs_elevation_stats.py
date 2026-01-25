@@ -7,15 +7,16 @@ including elevation statistics, grade analysis, and data quality metrics.
 """
 
 import os
+from typing import Any, Dict
+
 import pandas as pd
 from sqlalchemy import text
-from typing import Dict, Any
 
 from ..utils import (
-    get_db_connection,
-    save_results,
     ProfilingLogger,
+    get_db_connection,
     load_sql_query,
+    save_results,
 )
 
 
