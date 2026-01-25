@@ -22,7 +22,7 @@ import logging
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, TypedDict
 import xml.etree.ElementTree as ET
 import pandas as pd
 
@@ -43,6 +43,20 @@ logger = setup_logging(
 )
 
 
+class StatsDict(TypedDict):
+    """Statistics for import summary report."""
+
+    total_parks: int
+    total_valid_parks: int
+    total_locations: int
+    parks_skipped: int
+    locations_with_coords: int
+    locations_missing_coords: int
+    failed_locations: int
+    processing_time: float
+    missing_park_codes: list[str]
+
+
 class GMapsHikingImporter:
     """Import Google Maps hiking locations from KML files."""
 
@@ -61,7 +75,7 @@ class GMapsHikingImporter:
             self.db_writer = DatabaseWriter(self.engine, logger)
 
         # Statistics for summary report
-        self.stats = {
+        self.stats: StatsDict = {
             "total_parks": 0,
             "total_valid_parks": 0,
             "total_locations": 0,
@@ -108,7 +122,7 @@ class GMapsHikingImporter:
             logger.warning("No KML files found to process")
             return {}
 
-        all_parks_data = {}
+        all_parks_data: Dict[str, List[Dict]] = {}
 
         for kml_file_path in kml_files:
             logger.info(f"Processing KML file: {os.path.basename(kml_file_path)}")
@@ -140,14 +154,14 @@ class GMapsHikingImporter:
                     locations = []
 
                     for placemark in placemarks:
-                        location_name = placemark.find("kml:name", namespace)
-                        if location_name is None or not location_name.text:
+                        location_name_elem = placemark.find("kml:name", namespace)
+                        if location_name_elem is None or not location_name_elem.text:
                             logger.warning(
                                 f"Found placemark without name in {park_code}, skipping"
                             )
                             continue
 
-                        location_name = location_name.text.strip()
+                        location_name = location_name_elem.text.strip()
 
                         # Extract coordinates
                         coords_elem = placemark.find(".//kml:coordinates", namespace)
@@ -344,7 +358,7 @@ class GMapsHikingImporter:
                     {"park_code": park_code},
                 )
                 count = result.scalar()
-                return count > 0
+                return count is not None and count > 0
         except Exception as e:
             logger.error(
                 f"Failed to check if park {park_code} exists in parks table: {e}"
@@ -413,15 +427,11 @@ class GMapsHikingImporter:
             # Create DataFrame
             df = pd.DataFrame(valid_locations)
 
-            if self.write_db:
-                # Write to database
-                self.db_writer.write_gmaps_hiking_locations(df, mode="append")
-                logger.info(
-                    f"Imported {len(valid_locations)} locations for park {park_code}"
-                )
-            else:
-                # Return for CSV creation
-                return df
+            # Write to database
+            self.db_writer.write_gmaps_hiking_locations(df, mode="append")
+            logger.info(
+                f"Imported {len(valid_locations)} locations for park {park_code}"
+            )
 
         self.stats["total_locations"] += len(valid_locations)
 
