@@ -1,7 +1,23 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "nps-hikes"
-version = "1.0.0"
+dynamic = ["version"]
 requires-python = ">=3.12"
+license = {text = "CC-BY-NC-SA-4.0"}
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "mypy>=1.5.0",
+    "isort>=5.12.0",
+    "pre-commit>=3.3.0",
+    "setuptools-scm>=8.0.0",
+]
 
 [tool.black]
 line-length = 88
@@ -20,3 +36,21 @@ ignore_missing_imports = true  # Ignore libraries without type stubs
 
 [tool.isort]
 profile = "black"
+
+[tool.setuptools]
+packages = []
+
+[tool.setuptools_scm]
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", "*/venv/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
