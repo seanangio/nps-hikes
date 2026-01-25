@@ -42,7 +42,7 @@ import os
 import sys
 import time
 import argparse
-from typing import cast, Dict, List, Optional, Tuple
+from typing import cast, Callable, Dict, List, Optional, Tuple, Union
 
 # Third-party imports
 import requests
@@ -1154,7 +1154,8 @@ class NPSDataCollector:
             unique_values = sorted(set(all_values))
             return " / ".join(unique_values)
 
-        agg_dict = {}
+        # Type annotation: pandas agg accepts both callable functions and strings
+        agg_dict: Dict[str, Union[Callable, str]] = {}
         for col in df.columns:
             if col in ["park_code"]:
                 continue

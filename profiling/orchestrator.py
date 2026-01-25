@@ -40,7 +40,7 @@ Examples:
 
 import sys
 import argparse
-from typing import List, Dict, Any
+from typing import List, Dict, Any, cast
 from dotenv import load_dotenv
 
 # Load environment variables before importing config-dependent modules
@@ -66,7 +66,7 @@ class ProfilingOrchestrator:
     def _check_dependencies(self, module_name: str) -> bool:
         """Check if module dependencies are satisfied."""
         module_config = PROFILING_MODULES[module_name]
-        dependencies = module_config.get("dependencies", [])
+        dependencies: List[str] = cast(List[str], module_config.get("dependencies", []))
 
         for dep in dependencies:
             if dep not in self.results:
@@ -199,9 +199,9 @@ class ProfilingOrchestrator:
         if module_name not in PROFILING_MODULES:
             return []
 
-        all_deps = []
+        all_deps: List[str] = []
         module_config = PROFILING_MODULES[module_name]
-        direct_deps = module_config.get("dependencies", [])
+        direct_deps: List[str] = cast(List[str], module_config.get("dependencies", []))
 
         for dep in direct_deps:
             # Get dependencies of dependencies (recursive)
