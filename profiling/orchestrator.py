@@ -58,7 +58,7 @@ from profiling.utils import ProfilingLogger
 class ProfilingOrchestrator:
     """Main orchestrator for profiling operations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = ProfilingLogger("orchestrator")
         self.results: Dict[str, Any] = {}
         self.failed_modules: List[str] = []

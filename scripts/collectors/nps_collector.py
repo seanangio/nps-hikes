@@ -181,7 +181,7 @@ class NPSDataCollector:
         # Build the API endpoint URL and parameters once
         endpoint = f"{self.base_url}/parks"
         search_query = f"{park_name} National Park"
-        params = {
+        params: Dict[str, Union[str, int]] = {
             "q": search_query,
             "limit": config.API_RESULT_LIMIT,  # Get multiple results to find the best match
             "sort": "-relevanceScore",
