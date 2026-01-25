@@ -25,7 +25,7 @@ class GMapsHikingLocationsProfiler:
     def __init__(self):
         self.config = PROFILING_MODULES.get("gmaps_hiking_locations", {})
         self.logger = ProfilingLogger("gmaps_hiking_locations")
-        self.results = {}
+        self.results: Dict[str, Any] = {}
 
     def run_basic_summary(self):
         """Run basic summary analysis."""
@@ -115,7 +115,7 @@ class GMapsHikingLocationsProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_all(self):
+    def run_all(self) -> Dict[str, Any]:
         """Run all profiling methods."""
         try:
             self.logger.info("Starting Google Maps hiking locations profiling...")

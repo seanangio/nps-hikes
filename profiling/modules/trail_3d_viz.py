@@ -549,7 +549,10 @@ class Trail3DVisualizer:
         return self.create_3d_visualization(park_code, trail_name, z_exaggeration)
 
     def run_all(
-        self, park_code: str = None, trail_name: str = None, z_exaggeration: float = 5.0
+        self,
+        park_code: str | None = None,
+        trail_name: str | None = None,
+        z_exaggeration: float = 5.0,
     ):
         """
         Run 3D visualization profiling.
@@ -580,7 +583,9 @@ class Trail3DVisualizer:
 
 # Convenience function
 def run_trail_3d_viz(
-    park_code: str = None, trail_name: str = None, z_exaggeration: float = 5.0
+    park_code: str | None = None,
+    trail_name: str | None = None,
+    z_exaggeration: float = 5.0,
 ):
     """Convenience function to run trail 3D visualization profiling."""
     visualizer = Trail3DVisualizer()

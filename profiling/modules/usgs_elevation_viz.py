@@ -55,7 +55,7 @@ class USGSTrailElevationProfiler:
 
     def create_elevation_profile_chart(
         self, trail_name: str, elevation_data: List[Dict], ax=None
-    ) -> Dict:
+    ) -> Dict | None:
         """Create elevation profile chart for a single trail."""
         if not elevation_data:
             return None
@@ -99,7 +99,7 @@ class USGSTrailElevationProfiler:
             "min_elevation_m": min(elevations),
         }
 
-    def create_park_elevation_matrix(self, park_code: str) -> str:
+    def create_park_elevation_matrix(self, park_code: str) -> str | None:
         """Create matrix of elevation charts for all trails in a park."""
         self.logger.info(f"Creating elevation matrix for park: {park_code}")
 
@@ -347,7 +347,7 @@ class USGSTrailElevationProfiler:
 
         return {"successful": successful, "failed": failed, "total": len(parks)}
 
-    def run_all(self, park_code: str = None):
+    def run_all(self, park_code: str | None = None):
         """Run all elevation profiling analyses."""
         if park_code:
             return self.run_park_elevation_profiling(park_code)
