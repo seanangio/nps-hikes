@@ -190,7 +190,7 @@ class TNMHikesCollector:
             response = requests.get(query_url, params=params, timeout=30)
             response.raise_for_status()
 
-            data = response.json()
+            data: dict[str, Any] = response.json()
             self.logger.info(
                 f"Received response for {park_code}: {len(data.get('features', []))} features"
             )
