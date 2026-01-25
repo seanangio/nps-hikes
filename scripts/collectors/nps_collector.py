@@ -37,12 +37,14 @@ Stage 2 - Spatial Boundary Data Collection:
 10. Generate comprehensive collection summaries and validation reports
 """
 
+from __future__ import annotations
+
 # Standard library imports
 import os
 import sys
 import time
 import argparse
-from typing import cast, Callable, Dict, List, Optional, Tuple, Union
+from typing import cast, Callable, Dict, List, Tuple
 
 # Third-party imports
 import requests
@@ -172,7 +174,7 @@ class NPSDataCollector:
             retry_delay (float): Delay in seconds between retry attempts
 
         Returns:
-            Optional[Dict]: Park data if found, None if not found or error occurred
+            dict | None: Park data if found, None if not found or error occurred
         """
         # Use config defaults if not provided
         max_retries = max_retries or config.PARK_SEARCH_MAX_RETRIES
@@ -181,7 +183,7 @@ class NPSDataCollector:
         # Build the API endpoint URL and parameters once
         endpoint = f"{self.base_url}/parks"
         search_query = f"{park_name} National Park"
-        params: Dict[str, Union[str, int]] = {
+        params: Dict[str, str | int] = {
             "q": search_query,
             "limit": config.API_RESULT_LIMIT,  # Get multiple results to find the best match
             "sort": "-relevanceScore",
@@ -333,7 +335,7 @@ class NPSDataCollector:
         self,
         csv_path: str,
         delay_seconds: float | None = None,
-        limit_for_testing: Optional[int] = None,
+        limit_for_testing: int | None = None,
         force_refresh: bool = False,
         output_path: str | None = None,
     ) -> pd.DataFrame:
@@ -346,7 +348,7 @@ class NPSDataCollector:
         Args:
             csv_path (str): Path to the CSV file with park names
             delay_seconds (float): Delay between API calls to be respectful
-            limit_for_testing (Optional[int]): For development/testing - limit to first N parks.
+            limit_for_testing (int | None): For development/testing - limit to first N parks.
                                               None processes all parks (production default).
             force_refresh (bool): If True, reprocess all parks. If False, skip existing data.
             output_path (str): Path to output CSV file (used for incremental processing)
@@ -530,7 +532,7 @@ class NPSDataCollector:
             retry_delay (float): Delay in seconds between retry attempts
 
         Returns:
-            Optional[Dict]: Boundary data if found, None if not found or error occurred
+            dict | None: Boundary data if found, None if not found or error occurred
         """
         # Use config defaults if not provided
         max_retries = max_retries or config.BOUNDARY_MAX_RETRIES
@@ -735,7 +737,7 @@ class NPSDataCollector:
 
         return extracted_data
 
-    def calculate_bounding_box(self, geometry: Dict) -> Optional[str]:
+    def calculate_bounding_box(self, geometry: Dict) -> str | None:
         """
         Calculate bounding box from park geometry and return as string.
 
@@ -743,7 +745,7 @@ class NPSDataCollector:
             geometry (Dict): GeoJSON geometry object
 
         Returns:
-            Optional[str]: Bounding box as "xmin,ymin,xmax,ymax" string, or None if calculation fails
+            str | None: Bounding box as "xmin,ymin,xmax,ymax" string, or None if calculation fails
         """
         try:
             from shapely.geometry import shape
@@ -768,7 +770,7 @@ class NPSDataCollector:
         self,
         park_codes: List[str],
         delay_seconds: float | None = None,
-        limit_for_testing: Optional[int] = None,
+        limit_for_testing: int | None = None,
         force_refresh: bool = False,
         output_path: str | None = None,
     ) -> gpd.GeoDataFrame:
@@ -782,7 +784,7 @@ class NPSDataCollector:
         Args:
             park_codes (List[str]): List of NPS park codes to process boundaries for
             delay_seconds (float): Delay between API calls to be respectful
-            limit_for_testing (Optional[int]): Limit processing to first N codes for testing
+            limit_for_testing (int | None): Limit processing to first N codes for testing
             force_refresh (bool): If True, reprocess all boundaries. If False, skip existing data.
             output_path (str): Path to output GPKG file (used for incremental processing)
 
@@ -978,7 +980,7 @@ class NPSDataCollector:
 
     def _find_best_park_match(
         self, park_results: List[Dict], search_query: str, original_park_name: str
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """
         Find the best matching park from API results using a tiered approach.
 
@@ -993,7 +995,7 @@ class NPSDataCollector:
             original_park_name (str): Original park name from CSV for logging
 
         Returns:
-            Optional[Dict]: Best matching park or None if no results
+            dict | None: Best matching park or None if no results
         """
         if not park_results:
             logger.warning(f"No results returned for '{original_park_name}'")
@@ -1073,7 +1075,7 @@ class NPSDataCollector:
 
     def _validate_coordinates(
         self, lat_value: str, lon_value: str, park_name: str
-    ) -> Tuple[Optional[float], Optional[float]]:
+    ) -> tuple[float | None, float | None]:
         """
         Validate and convert coordinate values to proper floats.
 
@@ -1086,7 +1088,7 @@ class NPSDataCollector:
             park_name (str): Park name for error logging context
 
         Returns:
-            Tuple[Optional[float], Optional[float]]: Validated lat/lon or (None, None) if invalid
+            tuple[float | None, float | None]: Validated lat/lon or (None, None) if invalid
         """
         try:
             # Convert to float
@@ -1155,7 +1157,7 @@ class NPSDataCollector:
             return " / ".join(unique_values)
 
         # Type annotation: pandas agg accepts both callable functions and strings
-        agg_dict: Dict[str, Union[Callable, str]] = {}
+        agg_dict: Dict[str, Callable | str] = {}
         for col in df.columns:
             if col in ["park_code"]:
                 continue

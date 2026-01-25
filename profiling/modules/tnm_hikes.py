@@ -17,10 +17,12 @@ The module integrates with the existing profiling framework and provides both
 programmatic and command-line interfaces for analysis.
 """
 
+from __future__ import annotations
+
 import os
 import logging
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Tuple, Any
 import pandas as pd
 import geopandas as gpd
 from sqlalchemy import Engine, text
@@ -66,13 +68,13 @@ class TNMHikesProfiler:
         self.logger.info("TNM Hikes Profiler initialized")
 
     def get_trail_statistics(
-        self, park_codes: Optional[List[str]] = None
+        self, park_codes: list[str] | None = None
     ) -> Dict[str, Any]:
         """
         Get comprehensive trail statistics for specified parks or all parks.
 
         Args:
-            park_codes (Optional[List[str]]): List of park codes to analyze.
+            park_codes (list[str] | None): List of park codes to analyze.
                                             If None, analyzes all parks.
 
         Returns:
@@ -132,13 +134,13 @@ class TNMHikesProfiler:
             return {}
 
     def get_trail_type_breakdown(
-        self, park_codes: Optional[List[str]] = None
+        self, park_codes: list[str] | None = None
     ) -> Dict[str, Any]:
         """
         Get breakdown of trails by type and designation.
 
         Args:
-            park_codes (Optional[List[str]]): List of park codes to analyze.
+            park_codes (list[str] | None): List of park codes to analyze.
                                             If None, analyzes all parks.
 
         Returns:
@@ -210,13 +212,13 @@ class TNMHikesProfiler:
             return {}
 
     def get_data_quality_metrics(
-        self, park_codes: Optional[List[str]] = None
+        self, park_codes: list[str] | None = None
     ) -> Dict[str, Any]:
         """
         Assess data quality and completeness for TNM trail data.
 
         Args:
-            park_codes (Optional[List[str]]): List of park codes to analyze.
+            park_codes (list[str] | None): List of park codes to analyze.
                                             If None, analyzes all parks.
 
         Returns:
@@ -320,13 +322,13 @@ class TNMHikesProfiler:
             return {}
 
     def get_spatial_analysis(
-        self, park_codes: Optional[List[str]] = None
+        self, park_codes: list[str] | None = None
     ) -> Dict[str, Any]:
         """
         Perform spatial analysis on trail data.
 
         Args:
-            park_codes (Optional[List[str]]): List of park codes to analyze.
+            park_codes (list[str] | None): List of park codes to analyze.
                                             If None, analyzes all parks.
 
         Returns:
@@ -389,13 +391,13 @@ class TNMHikesProfiler:
             return {}
 
     def compare_with_osm_data(
-        self, park_codes: Optional[List[str]] = None
+        self, park_codes: list[str] | None = None
     ) -> Dict[str, Any]:
         """
         Compare TNM data with OSM data for the same parks.
 
         Args:
-            park_codes (Optional[List[str]]): List of park codes to compare.
+            park_codes (list[str] | None): List of park codes to compare.
                                             If None, compares all parks.
 
         Returns:
@@ -479,14 +481,14 @@ class TNMHikesProfiler:
     def export_analysis_results(
         self,
         output_dir: str = "profiling_results",
-        park_codes: Optional[List[str]] = None,
+        park_codes: list[str] | None = None,
     ) -> Dict[str, str]:
         """
         Export comprehensive analysis results to files.
 
         Args:
             output_dir (str): Directory to save analysis results
-            park_codes (Optional[List[str]]): List of park codes to analyze.
+            park_codes (list[str] | None): List of park codes to analyze.
                                             If None, analyzes all parks.
 
         Returns:
@@ -584,13 +586,13 @@ class TNMHikesProfiler:
             return {}
 
     def generate_comprehensive_report(
-        self, park_codes: Optional[List[str]] = None
+        self, park_codes: list[str] | None = None
     ) -> Dict[str, Any]:
         """
         Generate a comprehensive analysis report combining all metrics.
 
         Args:
-            park_codes (Optional[List[str]]): List of park codes to analyze.
+            park_codes (list[str] | None): List of park codes to analyze.
                                             If None, analyzes all parks.
 
         Returns:

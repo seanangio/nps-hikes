@@ -126,13 +126,13 @@ class DatabaseWriter:
     automatic dependency checking to ensure proper creation order.
     """
 
-    def __init__(self, engine: Engine, logger: Optional[logging.Logger] = None):
+    def __init__(self, engine: Engine, logger: logging.Logger | None = None):
         """
         Initialize the database writer.
 
         Args:
             engine (Engine): SQLAlchemy engine for database connections
-            logger (Optional[logging.Logger]): Logger instance for operation tracking.
+            logger (logging.Logger | None): Logger instance for operation tracking.
                                              If None, creates a default logger.
         """
         self.engine = engine

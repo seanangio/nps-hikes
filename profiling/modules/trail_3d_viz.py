@@ -25,12 +25,14 @@ Usage:
     python -m profiling.modules.trail_3d_viz --park grca --trail "Bright Angel Trail" --z-scale 10
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import re
 import webbrowser
 import argparse
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 from sqlalchemy import text
 import pandas as pd
 import geopandas as gpd
@@ -163,7 +165,7 @@ class Trail3DVisualizer:
             self.logger.error(f"Failed to fetch trails for {park_code}: {e}")
             return pd.DataFrame()
 
-    def fetch_trail_data(self, park_code: str, trail_name: str) -> Optional[Dict]:
+    def fetch_trail_data(self, park_code: str, trail_name: str) -> Dict | None:
         """
         Fetch trail elevation and geometry data from database.
 
@@ -266,7 +268,7 @@ class Trail3DVisualizer:
         park_code: str,
         trail_name: str,
         z_exaggeration: float = 5.0,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Create interactive 3D visualization of a trail.
 
@@ -450,7 +452,7 @@ class Trail3DVisualizer:
 
         return output_path
 
-    def interactive_selection(self, z_exaggeration: float = 5.0) -> Optional[str]:
+    def interactive_selection(self, z_exaggeration: float = 5.0) -> str | None:
         """
         Interactive CLI for selecting park and trail.
 

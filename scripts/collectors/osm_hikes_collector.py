@@ -26,11 +26,13 @@ Data Processing Pipeline:
 8. Write to both GeoPackage and database with proper spatial indexing
 """
 
+from __future__ import annotations
+
 # Standard library imports
 import argparse
 import os
 from datetime import datetime, timezone
-from typing import List, Optional, Set, Union
+from typing import List, Set
 import logging
 
 # Third-party imports
@@ -70,8 +72,8 @@ class OSMHikesCollector:
         self,
         output_gpkg: str,
         rate_limit: float,
-        parks: Optional[List[str]],
-        test_limit: Optional[int],
+        parks: list[str] | None,
+        test_limit: int | None,
         log_level: str,
         write_db: bool,
     ) -> None:
@@ -85,9 +87,9 @@ class OSMHikesCollector:
         Args:
             output_gpkg (str): Path to output GeoPackage file where trail data will be saved
             rate_limit (float): Seconds to sleep between OSM API requests to respect server limits
-            parks (Optional[List[str]]): List of specific park codes to process (e.g., ['YELL', 'GRCA']),
+            parks (list[str] | None): List of specific park codes to process (e.g., ['YELL', 'GRCA']),
                                        or None to process all parks in the database
-            test_limit (Optional[int]): Maximum number of parks to process for testing purposes,
+            test_limit (int | None): Maximum number of parks to process for testing purposes,
                                       or None for no limit (processes all specified parks)
             log_level (str): Logging verbosity level (e.g., 'INFO', 'DEBUG', 'WARNING', 'ERROR')
             write_db (bool): Whether to write results to PostgreSQL database in addition to file output.
@@ -109,14 +111,14 @@ class OSMHikesCollector:
 
         self.output_gpkg: str = output_gpkg
         self.rate_limit: float = rate_limit
-        self.parks: Optional[List[str]] = parks
-        self.test_limit: Optional[int] = test_limit
+        self.parks: list[str] | None = parks
+        self.test_limit: int | None = test_limit
         self.write_db: bool = write_db
         # Always create engine for reading from DB, but only write if write_db is True
         self.engine: Engine = get_postgres_engine()
         self.timestamp: str = datetime.now(timezone.utc).isoformat()
         # Initialize database writer for write operations
-        self.db_writer: Optional[DatabaseWriter] = (
+        self.db_writer: DatabaseWriter | None = (
             DatabaseWriter(self.engine, self.logger) if write_db else None
         )
         # Track completed parks for resumability - enables restarting interrupted collections
@@ -172,9 +174,7 @@ class OSMHikesCollector:
 
         return self.db_writer.get_completed_records("osm_hikes", "park_code")
 
-    def query_osm_trails(
-        self, polygon: Union[Polygon, MultiPolygon]
-    ) -> gpd.GeoDataFrame:
+    def query_osm_trails(self, polygon: Polygon | MultiPolygon) -> gpd.GeoDataFrame:
         """
         Query OpenStreetMap for hiking trails within a given polygon boundary.
 
@@ -183,7 +183,7 @@ class OSMHikesCollector:
         The query respects OSM's usage policies and includes rate limiting.
 
         Args:
-            polygon (Union[Polygon, MultiPolygon]): Shapely geometry object defining
+            polygon (Polygon | MultiPolygon): Shapely geometry object defining
                                                    the park boundary search area
 
         Returns:
@@ -282,7 +282,7 @@ class OSMHikesCollector:
         return trails
 
     def process_trails(
-        self, park_code: str, polygon: Union[Polygon, MultiPolygon]
+        self, park_code: str, polygon: Polygon | MultiPolygon
     ) -> gpd.GeoDataFrame:
         """
         Process and clean hiking trail data for a specific park.
@@ -299,7 +299,7 @@ class OSMHikesCollector:
 
         Args:
             park_code (str): National Park Service park code identifier (e.g., 'YELL', 'GRCA')
-            polygon (Union[Polygon, MultiPolygon]): Shapely geometry defining the park boundary
+            polygon (Polygon | MultiPolygon): Shapely geometry defining the park boundary
                                                    used as the search area for OSM queries
 
         Returns:

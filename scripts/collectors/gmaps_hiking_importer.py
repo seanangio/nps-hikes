@@ -17,12 +17,14 @@ Usage:
     python gmaps_hiking_importer.py --write-db --force-refresh
 """
 
+from __future__ import annotations
+
 import argparse
 import logging
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional, TypedDict
+from typing import Dict, List, Tuple, TypedDict
 import xml.etree.ElementTree as ET
 import pandas as pd
 
@@ -260,7 +262,7 @@ class GMapsHikingImporter:
 
     def validate_location(
         self, location: Dict
-    ) -> Tuple[bool, Optional[float], Optional[float]]:
+    ) -> tuple[bool, float | None, float | None]:
         """
         Validate a location's data.
 
@@ -305,7 +307,7 @@ class GMapsHikingImporter:
 
     def _validate_coordinates(
         self, lat: float, lon: float, context: str
-    ) -> tuple[Optional[float], Optional[float]]:
+    ) -> tuple[float | None, float | None]:
         """
         Simple coordinate validation.
 

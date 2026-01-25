@@ -65,7 +65,7 @@ class TrailMatcher:
 
         Args:
             write_db (bool): Whether to write results to the database
-            test_limit (Optional[int]): Limit processing to first N parks for testing
+            test_limit (int | None): Limit processing to first N parks for testing
             logger (logging.Logger): Logger instance for operation tracking
         """
         self.logger = logger or logging.getLogger("trail_matcher")

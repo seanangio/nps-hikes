@@ -6,6 +6,8 @@ Fetches elevation data for matched trails using USGS free API.
 Only collects data - no analysis or visualization.
 """
 
+from __future__ import annotations
+
 import requests
 import time
 import numpy as np
@@ -16,7 +18,7 @@ from sqlalchemy import text
 import json
 import os
 import logging
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple
 import argparse
 
 # Add project root to path for imports
@@ -83,7 +85,7 @@ class USGSElevationCollector:
         except Exception as e:
             self.logger.error(f"Failed to save elevation cache: {e}")
 
-    def get_elevation_usgs(self, lat: float, lon: float) -> Optional[float]:
+    def get_elevation_usgs(self, lat: float, lon: float) -> float | None:
         """Get elevation from USGS free API with caching and rate limiting."""
         # Check cache first
         cache_key = f"{lat:.6f},{lon:.6f}"
@@ -373,7 +375,7 @@ class USGSElevationCollector:
 
     def collect_all_parks_elevation_data(
         self,
-        test_limit: Optional[int] = None,
+        test_limit: int | None = None,
         force_refresh: bool = False,
     ) -> Dict:
         """

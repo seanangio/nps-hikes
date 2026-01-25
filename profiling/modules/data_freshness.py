@@ -13,10 +13,12 @@ Key Features:
 - Easy integration with existing profiling system
 """
 
+from __future__ import annotations
+
 import os
 import sys
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Any
 import pandas as pd
 from sqlalchemy import Engine, text
 from dotenv import load_dotenv
@@ -42,12 +44,12 @@ class DataFreshnessMonitor:
     and categorize it based on staleness thresholds.
     """
 
-    def __init__(self, engine: Optional[Engine] = None):
+    def __init__(self, engine: Engine | None = None):
         """
         Initialize the data freshness monitor.
 
         Args:
-            engine (Optional[Engine]): SQLAlchemy engine. If None, creates one from config.
+            engine (Engine | None): SQLAlchemy engine. If None, creates one from config.
         """
         self.engine = engine or get_postgres_engine()
         self.fresh_threshold = timedelta(days=7)

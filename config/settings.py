@@ -12,8 +12,9 @@ The configuration system uses context-aware validation to support different oper
 This design allows components to run independently without unnecessary dependencies.
 """
 
+from __future__ import annotations
+
 import os
-from typing import Optional
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -32,7 +33,7 @@ class Config:
     APP_NAME: str = "Python-NPS-Collector"
     APP_VERSION: str = "1.0"
     API_BASE_URL: str = "https://developer.nps.gov/api/v1"
-    API_KEY: Optional[str] = None
+    API_KEY: str | None = None
     USER_EMAIL: str = "unknown@example.com"
 
     # API Request Settings
@@ -55,7 +56,7 @@ class Config:
     DB_PORT: int = 5432
     DB_NAME: str = "nps_hikes_db"
     DB_USER: str = "postgres"
-    DB_PASSWORD: Optional[str] = None
+    DB_PASSWORD: str | None = None
 
     # File Paths
     DEFAULT_INPUT_CSV: str = "raw_data/parks.csv"

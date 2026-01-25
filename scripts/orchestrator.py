@@ -36,13 +36,15 @@ Features:
 - Timeout protection for long-running processes
 """
 
+from __future__ import annotations
+
 import argparse
 import logging
 import os
 import subprocess
 import sys
 import time
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 # Add project root to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -66,7 +68,7 @@ class DataCollectionOrchestrator:
 
     def run_full_pipeline(
         self,
-        test_limit: Optional[int] = None,
+        test_limit: int | None = None,
         write_db: bool = False,
         dry_run: bool = False,
     ) -> bool:
@@ -185,7 +187,7 @@ class DataCollectionOrchestrator:
         self,
         step_name: str,
         script_path: str,
-        test_limit: Optional[int],
+        test_limit: int | None,
         write_db: bool,
         dry_run: bool,
     ) -> bool:

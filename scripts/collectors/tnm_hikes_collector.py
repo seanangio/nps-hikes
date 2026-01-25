@@ -27,13 +27,15 @@ Data Processing Pipeline:
 9. Write to both GeoPackage and database with proper spatial indexing
 """
 
+from __future__ import annotations
+
 # Standard library imports
 import argparse
 import logging
 import os
 import sys
 from datetime import datetime, timezone
-from typing import List, Optional, Set, Union, Dict, Any
+from typing import List, Set, Dict, Any
 import time
 
 # Third-party imports
@@ -72,8 +74,8 @@ class TNMHikesCollector:
         self,
         output_gpkg: str,
         rate_limit: float,
-        parks: Optional[List[str]],
-        test_limit: Optional[int],
+        parks: list[str] | None,
+        test_limit: int | None,
         log_level: str,
         write_db: bool,
     ) -> None:
@@ -87,9 +89,9 @@ class TNMHikesCollector:
         Args:
             output_gpkg (str): Path to output GeoPackage file where trail data will be saved
             rate_limit (float): Seconds to wait between API requests to respect rate limits
-            parks (Optional[List[str]]): List of specific park codes to process. If None,
+            parks (list[str] | None): List of specific park codes to process. If None,
                                         processes all parks in the database
-            test_limit (Optional[int]): Limit processing to first N parks for testing
+            test_limit (int | None): Limit processing to first N parks for testing
             log_level (str): Logging level (DEBUG, INFO, WARNING, ERROR)
             write_db (bool): Whether to write results to the database
         """
@@ -160,9 +162,7 @@ class TNMHikesCollector:
 
         return self.db_writer.get_completed_records("tnm_hikes", "park_code")
 
-    def query_tnm_api(
-        self, bbox_string: str, park_code: str
-    ) -> Optional[Dict[str, Any]]:
+    def query_tnm_api(self, bbox_string: str, park_code: str) -> dict[str, Any] | None:
         """
         Query TNM API for trails within bounding box.
 
