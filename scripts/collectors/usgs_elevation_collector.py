@@ -45,7 +45,7 @@ class USGSElevationCollector:
         self.engine = get_postgres_engine()
         self.write_db = write_db
         self.db_writer = DatabaseWriter(self.engine, self.logger) if write_db else None
-        self.elevation_cache = {}
+        self.elevation_cache: dict[str, float] = {}
 
         # USGS API settings from config
         self.usgs_api_base = "https://epqs.nationalmap.gov/v1/json"
@@ -234,7 +234,7 @@ class USGSElevationCollector:
 
         # Check for existing elevation data (unless force_refresh and write_db is enabled)
         existing_trail_ids = set()
-        if not force_refresh and self.write_db:
+        if not force_refresh and self.write_db and self.db_writer is not None:
             # Ensure table exists before querying (consistent with other collectors)
             self.db_writer.ensure_table_exists("usgs_trail_elevations")
 
