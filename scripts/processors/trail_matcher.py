@@ -20,7 +20,7 @@ import math
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, TypedDict
 import pandas as pd
 import geopandas as gpd
 from sqlalchemy import text
@@ -39,14 +39,26 @@ from scripts.database.db_writer import get_postgres_engine, DatabaseWriter
 from utils.logging import setup_logging
 
 
+class MatchingStatsDict(TypedDict):
+    """Statistics for trail matching profiling."""
+
+    total_gmaps_points: int
+    matched_tnm: int
+    matched_osm: int
+    no_match: int
+    avg_confidence_score: float
+    avg_distance_m: float
+    processing_time: float
+
+
 class TrailMatcher:
     """Match GMaps hiking locations to trail linestrings."""
 
     def __init__(
         self,
         write_db: bool = False,
-        test_limit: Optional[int] = None,
-        logger: logging.Logger = None,
+        test_limit: int | None = None,
+        logger: logging.Logger | None = None,
     ):
         """
         Initialize the trail matcher.
@@ -68,14 +80,14 @@ class TrailMatcher:
         self.distance_weight = config.TRAIL_MATCHING_DISTANCE_WEIGHT
 
         # Statistics for profiling
-        self.stats = {
+        self.stats: MatchingStatsDict = {
             "total_gmaps_points": 0,
             "matched_tnm": 0,
             "matched_osm": 0,
             "no_match": 0,
-            "avg_confidence_score": 0,
-            "avg_distance_m": 0,
-            "processing_time": 0,
+            "avg_confidence_score": 0.0,
+            "avg_distance_m": 0.0,
+            "processing_time": 0.0,
         }
 
     def preprocess_name(self, name: str) -> str:
@@ -155,7 +167,7 @@ class TrailMatcher:
         """
         try:
             # Use the built-in distance method which is more reliable
-            distance_deg = point.distance(trail_geometry)
+            distance_deg: float = point.distance(trail_geometry)
 
             # Convert to meters using a more accurate approximation
             # At the latitude of most US parks (~30-50 degrees), 1 degree ≈ 111,000m
@@ -427,12 +439,14 @@ class TrailMatcher:
             self.logger.info(
                 "All matched_trail_geometry values are None - converting to regular DataFrame"
             )
-            # Convert GeoDataFrame to regular DataFrame (this removes the geometry column)
-            df_no_geom = pd.DataFrame(gdf)
-            # Write as regular DataFrame instead of GeoDataFrame
-            self.db_writer._append_dataframe(
-                df_no_geom, "gmaps_hiking_locations_matched"
-            )
+            # Only write to DB if db_writer is available
+            if self.db_writer:
+                # Convert GeoDataFrame to regular DataFrame (this removes the geometry column)
+                df_no_geom = pd.DataFrame(gdf)
+                # Write as regular DataFrame instead of GeoDataFrame
+                self.db_writer._append_dataframe(
+                    df_no_geom, "gmaps_hiking_locations_matched"
+                )
             return
 
         # Always write to file first
