@@ -60,8 +60,8 @@ class ProfilingOrchestrator:
 
     def __init__(self):
         self.logger = ProfilingLogger("orchestrator")
-        self.results = {}
-        self.failed_modules = []
+        self.results: Dict[str, Any] = {}
+        self.failed_modules: List[str] = []
 
     def _check_dependencies(self, module_name: str) -> bool:
         """Check if module dependencies are satisfied."""
