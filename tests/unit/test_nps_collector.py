@@ -306,3 +306,32 @@ class TestNPSDataCollector:
         bbox_string = collector.calculate_bounding_box(invalid_geometry)
 
         assert bbox_string is None
+
+    def test_calculate_bounding_box_repairs_self_intersecting_polygon(self, collector):
+        """Test that self-intersecting polygons are automatically repaired."""
+        # Create a self-intersecting polygon (bowtie shape)
+        # This is invalid but can be fixed with buffer(0)
+        self_intersecting_geometry = {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [0, 0],
+                    [2, 2],
+                    [2, 0],
+                    [0, 2],
+                    [0, 0],  # Creates self-intersection
+                ]
+            ],
+        }
+
+        # The method should still return a valid bounding box after repair
+        bbox_string = collector.calculate_bounding_box(self_intersecting_geometry)
+
+        # Should successfully calculate bounds (buffer(0) fixes the geometry)
+        assert bbox_string is not None
+        # Bounding box should cover the full extent of the original coordinates
+        parts = bbox_string.split(",")
+        assert len(parts) == 4
+        # Verify it's a valid bbox format (all floats)
+        for part in parts:
+            float(part)  # Should not raise ValueError

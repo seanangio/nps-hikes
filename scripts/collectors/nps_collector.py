@@ -742,6 +742,9 @@ class NPSDataCollector:
         """
         Calculate bounding box from park geometry and return as string.
 
+        Validates geometry using Shapely and attempts to fix invalid geometries
+        (e.g., self-intersecting polygons) before calculating bounds.
+
         Args:
             geometry (Dict): GeoJSON geometry object
 
@@ -750,9 +753,29 @@ class NPSDataCollector:
         """
         try:
             from shapely.geometry import shape
+            from shapely.validation import explain_validity
 
             # Convert GeoJSON to Shapely geometry
             shapely_geom = shape(geometry)
+
+            # Validate geometry and attempt to fix if invalid
+            if not shapely_geom.is_valid:
+                validity_reason = explain_validity(shapely_geom)
+                logger.warning(
+                    f"Invalid geometry detected: {validity_reason}. Attempting to fix with buffer(0)"
+                )
+
+                # buffer(0) is a common fix for invalid geometries
+                # It removes self-intersections and fixes topology issues
+                shapely_geom = shapely_geom.buffer(0)
+
+                if not shapely_geom.is_valid:
+                    logger.error(
+                        f"Failed to fix invalid geometry: {explain_validity(shapely_geom)}"
+                    )
+                    return None
+
+                logger.info("Successfully repaired invalid geometry")
 
             # Get bounds (xmin, ymin, xmax, ymax)
             bounds = shapely_geom.bounds
