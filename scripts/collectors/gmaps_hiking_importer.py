@@ -371,7 +371,7 @@ class GMapsHikingImporter:
 
     def import_park_locations(
         self, park_code: str, locations: List[Dict], force_refresh: bool = False
-    ) -> None:
+    ) -> pd.DataFrame | None:
         """
         Import locations for a specific park.
 
@@ -379,6 +379,9 @@ class GMapsHikingImporter:
             park_code: Park code
             locations: List of location dictionaries
             force_refresh: Whether to drop existing records before import
+
+        Returns:
+            DataFrame of locations in CSV mode, None in database mode
         """
         if self.write_db:
             # Check if park already exists
@@ -387,7 +390,7 @@ class GMapsHikingImporter:
             ):
                 logger.info(f"Park {park_code} already exists, skipping...")
                 self.stats["parks_skipped"] += 1
-                return
+                return None
 
             # If force_refresh, delete existing records
             if force_refresh and self.db_writer.park_exists_in_gmaps_table(park_code):
@@ -431,13 +434,19 @@ class GMapsHikingImporter:
             # Create DataFrame
             df = pd.DataFrame(valid_locations)
 
-            # Write to database
-            self.db_writer.write_gmaps_hiking_locations(df, mode="append")
-            logger.info(
-                f"Imported {len(valid_locations)} locations for park {park_code}"
-            )
+            if self.write_db:
+                # Write to database
+                self.db_writer.write_gmaps_hiking_locations(df, mode="append")
+                logger.info(
+                    f"Imported {len(valid_locations)} locations for park {park_code}"
+                )
+            else:
+                # Return DataFrame in CSV mode
+                self.stats["total_locations"] += len(valid_locations)
+                return df
 
         self.stats["total_locations"] += len(valid_locations)
+        return None
 
     def create_csv_artifact(self, all_locations: List[Dict]) -> None:
         """Create CSV artifact from all locations."""
