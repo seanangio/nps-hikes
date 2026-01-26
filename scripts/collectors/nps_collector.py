@@ -49,6 +49,7 @@ import geopandas as gpd
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+from pydantic import ValidationError
 from shapely.geometry import Point, shape
 
 # Load .env before local imports that need env vars
@@ -60,6 +61,10 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
+from scripts.collectors.nps_schemas import (
+    NPSBoundaryResponse,
+    NPSParkResponse,
+)
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from utils.logging import setup_nps_collector_logging
 
@@ -234,7 +239,15 @@ class NPSDataCollector:
                 )
 
                 if best_match:
-                    return best_match
+                    # Validate the API response with Pydantic before returning
+                    try:
+                        validated_park = NPSParkResponse(**best_match)
+                        return validated_park.model_dump()
+                    except ValidationError as e:
+                        logger.error(
+                            f"Invalid park data from API for '{park_name}': {e}"
+                        )
+                        return None
                 else:
                     logger.warning(f"No suitable match found for park: {park_name}")
                     return None
@@ -571,35 +584,28 @@ class NPSDataCollector:
                 # Parse the JSON response
                 data = response.json()
 
-                # Validate boundary data - boundaries endpoint returns GeoJSON directly
+                # Validate boundary data with Pydantic schema
                 if isinstance(data, dict):
-                    # Check for GeoJSON FeatureCollection format
-                    if data.get("type") == "FeatureCollection" and "features" in data:
-                        if data["features"]:  # Has features
-                            logger.info(
-                                f"Successfully retrieved boundary data for {park_code}"
-                            )
-                            return data
-                        else:
-                            logger.warning(
-                                f"No boundary features found for park code: {park_code}"
-                            )
-                            return None
-                    # Check for single Feature format
-                    elif data.get("type") == "Feature":
+                    try:
+                        # Validate the GeoJSON structure
+                        validated_boundary = NPSBoundaryResponse(**data)
+
+                        # Check if FeatureCollection has any features
+                        if validated_boundary.type == "FeatureCollection":
+                            if not validated_boundary.features:
+                                logger.warning(
+                                    f"No boundary features found for park code: {park_code}"
+                                )
+                                return None
+
                         logger.info(
-                            f"Successfully retrieved boundary data for park code: {park_code}"
+                            f"Successfully retrieved boundary data for {park_code}"
                         )
-                        return data
-                    # Check for direct geometry
-                    elif "geometry" in data:
-                        logger.info(
-                            f"Successfully retrieved boundary data for park code: {park_code}"
-                        )
-                        return data
-                    else:
-                        logger.warning(
-                            f"Unexpected boundary data format for park code: {park_code}"
+                        return validated_boundary.model_dump()
+
+                    except ValidationError as e:
+                        logger.error(
+                            f"Invalid boundary data from API for park code '{park_code}': {e}"
                         )
                         return None
                 else:
@@ -1072,45 +1078,35 @@ class NPSDataCollector:
         self, lat_value: str, lon_value: str, park_name: str
     ) -> tuple[float | None, float | None]:
         """
-        Validate and convert coordinate values to proper floats.
+        Convert validated coordinate strings to floats.
 
-        This method handles the common issues with geographic coordinate data:
-        conversion errors, invalid ranges, and missing values.
+        Note: Coordinate validation (type checking and range validation) is
+        performed by the Pydantic schema at the API boundary. This method
+        simply converts the already-validated strings to float types for use
+        in the data pipeline.
 
         Args:
-            lat_value (str): Raw latitude value from API
-            lon_value (str): Raw longitude value from API
+            lat_value (str): Latitude value from API (already validated by Pydantic)
+            lon_value (str): Longitude value from API (already validated by Pydantic)
             park_name (str): Park name for error logging context
 
         Returns:
-            tuple[float | None, float | None]: Validated lat/lon or (None, None) if invalid
+            tuple[float | None, float | None]: Converted lat/lon or (None, None) if conversion fails
         """
         try:
-            # Convert to float
+            # Pydantic already validated these can be converted to float and are in valid ranges
             lat_float = float(lat_value)
             lon_float = float(lon_value)
 
-            # Validate geographic ranges
-            if not (-90 <= lat_float <= 90):
-                logger.warning(
-                    f"Invalid latitude {lat_float} for {park_name} (must be between -90 and 90)"
-                )
-                return None, None
-
-            if not (-180 <= lon_float <= 180):
-                logger.warning(
-                    f"Invalid longitude {lon_float} for {park_name} (must be between -180 and 180)"
-                )
-                return None, None
-
             logger.debug(
-                f"Valid coordinates for {park_name}: ({lat_float}, {lon_float})"
+                f"Converted coordinates for {park_name}: ({lat_float}, {lon_float})"
             )
             return lat_float, lon_float
 
         except (ValueError, TypeError) as e:
+            # This should rarely happen since Pydantic validated the data first
             logger.warning(
-                f"Could not parse coordinates for {park_name}: lat='{lat_value}', lon='{lon_value}' - {str(e)}"
+                f"Unexpected coordinate conversion error for {park_name}: lat='{lat_value}', lon='{lon_value}' - {str(e)}"
             )
             return None, None
 

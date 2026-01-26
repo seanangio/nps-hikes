@@ -14,11 +14,15 @@ class TestNPSDataCollector:
         assert lat == 36.1085
         assert lon == -115.1777
 
-    def test_validate_coordinates_invalid_latitude(self, collector):
-        """Test coordinate validation with invalid latitude."""
-        lat, lon = collector._validate_coordinates("91", "-115.1777", "Test Park")
-        assert lat is None
-        assert lon is None
+    def test_validate_coordinates_converts_strings(self, collector):
+        """Test coordinate conversion from strings to floats.
+
+        Note: Range validation is now done by Pydantic at the API boundary.
+        This method only converts already-validated strings to floats.
+        """
+        lat, lon = collector._validate_coordinates("91.0", "-115.1777", "Test Park")
+        assert lat == 91.0
+        assert lon == -115.1777
 
     def test_validate_coordinates_invalid_format(self, collector):
         """Test coordinate validation with non-numeric input."""
