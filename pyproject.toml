@@ -33,6 +33,12 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false  # Start permissive, tighten later
 ignore_missing_imports = true  # Ignore libraries without type stubs
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
 
 [tool.isort]
 profile = "black"
