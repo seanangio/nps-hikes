@@ -11,3 +11,4 @@ psycopg2-binary
 sqlalchemy
 geoalchemy2
 osmnx
+pydantic>=2.0.0
