@@ -38,6 +38,7 @@ import geopandas as gpd
 import osmnx as ox
 import pandas as pd
 from dotenv import load_dotenv
+from pandera.errors import SchemaError, SchemaErrors
 from shapely.geometry import MultiPolygon, Polygon
 from sqlalchemy import Engine
 
@@ -50,6 +51,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
+from scripts.collectors.osm_schemas import OSMProcessedTrailsSchema, OSMRawTrailsSchema
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from utils.logging import setup_osm_collector_logging
 
@@ -177,6 +179,9 @@ class OSMHikesCollector:
         as 'path' or 'footway' (common hiking trail tags) within the polygon.
         The query respects OSM's usage policies and includes rate limiting.
 
+        After querying, validates the returned data structure using Pandera schema
+        to ensure OSM returned the expected columns and data types.
+
         Args:
             polygon (Polygon | MultiPolygon): Shapely geometry object defining
                                                    the park boundary search area
@@ -216,63 +221,77 @@ class OSMHikesCollector:
             trails["osm_id"] = (
                 trails["osmid"] if "osmid" in trails.columns else trails["id"]
             )
+
+            # Filter for named trails first (required for schema validation)
+            trails = trails[
+                trails["name"].notnull() & (trails["name"].str.strip() != "")
+            ]
+
+            if trails.empty:
+                self.logger.debug("No named trails found after filtering")
+                return trails
+
+            # Filter for linestring geometries first (required for schema validation)
+            trails = trails[
+                trails.geometry.type.isin(["LineString", "MultiLineString"])
+            ]
+
+            if trails.empty:
+                self.logger.debug(
+                    "No LineString/MultiLineString geometries found after filtering"
+                )
+                return trails
+
+            # Validate the raw OSM data structure using Pandera
+            try:
+                OSMRawTrailsSchema.validate(trails, lazy=True)
+                self.logger.debug("Raw OSM data passed schema validation")
+            except (SchemaError, SchemaErrors) as e:
+                self.logger.error(f"OSM data failed schema validation: {e}")
+                # Return empty GeoDataFrame to skip this park (fail fast approach)
+                return gpd.GeoDataFrame()
+
             return trails
         except Exception as e:
             self.logger.error(f"OSM query failed: {e}")
             return gpd.GeoDataFrame()
 
-    def validate_trails(
+    def deduplicate_trails(
         self, trails: gpd.GeoDataFrame, park_code: str
     ) -> gpd.GeoDataFrame:
         """
-        Validate and clean trail data.
+        Remove duplicate trail records based on OSM ID.
+
+        This method handles deduplication of trails that may have duplicate OSM IDs
+        within a single park's data. Keeps the first occurrence of each unique OSM ID.
+
+        Note: Validation of geometry validity and length ranges is handled by the
+        Pandera schemas (OSMRawTrailsSchema and OSMProcessedTrailsSchema).
 
         Args:
-            trails (gpd.GeoDataFrame): Raw trail data
+            trails (gpd.GeoDataFrame): Trail data to deduplicate
             park_code (str): Park code for logging context
 
         Returns:
-            gpd.GeoDataFrame: Validated trail data
+            gpd.GeoDataFrame: Trail data with duplicates removed
         """
         if trails.empty:
             return trails
-
-        initial_count = len(trails)
-
-        # Remove trails with invalid geometries
-        valid_geom = trails.geometry.is_valid
-        trails = trails[valid_geom]
-        if not valid_geom.all():
-            self.logger.warning(
-                f"Removed {(~valid_geom).sum()} trails with invalid geometries for {park_code}"
-            )
-
-        # Remove trails with unrealistic lengths (< 0.01 miles or > 50 miles)
-        if "length_miles" in trails.columns:
-            reasonable_length = (trails["length_miles"] >= 0.01) & (
-                trails["length_miles"] <= 50.0
-            )
-            trails = trails[reasonable_length]
-            if not reasonable_length.all():
-                self.logger.warning(
-                    f"Removed {(~reasonable_length).sum()} trails with unrealistic lengths for {park_code}"
-                )
 
         # Remove duplicate OSM IDs within this park
         if "osm_id" in trails.columns:
             before_dedup = len(trails)
             trails = trails.drop_duplicates(subset=["osm_id"], keep="first")
-            if len(trails) < before_dedup:
-                self.logger.warning(
-                    f"Removed {before_dedup - len(trails)} duplicate OSM IDs for {park_code}"
-                )
+            after_dedup = len(trails)
 
-        # Log validation summary
-        final_count = len(trails)
-        if final_count < initial_count:
-            self.logger.info(
-                f"Validation for {park_code}: {initial_count} → {final_count} trails ({initial_count - final_count} removed)"
-            )
+            if after_dedup < before_dedup:
+                removed_count = before_dedup - after_dedup
+                self.logger.warning(
+                    f"Removed {removed_count} duplicate OSM IDs for {park_code}"
+                )
+                self.logger.info(
+                    f"Deduplication for {park_code}: {before_dedup} → {after_dedup} trails"
+                )
 
         return trails
 
@@ -285,12 +304,12 @@ class OSMHikesCollector:
         This is the main processing pipeline that downloads trails from OSM, applies
         filtering and validation rules, calculates metrics, and standardizes the data
         format for storage. The process includes:
-        1. Query OSM for trail features within park boundary
-        2. Filter for linear geometries (LineString/MultiLineString)
-        3. Filter for named trails only
-        4. Calculate trail lengths in miles using appropriate projection
-        5. Add metadata (park code, timestamp, geometry type)
-        6. Validate data quality and remove invalid records
+        1. Query OSM for trail features within park boundary (with initial validation)
+        2. Calculate trail lengths in miles using appropriate projection
+        3. Add metadata (park code, timestamp, geometry type)
+        4. Validate data quality and remove invalid records
+        5. Clip trails to exact park boundary
+        6. Final schema validation before returning
 
         Args:
             park_code (str): National Park Service park code identifier (e.g., 'YELL', 'GRCA')
@@ -312,12 +331,6 @@ class OSMHikesCollector:
         if trails.empty:
             self.logger.warning(f"No trails found for park {park_code}.")
             return gpd.GeoDataFrame(columns=config.OSM_ALL_COLUMNS)
-
-        # Filter for linestrings
-        trails = trails[trails.geometry.type.isin(["LineString", "MultiLineString"])]
-
-        # Filter for named trails
-        trails = trails[trails["name"].notnull() & (trails["name"].str.strip() != "")]
 
         # Add geometry_type
         trails["geometry_type"] = trails.geometry.type
@@ -356,11 +369,25 @@ class OSMHikesCollector:
                 f"Dropped {before - after} trails with missing required fields for park {park_code}."
             )
 
-        # Validate the data
-        trails = self.validate_trails(trails, park_code)
+        # Deduplicate trails by OSM ID
+        trails = self.deduplicate_trails(trails, park_code)
 
-        # CLIP TRAILS TO BOUNDARY (NEW) - with primary key handling
+        # CLIP TRAILS TO BOUNDARY - with primary key handling
         trails = self.clip_trails_to_boundary(trails, polygon, park_code)
+
+        # Final validation using Pandera schema before returning
+        if not trails.empty:
+            try:
+                OSMProcessedTrailsSchema.validate(trails, lazy=True)
+                self.logger.debug(
+                    f"Processed trails for {park_code} passed final schema validation"
+                )
+            except (SchemaError, SchemaErrors) as e:
+                self.logger.error(
+                    f"Processed trails for {park_code} failed final schema validation: {e}"
+                )
+                # Return empty GeoDataFrame to skip this park (fail fast approach)
+                return gpd.GeoDataFrame(columns=config.OSM_ALL_COLUMNS)
 
         return trails
 
@@ -438,7 +465,7 @@ class OSMHikesCollector:
                             )  # Convert meters to miles
 
                             # Only keep trails that meet minimum length requirement
-                            if length_miles >= 0.01:  # OSM minimum length
+                            if length_miles >= config.OSM_MIN_TRAIL_LENGTH_MILES:
                                 trail_copy["length_miles"] = length_miles
                                 clipped_trails.append(trail_copy)
                                 total_clipped_length += length_miles

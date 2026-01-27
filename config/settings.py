@@ -89,6 +89,9 @@ class Config:
         "geometry_type",
         "geometry",
     ]
+    # OSM Validation Settings
+    OSM_MIN_TRAIL_LENGTH_MILES: float = 0.01
+    OSM_MAX_TRAIL_LENGTH_MILES: float = 50.0
 
     # TNM Collection Settings
     TNM_API_BASE_URL: str = (
