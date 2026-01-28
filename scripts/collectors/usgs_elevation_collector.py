@@ -1,9 +1,42 @@
 #!/usr/bin/env python3
 """
-USGS Elevation Data Collector
+USGS Elevation Data Collector for Matched Trails
 
-Fetches elevation data for matched trails using USGS free API.
-Only collects data - no analysis or visualization.
+This module provides a comprehensive solution for collecting elevation profile data
+for matched hiking trails using the USGS Elevation Point Query Service (EPQS). It
+samples elevation points along trail geometries, validates the data using Pydantic
+schemas, and stores results in a PostgreSQL/PostGIS database.
+
+Key Features:
+- Automated elevation sampling along trail geometries at configurable intervals
+- Three-stage data validation: API responses, individual points, and complete profiles
+- Persistent caching system to minimize redundant API calls
+- Rate limiting to respect USGS server policies
+- Comprehensive error handling and logging with collection status tracking
+- Resumable collection runs with automatic skip of existing data
+- Database storage with JSONB elevation profiles for efficient querying
+
+Data Collection Pipeline:
+1. Query matched trails from gmaps_hiking_locations_matched table
+2. Sample points along trail geometry at regular intervals (default: 50m)
+3. Query USGS EPQS API for elevation at each sampled point
+4. Validate API responses using Pydantic schemas (handles sentinel values, range checks)
+5. Validate individual elevation points (coordinates, elevation ranges)
+6. Calculate collection status (COMPLETE/PARTIAL/FAILED) based on success rate
+7. Validate complete elevation profile before database storage
+8. Write to database with UPSERT to handle re-runs
+
+Validation:
+- API responses validated for structure and elevation range (-500m to 9000m)
+- Handles USGS sentinel value (-1000000) indicating no data available
+- Coordinate validation (lat: -90 to 90, lon: -180 to 180)
+- Park code validation (4 lowercase characters)
+- Collection status consistency checks (failure rates must align with status)
+
+API Reference:
+- USGS EPQS API: https://epqs.nationalmap.gov/v1/
+- Returns single elevation value in meters for given lat/lon coordinates
+- Free service with no authentication required
 """
 
 from __future__ import annotations
@@ -20,12 +53,18 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import requests
+from pydantic import ValidationError
 from shapely.geometry import LineString, Point
 from sqlalchemy import text
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
+from scripts.collectors.usgs_schemas import (
+    USGSElevationPoint,
+    USGSElevationResponse,
+    USGSTrailElevationProfile,
+)
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from utils.logging import setup_logging
 
@@ -99,13 +138,28 @@ class USGSElevationCollector:
 
             if response.status_code == 200:
                 data = response.json()
-                if "value" in data:
-                    elevation = data["value"]
-                    elevation_float = float(elevation)
+
+                # Validate API response structure using Pydantic schema
+                try:
+                    validated_response = USGSElevationResponse(**data)
+                    elevation = validated_response.value
+
+                    # None means no data available (could be -1000000 sentinel or null)
+                    if elevation is None:
+                        self.logger.warning(
+                            f"No elevation data available for ({lat:.6f}, {lon:.6f})"
+                        )
+                        return None
 
                     # Cache the result
-                    self.elevation_cache[cache_key] = elevation_float
-                    return elevation_float
+                    self.elevation_cache[cache_key] = elevation
+                    return elevation
+
+                except ValidationError as e:
+                    self.logger.error(
+                        f"API response validation failed for ({lat:.6f}, {lon:.6f}): {e}"
+                    )
+                    return None
 
             self.logger.error(
                 f"Failed to get elevation for ({lat:.6f}, {lon:.6f}): {response.status_code}"
@@ -159,15 +213,21 @@ class USGSElevationCollector:
                     distance_increment = (distance_deg - prev_distance_deg) * 111000
                     cumulative_distance += distance_increment
 
-                elevation_data.append(
-                    {
-                        "point_index": i,
-                        "distance_m": cumulative_distance,
-                        "latitude": lat,
-                        "longitude": lon,
-                        "elevation_m": elevation,
-                    }
-                )
+                # Validate point data before adding to collection
+                try:
+                    point = USGSElevationPoint(
+                        point_index=i,
+                        distance_m=cumulative_distance,
+                        latitude=lat,
+                        longitude=lon,
+                        elevation_m=elevation,
+                    )
+                    elevation_data.append(point.model_dump())
+                except ValidationError as e:
+                    failed_count += 1
+                    self.logger.error(
+                        f"Point validation failed for point {i} ({lat:.6f}, {lon:.6f}): {e}"
+                    )
             else:
                 failed_count += 1
                 self.logger.error(
@@ -305,6 +365,26 @@ class USGSElevationCollector:
             # Calculate failed points count
             total_points = len(elevation_data) if elevation_data else 0
             failed_points = 0  # We filtered out failed points, so this is 0
+
+            # Validate complete profile before database storage
+            try:
+                profile = USGSTrailElevationProfile(
+                    gmaps_location_id=trail_id,
+                    trail_name=trail_name,
+                    park_code=park_code,
+                    source=source,
+                    elevation_points=elevation_data,
+                    collection_status=collection_status,
+                    failed_points_count=failed_points,
+                    total_points_count=total_points,
+                )
+                self.logger.debug(
+                    f"Elevation profile for {trail_name} passed validation"
+                )
+            except ValidationError as e:
+                self.logger.error(f"Profile validation failed for {trail_name}: {e}")
+                failed_count += 1
+                continue
 
             # Store in database (UPSERT to handle re-runs) if write_db is enabled
             if self.write_db and self.db_writer:
