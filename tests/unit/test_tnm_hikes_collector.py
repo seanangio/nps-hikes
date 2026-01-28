@@ -13,10 +13,16 @@ from unittest.mock import MagicMock, Mock, patch
 import geopandas as gpd
 import pandas as pd
 import pytest
+from pandera.errors import SchemaError, SchemaErrors
+from pydantic import ValidationError
 from shapely.geometry import LineString, MultiLineString, Polygon
 from sqlalchemy import Engine
 
 from scripts.collectors.tnm_hikes_collector import TNMHikesCollector
+from scripts.collectors.tnm_schemas import (
+    TNMFeatureCollection,
+    TNMProcessedTrailsSchema,
+)
 
 
 @pytest.fixture
@@ -218,14 +224,14 @@ class TestTNMHikesCollector:
         """Test successful TNM API query."""
         # Mock successful response
         mock_response = Mock()
-        mock_response.json.return_value = {"features": []}
+        mock_response.json.return_value = {"type": "FeatureCollection", "features": []}
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
         bbox_string = "-68.7,44.0,-68.0,44.5"
         response = mock_collector.query_tnm_api(bbox_string, "acad")
 
-        assert response == {"features": []}
+        assert response == {"type": "FeatureCollection", "features": []}
         mock_get.assert_called_once()
 
     @patch("requests.get")
@@ -249,6 +255,34 @@ class TestTNMHikesCollector:
         assert gdf["park_code"].iloc[0] == "acad"
         assert "permanent_identifier" in gdf.columns
         assert "name" in gdf.columns
+
+    def test_null_string_to_none_conversion(self, mock_collector):
+        """Test that 'Null' string from TNM API is converted to None."""
+        # Create a mock response with "Null" strings for boolean fields
+        response = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 1]]},
+                    "properties": {
+                        "permanentidentifier": "test-id",
+                        "name": "Test Trail",
+                        "lengthmiles": 1.5,
+                        "hikerpedestrian": "Null",  # String "Null" from API
+                        "bicycle": "Null",
+                        "motorcycle": "Null",
+                    },
+                }
+            ],
+        }
+
+        gdf = mock_collector.load_trails_to_geodataframe(response, "test")
+
+        # Check that "Null" strings were converted to None/NaN
+        assert gdf["hiker_pedestrian"].isna().all()
+        assert gdf["bicycle"].isna().all()
+        assert gdf["motorcycle"].isna().all()
 
     def test_filter_named_trails(self, mock_collector, sample_tnm_response):
         """Test filtering for named trails."""
@@ -512,6 +546,7 @@ class TestIntegration:
         # Mock TNM API response
         mock_response = Mock()
         mock_response.json.return_value = {
+            "type": "FeatureCollection",
             "features": [
                 {
                     "type": "Feature",
@@ -527,7 +562,7 @@ class TestIntegration:
                         "hikerpedestrian": "Y",
                     },
                 }
-            ]
+            ],
         }
         mock_response.raise_for_status.return_value = None
         mock_requests_get.return_value = mock_response
@@ -573,6 +608,213 @@ class TestIntegration:
             # Verify result
             assert isinstance(result, gpd.GeoDataFrame)
             assert len(result) > 0
+
+
+class TestSchemaValidation:
+    """Test schema validation integration in TNM collector."""
+
+    def test_valid_api_response_passes_pydantic_validation(self, sample_tnm_response):
+        """Test that valid TNM API response passes Pydantic validation."""
+        # Should not raise exception
+        validated = TNMFeatureCollection.model_validate(sample_tnm_response)
+        assert validated.type == "FeatureCollection"
+        assert len(validated.features) >= 2  # sample_tnm_response has 3 features
+
+    def test_invalid_api_response_fails_pydantic_validation(self):
+        """Test that invalid TNM API response fails Pydantic validation."""
+        invalid_response = {
+            "type": "InvalidType",  # Wrong type
+            "features": [],
+        }
+        with pytest.raises(ValidationError):
+            TNMFeatureCollection.model_validate(invalid_response)
+
+    def test_api_response_missing_permanent_identifier_fails(self):
+        """Test that API response without permanent identifier fails validation."""
+        invalid_response = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 1]]},
+                    "properties": {
+                        # Missing permanentidentifier
+                        "name": "Test Trail"
+                    },
+                }
+            ],
+        }
+        with pytest.raises(ValidationError, match="permanentidentifier"):
+            TNMFeatureCollection.model_validate(invalid_response)
+
+    @patch("scripts.collectors.tnm_hikes_collector.requests.get")
+    @patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine")
+    def test_query_tnm_api_validates_response(self, mock_engine, mock_requests_get):
+        """Test that query_tnm_api validates the API response."""
+        # Create collector
+        with patch("scripts.collectors.tnm_hikes_collector.DatabaseWriter"):
+            collector = TNMHikesCollector(
+                output_gpkg="test.gpkg",
+                rate_limit=0.1,
+                parks=None,
+                test_limit=None,
+                log_level="INFO",
+                write_db=False,
+            )
+
+            # Mock valid response
+            mock_response = Mock()
+            mock_response.json.return_value = {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "LineString",
+                            "coordinates": [[0, 0], [1, 1]],
+                        },
+                        "properties": {"permanentidentifier": "test123"},
+                    }
+                ],
+            }
+            mock_response.raise_for_status.return_value = None
+            mock_requests_get.return_value = mock_response
+
+            # Should succeed with valid response
+            result = collector.query_tnm_api("0,0,1,1", "test")
+            assert result is not None
+            assert result["type"] == "FeatureCollection"
+
+    @patch("scripts.collectors.tnm_hikes_collector.requests.get")
+    @patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine")
+    def test_query_tnm_api_rejects_invalid_response(
+        self, mock_engine, mock_requests_get
+    ):
+        """Test that query_tnm_api rejects invalid API response."""
+        with patch("scripts.collectors.tnm_hikes_collector.DatabaseWriter"):
+            collector = TNMHikesCollector(
+                output_gpkg="test.gpkg",
+                rate_limit=0.1,
+                parks=None,
+                test_limit=None,
+                log_level="INFO",
+                write_db=False,
+            )
+
+            # Mock invalid response (missing permanentidentifier)
+            mock_response = Mock()
+            mock_response.json.return_value = {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "LineString",
+                            "coordinates": [[0, 0], [1, 1]],
+                        },
+                        "properties": {
+                            # Missing permanentidentifier
+                            "name": "Test"
+                        },
+                    }
+                ],
+            }
+            mock_response.raise_for_status.return_value = None
+            mock_requests_get.return_value = mock_response
+
+            # Should return None due to validation failure
+            result = collector.query_tnm_api("0,0,1,1", "test")
+            assert result is None
+
+    def test_processed_trails_pass_pandera_validation(self):
+        """Test that properly processed trails pass Pandera validation."""
+        gdf = gpd.GeoDataFrame(
+            {
+                "permanent_identifier": ["trail1"],
+                "park_code": ["acad"],
+                "name": ["Test Trail"],
+                "length_miles": [1.5],
+                "geometry_type": ["LineString"],
+                "collected_at": ["2024-01-01T00:00:00Z"],
+                "geometry": [LineString([(0, 0), (1, 1)])],
+            },
+            crs="EPSG:4326",
+        )
+
+        # Should not raise exception
+        result = TNMProcessedTrailsSchema.validate(gdf)
+        assert len(result) == 1
+
+    def test_processed_trails_with_invalid_data_fail_validation(self):
+        """Test that processed trails with invalid data fail Pandera validation."""
+        gdf = gpd.GeoDataFrame(
+            {
+                "permanent_identifier": ["trail1"],
+                "park_code": ["ABC"],  # Wrong case
+                "name": ["Test Trail"],
+                "length_miles": [0.005],  # Too short
+                "geometry_type": ["LineString"],
+                "collected_at": ["2024-01-01T00:00:00Z"],
+                "geometry": [LineString([(0, 0), (1, 1)])],
+            },
+            crs="EPSG:4326",
+        )
+
+        with pytest.raises((SchemaError, SchemaErrors)):
+            TNMProcessedTrailsSchema.validate(gdf, lazy=True)
+
+    @patch("scripts.collectors.tnm_hikes_collector.requests.get")
+    @patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine")
+    @patch("scripts.collectors.tnm_hikes_collector.gpd.read_postgis")
+    def test_process_trails_with_schema_validation(
+        self, mock_read_postgis, mock_engine, mock_requests_get, sample_tnm_response
+    ):
+        """Test that process_trails validates data with Pandera schema."""
+        with patch("scripts.collectors.tnm_hikes_collector.DatabaseWriter"):
+            collector = TNMHikesCollector(
+                output_gpkg="test.gpkg",
+                rate_limit=0.1,
+                parks=None,
+                test_limit=None,
+                log_level="INFO",
+                write_db=False,
+            )
+
+            # Mock valid API response
+            mock_response = Mock()
+            mock_response.json.return_value = sample_tnm_response
+            mock_response.raise_for_status.return_value = None
+            mock_requests_get.return_value = mock_response
+
+            # Mock park boundary
+            boundary = gpd.GeoDataFrame(
+                {
+                    "park_code": ["acad"],
+                    "geometry": [
+                        Polygon(
+                            [
+                                (-68.7, 44.0),
+                                (-68.0, 44.0),
+                                (-68.0, 44.5),
+                                (-68.7, 44.5),
+                                (-68.7, 44.0),
+                            ]
+                        )
+                    ],
+                    "bbox": ["-68.7,44.0,-68.0,44.5"],
+                },
+                crs="EPSG:4326",
+            )
+
+            # Process trails (should include validation)
+            result = collector.process_trails("acad", boundary)
+
+            # Result should pass validation
+            assert isinstance(result, gpd.GeoDataFrame)
+            # If validation failed, result would be empty
+            if not result.empty:
+                # Verify it would pass schema validation
+                TNMProcessedTrailsSchema.validate(result)
 
 
 if __name__ == "__main__":

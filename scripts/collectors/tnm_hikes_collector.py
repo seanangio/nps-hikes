@@ -41,6 +41,8 @@ import geopandas as gpd
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+from pandera.errors import SchemaError, SchemaErrors
+from pydantic import ValidationError
 from shapely.geometry import LineString, MultiLineString, MultiPolygon, Polygon
 from shapely.ops import linemerge
 from sqlalchemy import Engine
@@ -54,6 +56,10 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
+from scripts.collectors.tnm_schemas import (
+    TNMFeatureCollection,
+    TNMProcessedTrailsSchema,
+)
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 from utils.logging import setup_tnm_collector_logging
 
@@ -188,6 +194,19 @@ class TNMHikesCollector:
             response.raise_for_status()
 
             data: dict[str, Any] = response.json()
+
+            # Validate API response structure using Pydantic schema
+            try:
+                TNMFeatureCollection.model_validate(data)
+                self.logger.debug(
+                    f"API response for {park_code} passed schema validation"
+                )
+            except ValidationError as e:
+                self.logger.error(
+                    f"API response validation failed for {park_code}: {e}"
+                )
+                return None
+
             self.logger.info(
                 f"Received response for {park_code}: {len(data.get('features', []))} features"
             )
@@ -314,6 +333,9 @@ class TNMHikesCollector:
                             "no": "N",
                             "YES": "Y",
                             "NO": "N",
+                            "Null": None,  # Handle TNM API returning "Null" string
+                            "NULL": None,
+                            "null": None,
                         }
                     )
 
@@ -324,6 +346,9 @@ class TNMHikesCollector:
     ) -> gpd.GeoDataFrame:
         """
         Filter trails to only include those with names.
+
+        Note: Name validation is also enforced by TNMProcessedTrailsSchema,
+        but we filter early here to reduce processing overhead.
 
         Args:
             gdf: GeoDataFrame with trail data
@@ -535,6 +560,9 @@ class TNMHikesCollector:
         """
         Filter trails by minimum length after aggregation.
 
+        Note: Length validation is also enforced by TNMProcessedTrailsSchema,
+        but we filter early here to reduce processing overhead.
+
         Args:
             gdf: GeoDataFrame with trail data
             park_code: Park code for logging
@@ -644,6 +672,20 @@ class TNMHikesCollector:
 
         # Add metadata
         trails_gdf = self.add_metadata(trails_gdf, park_code)
+
+        # Validate processed data with Pandera schema
+        if not trails_gdf.empty:
+            try:
+                TNMProcessedTrailsSchema.validate(trails_gdf, lazy=True)
+                self.logger.debug(
+                    f"Processed trails for {park_code} passed schema validation"
+                )
+            except (SchemaError, SchemaErrors) as e:
+                self.logger.error(
+                    f"Processed trails for {park_code} failed schema validation: {e}"
+                )
+                # Return empty GeoDataFrame to skip this park
+                return gpd.GeoDataFrame()
 
         self.logger.info(
             f"Completed processing {park_code}: {len(trails_gdf)} final trails"
