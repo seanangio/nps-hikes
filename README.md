@@ -77,7 +77,7 @@ nps-hikes/
 
 ### Prerequisites
 - Python 3.12+ (see `pyproject.toml`)
-- PostgreSQL 12+ with PostGIS 3.0+ extension
+- PostgreSQL 12+ with PostGIS 3.0+ and pg_trgm extensions
 - NPS API key (free from [NPS API](https://www.nps.gov/subjects/developer/api-documentation.htm))
 - Optional: `pyenv` or `asdf` for automatic Python version management
 
@@ -131,13 +131,15 @@ nps-hikes/
 
 5. **Set up the database**
    ```sql
-   -- PostgreSQL 12+ with PostGIS 3.0+ required
+   -- PostgreSQL 12+ with PostGIS 3.0+ and pg_trgm required
    CREATE DATABASE nps_hikes;
    \c nps_hikes
    CREATE EXTENSION postgis;
+   CREATE EXTENSION pg_trgm;
 
-   -- Verify PostGIS installation
+   -- Verify extensions are installed
    SELECT PostGIS_Version();
+   SELECT * FROM pg_extension WHERE extname IN ('postgis', 'pg_trgm');
    ```
 
 ### Development Setup
