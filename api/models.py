@@ -128,3 +128,138 @@ class ParkTrailsResponse(BaseModel):
             ]
         }
     }
+
+
+class AllTrail(BaseModel):
+    """
+    Trail information for the all-trails endpoint.
+
+    Includes trail metadata from both TNM and OSM sources, along with
+    park information and hiking status.
+    """
+
+    trail_id: str = Field(
+        ...,
+        description="Unique trail identifier (permanent_identifier for TNM, osm_id for OSM)",
+        examples=["550779"],
+    )
+    trail_name: str = Field(
+        ...,
+        description="Trail name",
+        examples=["Half Dome Trail"],
+    )
+    park_code: str = Field(
+        ...,
+        description="4-character lowercase park code",
+        pattern="^[a-z]{4}$",
+        examples=["yose"],
+    )
+    park_name: str | None = Field(
+        None,
+        description="Full park name",
+        examples=["Yosemite National Park"],
+    )
+    states: str | None = Field(
+        None,
+        description="States where parent park is located (approximate - trail may not span all states)",
+        examples=["CA"],
+    )
+    source: str = Field(
+        ...,
+        description="Data source (TNM or OSM)",
+        examples=["TNM"],
+    )
+    length_miles: float = Field(
+        ...,
+        description="Trail length in miles",
+        ge=0,
+        examples=[14.2],
+    )
+    geometry_type: str = Field(
+        ...,
+        description="Geometry type (LineString, MultiLineString, etc.)",
+        examples=["LineString"],
+    )
+    hiked: bool = Field(
+        ...,
+        description="Whether this trail has been hiked",
+        examples=[True],
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "trail_id": "550779",
+                    "trail_name": "Half Dome Trail",
+                    "park_code": "yose",
+                    "park_name": "Yosemite National Park",
+                    "states": "CA",
+                    "source": "TNM",
+                    "length_miles": 14.2,
+                    "geometry_type": "LineString",
+                    "hiked": True,
+                }
+            ]
+        }
+    }
+
+
+class AllTrailsResponse(BaseModel):
+    """
+    Response model for all trails endpoint.
+
+    Contains summary statistics and a list of trails across all parks.
+    """
+
+    trail_count: int = Field(
+        ...,
+        description="Number of trails returned",
+        ge=0,
+        examples=[127],
+    )
+    total_miles: float = Field(
+        ...,
+        description="Total trail mileage for all returned trails",
+        ge=0,
+        examples=[892.3],
+    )
+    trails: list[AllTrail] = Field(
+        ...,
+        description="List of trails matching the query",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "trail_count": 2,
+                    "total_miles": 20.5,
+                    "trails": [
+                        {
+                            "trail_id": "550779",
+                            "trail_name": "Half Dome Trail",
+                            "park_code": "yose",
+                            "park_name": "Yosemite National Park",
+                            "states": "CA",
+                            "source": "TNM",
+                            "length_miles": 14.2,
+                            "geometry_type": "LineString",
+                            "hiked": True,
+                        },
+                        {
+                            "trail_id": "123456789",
+                            "trail_name": "Mist Trail",
+                            "park_code": "yose",
+                            "park_name": "Yosemite National Park",
+                            "states": "CA",
+                            "source": "OSM",
+                            "length_miles": 6.3,
+                            "geometry_type": "LineString",
+                            "hiked": False,
+                        },
+                    ],
+                }
+            ]
+        }
+    }

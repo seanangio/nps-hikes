@@ -44,6 +44,11 @@ This project enables researchers, park enthusiasts, and data analysts to:
 
 ```
 nps-hikes/
+├── api/                       # FastAPI REST API
+│   ├── main.py                        # API endpoints and application
+│   ├── models.py                      # Pydantic response models
+│   ├── queries.py                     # Database query functions
+│   └── database.py                    # Database connection management
 ├── scripts/                   # Data collection and processing scripts
 │   ├── collectors/            # Data collection from external sources
 │   │   ├── nps_collector.py           # NPS API data collection
@@ -189,7 +194,23 @@ python scripts/processors/trail_matcher.py --write-db
 python scripts/collectors/usgs_elevation_collector.py --write-db
 ```
 
-### 3. Analyze Data Quality
+### Option 3: Query Data via REST API
+```bash
+# Start the API server
+uvicorn api.main:app --reload
+
+# Access interactive documentation
+# - Swagger UI: http://localhost:8000/docs
+# - ReDoc: http://localhost:8000/redoc
+
+# Example API queries:
+# - All trails: http://localhost:8000/trails
+# - Trails you've hiked: http://localhost:8000/trails?hiked=true
+# - Long trails (>10 miles): http://localhost:8000/trails?min_length=10
+# - Yosemite trails: http://localhost:8000/parks/yose/trails
+```
+
+### Option 4: Analyze Data Quality
 ```bash
 # Run comprehensive data profiling
 python -m profiling.orchestrator

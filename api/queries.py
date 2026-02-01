@@ -121,3 +121,167 @@ def fetch_trails_for_park(
         "total_miles": round(total_miles, 2),
         "trails": trails,
     }
+
+
+def fetch_all_trails(
+    min_length: float | None = None,
+    max_length: float | None = None,
+    park_code: str | None = None,
+    state: str | None = None,
+    source: str | None = None,
+    hiked: bool | None = None,
+) -> dict[str, Any]:
+    """
+    Fetch all trails across all parks with optional filters.
+
+    Combines TNM and OSM trail data, preferring TNM when duplicates exist
+    (based on fuzzy name matching within the same park).
+
+    Args:
+        min_length: Minimum trail length in miles (optional)
+        max_length: Maximum trail length in miles (optional)
+        park_code: Filter by specific park code (e.g., 'yose') (optional)
+        state: Filter trails in parks containing this state (e.g., 'CA') (optional)
+        source: Filter by data source ('TNM' or 'OSM') (optional)
+        hiked: Filter by hiking status - True for hiked, False for not hiked, None for all (optional)
+
+    Returns:
+        Dictionary containing:
+            - trail_count: int
+            - total_miles: float
+            - trails: list of trail dictionaries
+
+    Example:
+        >>> fetch_all_trails(min_length=5, hiked=True)
+        {
+            'trail_count': 23,
+            'total_miles': 187.4,
+            'trails': [...]
+        }
+    """
+    engine = get_db_engine()
+
+    # Build query with CTEs for TNM trails, OSM trails, and deduplication
+    query = """
+    WITH tnm_trails AS (
+        SELECT
+            permanent_identifier as trail_id,
+            name as trail_name,
+            park_code,
+            'TNM' as source,
+            length_miles,
+            geometry_type
+        FROM tnm_hikes
+        WHERE name IS NOT NULL
+    ),
+    osm_trails AS (
+        SELECT
+            osm_id::text as trail_id,
+            name as trail_name,
+            park_code,
+            'OSM' as source,
+            length_miles,
+            geometry_type
+        FROM osm_hikes
+        WHERE name IS NOT NULL
+    ),
+    -- Find OSM trails that don't match TNM (deduplication via fuzzy matching)
+    osm_unique AS (
+        SELECT o.*
+        FROM osm_trails o
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM tnm_trails t
+            WHERE t.park_code = o.park_code
+            AND similarity(lower(t.trail_name), lower(o.trail_name)) > 0.7
+        )
+    ),
+    -- Combine TNM (preferred) + unique OSM trails
+    all_trails AS (
+        SELECT * FROM tnm_trails
+        UNION ALL
+        SELECT * FROM osm_unique
+    )
+    SELECT
+        t.trail_id,
+        t.trail_name,
+        t.park_code,
+        p.park_name,
+        p.states,
+        t.source,
+        t.length_miles,
+        t.geometry_type,
+        CASE
+            WHEN m.gmaps_location_id IS NOT NULL THEN true
+            ELSE false
+        END as hiked
+    FROM all_trails t
+    LEFT JOIN parks p ON t.park_code = p.park_code
+    LEFT JOIN gmaps_hiking_locations_matched m
+        ON t.park_code = m.park_code
+        AND t.source = m.source
+        AND t.trail_name = m.matched_trail_name
+    WHERE 1=1
+    """
+
+    # Build dynamic WHERE clauses based on optional filters
+    params: dict[str, Any] = {}
+
+    if min_length is not None:
+        query += " AND t.length_miles >= :min_length"
+        params["min_length"] = min_length
+
+    if max_length is not None:
+        query += " AND t.length_miles <= :max_length"
+        params["max_length"] = max_length
+
+    if park_code is not None:
+        query += " AND t.park_code = :park_code"
+        params["park_code"] = park_code
+
+    if state is not None:
+        query += " AND p.states LIKE :state"
+        params["state"] = f"%{state}%"
+
+    if source is not None:
+        query += " AND t.source = :source"
+        params["source"] = source
+
+    if hiked is not None:
+        if hiked:
+            query += " AND m.gmaps_location_id IS NOT NULL"
+        else:
+            query += " AND m.gmaps_location_id IS NULL"
+
+    # Order by park code and trail name
+    query += " ORDER BY t.park_code, t.trail_name"
+
+    # Execute query
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        rows = result.fetchall()
+
+    # Format trails and calculate total mileage
+    trails = []
+    total_miles = 0.0
+
+    for row in rows:
+        trail = {
+            "trail_id": row.trail_id,
+            "trail_name": row.trail_name,
+            "park_code": row.park_code,
+            "park_name": row.park_name,
+            "states": row.states,
+            "source": row.source,
+            "length_miles": float(row.length_miles),
+            "geometry_type": row.geometry_type,
+            "hiked": row.hiked,
+        }
+        trails.append(trail)
+        total_miles += float(row.length_miles)
+
+    return {
+        "trail_count": len(trails),
+        "total_miles": round(total_miles, 2),
+        "trails": trails,
+    }
