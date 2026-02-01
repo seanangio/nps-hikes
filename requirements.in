@@ -13,3 +13,5 @@ geoalchemy2
 osmnx
 pydantic>=2.0.0
 pandera
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
