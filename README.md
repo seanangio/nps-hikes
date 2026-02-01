@@ -29,6 +29,7 @@ This project enables researchers, park enthusiasts, and data analysts to:
 ### Data Quality & Validation
 - **Geometry Validation**: Ensures valid spatial data and removes malformed geometries
 - **Length Filtering**: Removes unrealistically short (<0.01 mi) or long (>50 mi) trails
+- **Trail Aggregation**: Automatically combines trail segments with the same name into unified records
 - **Duplicate Detection**: Identifies and removes duplicate trails and park records
 - **Coordinate Validation**: Validates latitude/longitude coordinates are within valid ranges
 - **Data Profiling**: Comprehensive quality metrics and statistical analysis
@@ -377,11 +378,19 @@ profiling_results/
 ### Core Tables
 - **parks**: Park metadata (codes, names, coordinates, descriptions, visit dates)
 - **park_boundaries**: Spatial boundaries as MultiPolygon geometries in WGS84
-- **osm_hikes**: Trail geometries with attributes (name, length, type) from OpenStreetMap
+- **osm_hikes**: Aggregated trail geometries from OpenStreetMap (segments with same name combined into MultiLineString)
 - **tnm_hikes**: Trail data from The National Map with detailed trail characteristics
 - **gmaps_hiking_locations**: Google Maps hiking location points with coordinates
 - **gmaps_hiking_locations_matched**: Matched locations with trail correlation results
 - **usgs_trail_elevations**: Elevation profile data for matched trails
+
+### OSM Trails Processing
+The OSM trails collector implements intelligent trail aggregation:
+- **Segment Detection**: Identifies when OSM has split a single trail into multiple segments
+- **Automatic Aggregation**: Combines segments with the same name within a park
+- **Geometry Merging**: Creates MultiLineString geometries for aggregated trails
+- **Length Summation**: Sums segment lengths for total trail distance
+- **Deterministic IDs**: Generates reproducible trail identifiers using hash(park_code + trail_name)
 
 ### Key Features
 - **Spatial indexing** with PostGIS GIST indexes for performance

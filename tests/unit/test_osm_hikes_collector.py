@@ -344,6 +344,130 @@ def setup_test_environment():
             os.remove(file_path)
 
 
+class TestTrailAggregation:
+    """Test cases for trail segment aggregation."""
+
+    def test_aggregate_single_segment_trail(self, mock_collector):
+        """Test that single-segment trails are not modified."""
+        data = {
+            "osm_id": [123456],
+            "park_code": ["test"],
+            "highway": ["path"],
+            "name": ["Single Trail"],
+            "source": [None],
+            "length_miles": [1.5],
+            "geometry_type": ["LineString"],
+            "geometry": [LineString([(0, 0), (1, 1)])],
+        }
+        gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
+
+        result = mock_collector.aggregate_trail_segments(gdf, "test")
+
+        # Should return same trail unchanged
+        assert len(result) == 1
+        assert result.iloc[0]["name"] == "Single Trail"
+        assert result.iloc[0]["length_miles"] == 1.5
+        assert result.iloc[0]["geometry_type"] == "LineString"
+
+    def test_aggregate_multiple_segments_same_name(self, mock_collector):
+        """Test that multiple segments with same name are aggregated."""
+        data = {
+            "osm_id": [111, 222, 333],
+            "park_code": ["test", "test", "test"],
+            "highway": ["path", "path", "path"],
+            "name": ["Trail A", "Trail A", "Trail A"],
+            "source": [None, None, None],
+            "length_miles": [0.5, 0.3, 0.7],
+            "geometry_type": ["LineString", "LineString", "LineString"],
+            "geometry": [
+                LineString([(0, 0), (1, 1)]),
+                LineString([(2, 2), (3, 3)]),
+                LineString([(4, 4), (5, 5)]),
+            ],
+        }
+        gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
+
+        result = mock_collector.aggregate_trail_segments(gdf, "test")
+
+        # Should aggregate to 1 trail
+        assert len(result) == 1
+        assert result.iloc[0]["name"] == "Trail A"
+        # Length should be sum of all segments
+        assert result.iloc[0]["length_miles"] == pytest.approx(1.5)
+        # Geometry should be MultiLineString
+        assert result.iloc[0]["geometry_type"] == "MultiLineString"
+        assert result.iloc[0]["geometry"].geom_type == "MultiLineString"
+        # osm_id should be generated from hash
+        expected_id = abs(hash("test_Trail A")) % (2**63 - 1)
+        assert result.iloc[0]["osm_id"] == expected_id
+
+    def test_aggregate_mixed_trail_names(self, mock_collector):
+        """Test aggregation with multiple different trail names."""
+        data = {
+            "osm_id": [111, 222, 333, 444],
+            "park_code": ["test"] * 4,
+            "highway": ["path"] * 4,
+            "name": ["Trail A", "Trail A", "Trail B", "Trail B"],
+            "source": [None] * 4,
+            "length_miles": [0.5, 0.5, 0.8, 0.2],
+            "geometry_type": ["LineString"] * 4,
+            "geometry": [
+                LineString([(0, 0), (1, 1)]),
+                LineString([(2, 2), (3, 3)]),
+                LineString([(4, 4), (5, 5)]),
+                LineString([(6, 6), (7, 7)]),
+            ],
+        }
+        gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
+
+        result = mock_collector.aggregate_trail_segments(gdf, "test")
+
+        # Should aggregate to 2 trails
+        assert len(result) == 2
+        trail_names = set(result["name"])
+        assert trail_names == {"Trail A", "Trail B"}
+
+        # Check Trail A aggregation
+        trail_a = result[result["name"] == "Trail A"].iloc[0]
+        assert trail_a["length_miles"] == pytest.approx(1.0)
+        assert trail_a["geometry_type"] == "MultiLineString"
+
+        # Check Trail B aggregation
+        trail_b = result[result["name"] == "Trail B"].iloc[0]
+        assert trail_b["length_miles"] == pytest.approx(1.0)
+        assert trail_b["geometry_type"] == "MultiLineString"
+
+    def test_aggregate_empty_dataframe(self, mock_collector):
+        """Test aggregation with empty input."""
+        empty_gdf = gpd.GeoDataFrame(columns=config.OSM_ALL_COLUMNS, crs="EPSG:4326")
+        result = mock_collector.aggregate_trail_segments(empty_gdf, "test")
+        assert result.empty
+
+    def test_aggregate_deterministic_osm_id(self, mock_collector):
+        """Test that osm_id generation is deterministic."""
+        data = {
+            "osm_id": [111, 222],
+            "park_code": ["test", "test"],
+            "highway": ["path", "path"],
+            "name": ["Deterministic Trail", "Deterministic Trail"],
+            "source": [None, None],
+            "length_miles": [0.5, 0.5],
+            "geometry_type": ["LineString", "LineString"],
+            "geometry": [
+                LineString([(0, 0), (1, 1)]),
+                LineString([(2, 2), (3, 3)]),
+            ],
+        }
+        gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
+
+        # Run aggregation twice
+        result1 = mock_collector.aggregate_trail_segments(gdf.copy(), "test")
+        result2 = mock_collector.aggregate_trail_segments(gdf.copy(), "test")
+
+        # osm_id should be identical both times
+        assert result1.iloc[0]["osm_id"] == result2.iloc[0]["osm_id"]
+
+
 class TestIntegration:
     """Integration tests for the full collector workflow."""
 
@@ -385,7 +509,7 @@ class TestIntegration:
         assert not result.empty
         assert len(result) == 1
         assert result.iloc[0]["park_code"] == "test"
-        assert result.iloc[0]["osm_id"] == 12345
+        # After aggregation, osm_id will be hash-based, not original OSM ID
         assert "length_miles" in result.columns
         assert (
             result.iloc[0]["length_miles"] >= 0.01

@@ -375,6 +375,9 @@ class OSMHikesCollector:
         # CLIP TRAILS TO BOUNDARY - with primary key handling
         trails = self.clip_trails_to_boundary(trails, polygon, park_code)
 
+        # AGGREGATE TRAIL SEGMENTS - combine segments with same name
+        trails = self.aggregate_trail_segments(trails, park_code)
+
         # Final validation using Pandera schema before returning
         if not trails.empty:
             try:
@@ -390,6 +393,89 @@ class OSMHikesCollector:
                 return gpd.GeoDataFrame(columns=config.OSM_ALL_COLUMNS)
 
         return trails
+
+    def aggregate_trail_segments(
+        self, trails_gdf: gpd.GeoDataFrame, park_code: str
+    ) -> gpd.GeoDataFrame:
+        """
+        Aggregate trail segments with the same name into single trail records.
+
+        This method combines multiple OSM segments of the same trail into unified records:
+        - Groups trails by (park_code, name)
+        - Merges geometries into MultiLineString
+        - Sums total trail length across all segments
+        - Generates deterministic osm_id from hash(park_code + name)
+
+        This prevents duplicate trail listings where OSM has split a single trail
+        into multiple segments (common for trails crossing different land parcels
+        or administrative boundaries).
+
+        Args:
+            trails_gdf: GeoDataFrame with trail data (may contain segments)
+            park_code: Park code for context
+
+        Returns:
+            GeoDataFrame with aggregated trails (one row per unique trail name)
+        """
+        if trails_gdf.empty:
+            return trails_gdf
+
+        # Group by trail name
+        aggregated_trails = []
+
+        for trail_name, group in trails_gdf.groupby("name"):
+            # Skip if only one segment (no aggregation needed)
+            if len(group) == 1:
+                # Convert Series to dict for consistency
+                single_trail = group.iloc[0].to_dict()
+                aggregated_trails.append(single_trail)
+                continue
+
+            # Multiple segments found - aggregate them
+            self.logger.info(
+                f"Aggregating {len(group)} segments of '{trail_name}' in {park_code}"
+            )
+
+            # Collect all geometries into a MultiLineString
+            geometries = group.geometry.tolist()
+            from shapely.geometry import MultiLineString
+
+            merged_geometry = MultiLineString(geometries)
+
+            # Sum the lengths of all segments
+            total_length = group["length_miles"].sum()
+
+            # Generate deterministic osm_id from park_code + name
+            # This ensures reproducibility and uniqueness
+            unique_string = f"{park_code}_{trail_name}"
+            aggregated_osm_id = abs(hash(unique_string)) % (2**63 - 1)
+
+            # Create aggregated trail record
+            aggregated_trail = {
+                "osm_id": aggregated_osm_id,
+                "park_code": park_code,
+                "highway": group.iloc[0]["highway"],  # Use first segment's type
+                "name": trail_name,
+                "source": group.iloc[0]["source"],  # Use first segment's source
+                "length_miles": total_length,
+                "geometry_type": "MultiLineString",
+                "geometry": merged_geometry,
+            }
+
+            aggregated_trails.append(aggregated_trail)
+
+        # Create new GeoDataFrame from aggregated trails
+        result_gdf = gpd.GeoDataFrame(aggregated_trails, crs=trails_gdf.crs)
+
+        original_count = len(trails_gdf)
+        aggregated_count = len(result_gdf)
+
+        if aggregated_count < original_count:
+            self.logger.info(
+                f"Aggregated trails for {park_code}: {original_count} segments → {aggregated_count} trails"
+            )
+
+        return result_gdf
 
     def clip_trails_to_boundary(
         self,
