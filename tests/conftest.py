@@ -195,3 +195,193 @@ def setup_test_environment():
 
     if os.getenv("POSTGRES_PASSWORD") == "test_password":
         del os.environ["POSTGRES_PASSWORD"]
+
+
+# API Test Fixtures
+
+
+@pytest.fixture
+def mock_db_engine():
+    """
+    Provide a mock SQLAlchemy engine for API tests.
+
+    Returns a Mock engine with connection context manager configured.
+    Use this to avoid real database connections during API testing.
+    """
+    from unittest.mock import MagicMock
+
+    mock_engine = MagicMock()
+    mock_connection = MagicMock()
+    mock_result = MagicMock()
+
+    # Configure connection context manager
+    mock_engine.connect.return_value.__enter__.return_value = mock_connection
+    mock_engine.connect.return_value.__exit__.return_value = None
+
+    # Configure execute to return mock result
+    mock_connection.execute.return_value = mock_result
+    mock_result.fetchall.return_value = []
+
+    return mock_engine
+
+
+@pytest.fixture
+def sample_park_trails_response():
+    """
+    Provide sample data for park trails endpoint testing.
+
+    Returns a dictionary matching the ParkTrailsResponse structure
+    with realistic trail data for Yosemite National Park.
+    """
+    from collections import namedtuple
+
+    Row = namedtuple(
+        "Row",
+        [
+            "osm_id",
+            "name",
+            "length_miles",
+            "highway_type",
+            "source",
+            "geometry_type",
+            "park_name",
+        ],
+    )
+
+    return {
+        "rows": [
+            Row(
+                osm_id=123456789,
+                name="Half Dome Trail",
+                length_miles=14.2,
+                highway_type="path",
+                source="osm",
+                geometry_type="LineString",
+                park_name="Yosemite National Park",
+            ),
+            Row(
+                osm_id=987654321,
+                name="Mist Trail",
+                length_miles=6.5,
+                highway_type="path",
+                source="osm",
+                geometry_type="LineString",
+                park_name="Yosemite National Park",
+            ),
+        ],
+        "expected_response": {
+            "park_code": "yose",
+            "park_name": "Yosemite National Park",
+            "trail_count": 2,
+            "total_miles": 20.7,
+            "trails": [
+                {
+                    "osm_id": 123456789,
+                    "name": "Half Dome Trail",
+                    "length_miles": 14.2,
+                    "highway_type": "path",
+                    "source": "osm",
+                    "geometry_type": "LineString",
+                },
+                {
+                    "osm_id": 987654321,
+                    "name": "Mist Trail",
+                    "length_miles": 6.5,
+                    "highway_type": "path",
+                    "source": "osm",
+                    "geometry_type": "LineString",
+                },
+            ],
+        },
+    }
+
+
+@pytest.fixture
+def sample_all_trails_response():
+    """
+    Provide sample data for all trails endpoint testing.
+
+    Returns a dictionary matching the AllTrailsResponse structure
+    with realistic trail data from multiple parks and sources.
+    """
+    from collections import namedtuple
+
+    Row = namedtuple(
+        "Row",
+        [
+            "trail_id",
+            "trail_name",
+            "park_code",
+            "park_name",
+            "states",
+            "source",
+            "length_miles",
+            "geometry_type",
+            "hiked",
+        ],
+    )
+
+    return {
+        "rows": [
+            Row(
+                trail_id="550779",
+                trail_name="Half Dome Trail",
+                park_code="yose",
+                park_name="Yosemite National Park",
+                states="CA",
+                source="TNM",
+                length_miles=14.2,
+                geometry_type="LineString",
+                hiked=True,
+            ),
+            Row(
+                trail_id="123456789",
+                trail_name="Mist Trail",
+                park_code="yose",
+                park_name="Yosemite National Park",
+                states="CA",
+                source="OSM",
+                length_miles=6.5,
+                geometry_type="LineString",
+                hiked=False,
+            ),
+        ],
+        "expected_response": {
+            "trail_count": 2,
+            "total_miles": 20.7,
+            "trails": [
+                {
+                    "trail_id": "550779",
+                    "trail_name": "Half Dome Trail",
+                    "park_code": "yose",
+                    "park_name": "Yosemite National Park",
+                    "states": "CA",
+                    "source": "TNM",
+                    "length_miles": 14.2,
+                    "geometry_type": "LineString",
+                    "hiked": True,
+                },
+                {
+                    "trail_id": "123456789",
+                    "trail_name": "Mist Trail",
+                    "park_code": "yose",
+                    "park_name": "Yosemite National Park",
+                    "states": "CA",
+                    "source": "OSM",
+                    "length_miles": 6.5,
+                    "geometry_type": "LineString",
+                    "hiked": False,
+                },
+            ],
+        },
+    }
+
+
+@pytest.fixture
+def empty_db_result():
+    """
+    Provide an empty database result for testing no-results scenarios.
+
+    Returns an empty list representing no rows returned from database.
+    """
+    return []
