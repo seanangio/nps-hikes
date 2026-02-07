@@ -12,6 +12,83 @@ from sqlalchemy import text
 from api.database import get_db_engine
 
 
+def fetch_all_parks(include_description: bool = False) -> dict[str, Any]:
+    """
+    Fetch all parks from the database.
+
+    Args:
+        include_description: Whether to include park descriptions (default: False)
+
+    Returns:
+        Dictionary containing:
+            - park_count: int
+            - parks: list of park dictionaries
+
+    Example:
+        >>> fetch_all_parks()
+        {
+            'park_count': 20,
+            'parks': [...]
+        }
+    """
+    engine = get_db_engine()
+
+    # Build column list based on include_description parameter
+    columns = [
+        "park_code",
+        "park_name",
+        "full_name",
+        "states",
+        "latitude",
+        "longitude",
+        "url",
+        "visit_month",
+        "visit_year",
+    ]
+
+    if include_description:
+        columns.append("description")
+
+    columns_str = ", ".join(columns)
+
+    # Query parks ordered by park name
+    query = f"""
+    SELECT {columns_str}
+    FROM parks
+    ORDER BY park_name
+    """
+
+    # Execute query
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        rows = result.fetchall()
+
+    # Format parks
+    parks = []
+    for row in rows:
+        park = {
+            "park_code": row.park_code,
+            "park_name": row.park_name,
+            "full_name": row.full_name,
+            "states": row.states,
+            "latitude": float(row.latitude) if row.latitude is not None else None,
+            "longitude": float(row.longitude) if row.longitude is not None else None,
+            "url": row.url,
+            "visit_month": row.visit_month,
+            "visit_year": row.visit_year,
+        }
+
+        if include_description:
+            park["description"] = row.description
+
+        parks.append(park)
+
+    return {
+        "park_count": len(parks),
+        "parks": parks,
+    }
+
+
 def fetch_trails_for_park(
     park_code: str,
     min_length: float | None = None,

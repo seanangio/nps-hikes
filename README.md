@@ -206,8 +206,10 @@ uvicorn api.main:app --reload
 # - ReDoc: http://localhost:8000/redoc
 
 # Example API queries:
+# - All parks: http://localhost:8000/parks
+# - All parks with descriptions: http://localhost:8000/parks?include_description=true
 # - All trails: http://localhost:8000/trails
-# - Trails you've hiked: http://localhost:8000/trails?hiked=true
+# - Trails hiked: http://localhost:8000/trails?hiked=true
 # - Long trails (>10 miles): http://localhost:8000/trails?min_length=10
 # - Yosemite trails: http://localhost:8000/parks/yose/trails
 ```

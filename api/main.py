@@ -27,8 +27,8 @@ from sqlalchemy import text
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from api.database import get_db_engine
-from api.models import AllTrailsResponse, ParkTrailsResponse
-from api.queries import fetch_all_trails, fetch_trails_for_park
+from api.models import AllTrailsResponse, Park, ParksResponse, ParkTrailsResponse
+from api.queries import fetch_all_parks, fetch_all_trails, fetch_trails_for_park
 
 # Create FastAPI app with metadata for OpenAPI documentation
 app = FastAPI(
@@ -38,9 +38,10 @@ app = FastAPI(
 
     ## Features
 
+    * List all National Parks visited with metadata and coordinates
     * Query all trails across all parks or by specific park
     * Filter trails by length range, state, or data source
-    * Filter by hiking status (trails you've hiked vs not hiked)
+    * Filter by hiking status (trails hiked vs not hiked)
     * Automatic deduplication (TNM preferred over OSM for duplicates)
     * Get trail statistics and metadata
 
@@ -54,6 +55,7 @@ app = FastAPI(
 
     - `yose` - Yosemite National Park
     - `grca` - Grand Canyon National Park
+    - `zion` - Zion National Park
     """,
     version="0.1.0",
     contact={
@@ -83,11 +85,64 @@ async def root():
             "openapi_json": "/openapi.json",
         },
         "endpoints": {
+            "parks": "/parks",
             "all_trails": "/trails",
             "trails_by_park": "/parks/{park_code}/trails",
             "health_check": "/health",
         },
     }
+
+
+@app.get(
+    "/parks",
+    response_model=ParksResponse,
+    response_model_exclude_none=True,
+    tags=["Parks"],
+    summary="Get all parks",
+    description="""
+    Returns all National Parks visited with metadata.
+
+    By default, excludes park descriptions.
+    Use `include_description=true` to include full park descriptions.
+    """,
+)
+async def get_all_parks(
+    include_description: bool = Query(
+        default=False,
+        description="Include full park descriptions in the response (increases response size)",
+    ),
+):
+    """
+    Get all parks with metadata.
+
+    Returns a list of all National Parks visited, including:
+    - Park codes (used in other endpoints)
+    - Park names and locations
+    - Coordinates (latitude/longitude)
+    - Visit dates (month/year)
+    - NPS website URLs
+    - Descriptions (optional, excluded by default)
+
+    **Example queries:**
+    - All parks (without descriptions): `/parks`
+    - All parks (with descriptions): `/parks?include_description=true`
+
+    **Use cases:**
+    - Get park codes for use in other endpoints (trails, visualizations)
+    - Build a map of visited parks using coordinates
+    - Display a list of parks with visit dates
+    """
+    try:
+        # Fetch parks from database
+        result = fetch_all_parks(include_description=include_description)
+        return result
+
+    except Exception as e:
+        # Catch any errors and return 500
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving parks: {str(e)}",
+        )
 
 
 @app.get(

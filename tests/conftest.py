@@ -385,3 +385,99 @@ def empty_db_result():
     Returns an empty list representing no rows returned from database.
     """
     return []
+
+
+@pytest.fixture
+def sample_parks_response():
+    """
+    Provide sample data for parks endpoint testing.
+
+    Returns a dictionary with sample park rows that match the parks table schema.
+    """
+    from collections import namedtuple
+
+    # Row with description (for include_description=true)
+    RowWithDescription = namedtuple(
+        "RowWithDescription",
+        [
+            "park_code",
+            "park_name",
+            "full_name",
+            "states",
+            "latitude",
+            "longitude",
+            "url",
+            "visit_month",
+            "visit_year",
+            "description",
+        ],
+    )
+
+    # Row without description (for include_description=false, default)
+    RowWithoutDescription = namedtuple(
+        "RowWithoutDescription",
+        [
+            "park_code",
+            "park_name",
+            "full_name",
+            "states",
+            "latitude",
+            "longitude",
+            "url",
+            "visit_month",
+            "visit_year",
+        ],
+    )
+
+    return {
+        "rows": [
+            RowWithDescription(
+                park_code="yose",
+                park_name="Yosemite National Park",
+                full_name="Yosemite National Park",
+                states="CA",
+                latitude=37.8651,
+                longitude=-119.5383,
+                url="https://www.nps.gov/yose/index.htm",
+                visit_month="July",
+                visit_year=2023,
+                description="Not just a great valley, but a shrine to human foresight, the strength of granite, the power of glaciers, the persistence of life, and the tranquility of the High Sierra.",
+            ),
+            RowWithDescription(
+                park_code="zion",
+                park_name="Zion National Park",
+                full_name="Zion National Park",
+                states="UT",
+                latitude=37.2982,
+                longitude=-113.0265,
+                url="https://www.nps.gov/zion/index.htm",
+                visit_month="June",
+                visit_year=2022,
+                description="Follow the paths where ancient native people and pioneers walked. Gaze up at massive sandstone cliffs of cream, pink, and red that soar into a brilliant blue sky.",
+            ),
+        ],
+        "rows_without_description": [
+            RowWithoutDescription(
+                park_code="yose",
+                park_name="Yosemite National Park",
+                full_name="Yosemite National Park",
+                states="CA",
+                latitude=37.8651,
+                longitude=-119.5383,
+                url="https://www.nps.gov/yose/index.htm",
+                visit_month="July",
+                visit_year=2023,
+            ),
+            RowWithoutDescription(
+                park_code="zion",
+                park_name="Zion National Park",
+                full_name="Zion National Park",
+                states="UT",
+                latitude=37.2982,
+                longitude=-113.0265,
+                url="https://www.nps.gov/zion/index.htm",
+                visit_month="June",
+                visit_year=2022,
+            ),
+        ],
+    }

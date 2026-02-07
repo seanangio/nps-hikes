@@ -263,3 +263,141 @@ class AllTrailsResponse(BaseModel):
             ]
         }
     }
+
+
+class Park(BaseModel):
+    """
+    Individual park information.
+
+    Represents a single National Park with metadata.
+    """
+
+    park_code: str = Field(
+        ...,
+        description="4-character lowercase park code",
+        pattern="^[a-z]{4}$",
+        examples=["yose"],
+    )
+    park_name: str | None = Field(
+        None,
+        description="Full park name",
+        examples=["Yosemite National Park"],
+    )
+    full_name: str | None = Field(
+        None,
+        description="Official full name of the park",
+        examples=["Yosemite National Park"],
+    )
+    states: str | None = Field(
+        None,
+        description="States where the park is located",
+        examples=["CA"],
+    )
+    latitude: float | None = Field(
+        None,
+        description="Latitude coordinate",
+        ge=-90,
+        le=90,
+        examples=[37.8651],
+    )
+    longitude: float | None = Field(
+        None,
+        description="Longitude coordinate",
+        ge=-180,
+        le=180,
+        examples=[-119.5383],
+    )
+    url: str | None = Field(
+        None,
+        description="NPS website URL for the park",
+        examples=["https://www.nps.gov/yose/index.htm"],
+    )
+    visit_month: str | None = Field(
+        None,
+        description="Month of park visit",
+        examples=["July"],
+    )
+    visit_year: int | None = Field(
+        None,
+        description="Year of park visit",
+        examples=[2023],
+    )
+    description: str | None = Field(
+        None,
+        description="Park description (only included when include_description=true)",
+        examples=[
+            "Not just a great valley, but a shrine to human foresight, the strength of granite..."
+        ],
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "park_code": "yose",
+                    "park_name": "Yosemite National Park",
+                    "full_name": "Yosemite National Park",
+                    "states": "CA",
+                    "latitude": 37.8651,
+                    "longitude": -119.5383,
+                    "url": "https://www.nps.gov/yose/index.htm",
+                    "visit_month": "July",
+                    "visit_year": 2023,
+                }
+            ]
+        },
+        "exclude_none": True,  # Exclude None values from serialization
+    }
+
+
+class ParksResponse(BaseModel):
+    """
+    Response model for parks listing endpoint.
+
+    Contains park count and a list of all parks visited.
+    """
+
+    park_count: int = Field(
+        ...,
+        description="Number of parks returned",
+        ge=0,
+        examples=[20],
+    )
+    parks: list[Park] = Field(
+        ...,
+        description="List of parks",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "park_count": 2,
+                    "parks": [
+                        {
+                            "park_code": "yose",
+                            "park_name": "Yosemite National Park",
+                            "full_name": "Yosemite National Park",
+                            "states": "CA",
+                            "latitude": 37.8651,
+                            "longitude": -119.5383,
+                            "url": "https://www.nps.gov/yose/index.htm",
+                            "visit_month": "July",
+                            "visit_year": 2023,
+                        },
+                        {
+                            "park_code": "zion",
+                            "park_name": "Zion National Park",
+                            "full_name": "Zion National Park",
+                            "states": "UT",
+                            "latitude": 37.2982,
+                            "longitude": -113.0265,
+                            "url": "https://www.nps.gov/zion/index.htm",
+                            "visit_month": "June",
+                            "visit_year": 2022,
+                        },
+                    ],
+                }
+            ]
+        }
+    }
