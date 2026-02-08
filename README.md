@@ -161,6 +161,16 @@ For contributors and developers working on the codebase:
    pre-commit run --all-files
    ```
 
+4. **Run security audit** (optional, checks for dependency vulnerabilities)
+   ```bash
+   pip-audit
+   # Or check specific requirements files:
+   pip-audit -r requirements.txt      # Production dependencies only
+   pip-audit -r requirements-dev.txt  # All dependencies
+   ```
+
+   Note: Security audits run automatically in CI (`security-audit.yml`).
+
 ## 🎯 Quick Start
 
 ### Option 1: Complete Pipeline (Recommended)

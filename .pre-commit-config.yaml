@@ -1,5 +1,7 @@
 # Pre-commit hooks configuration
 # See https://pre-commit.com for more information
+#
+# Note: Security auditing (pip-audit) is intentionally NOT included here. Security checks run in CI (security-audit.yml).
 
 repos:
   - repo: https://github.com/psf/black
