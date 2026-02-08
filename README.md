@@ -161,15 +161,16 @@ For contributors and developers working on the codebase:
    pre-commit run --all-files
    ```
 
-4. **Run security audit** (optional, checks for dependency vulnerabilities)
+4. **Run security scans** (optional, checks for vulnerabilities)
    ```bash
-   pip-audit
-   # Or check specific requirements files:
-   pip-audit -r requirements.txt      # Production dependencies only
-   pip-audit -r requirements-dev.txt  # All dependencies
+   # Check dependencies for known vulnerabilities
+   pip-audit -r requirements.txt
+
+   # Scan code for security issues
+   bandit -c .bandit -r scripts/ api/ config/ utils/ profiling/
    ```
 
-   Note: Security audits run automatically in CI (`security-audit.yml`).
+   Security scans run automatically in CI on PRs and weekly.
 
 ## 🎯 Quick Start
 

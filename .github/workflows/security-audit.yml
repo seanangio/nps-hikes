@@ -1,15 +1,16 @@
 name: Security Audit
 
+# Two-part security scanning:
+# 1. pip-audit: Scans dependencies for known CVE vulnerabilities
+# 2. bandit: Scans source code for security anti-patterns
+#
+# Runs on: PRs to main, weekly schedule (Mon 9am UTC), manual dispatch
+
 on:
-  # Run on pull requests to catch issues before merge
   pull_request:
     branches: [main]
-
-  # Run weekly on Mondays at 9am UTC
   schedule:
     - cron: '0 9 * * 1'
-
-  # Allow manual triggering from Actions tab
   workflow_dispatch:
 
 jobs:
@@ -31,6 +32,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      # Check production dependencies for known CVEs
       - name: Run pip-audit on production dependencies
         id: prod-audit
         run: |
@@ -38,6 +40,7 @@ jobs:
           pip-audit -r requirements.txt --desc --format=markdown >> $GITHUB_STEP_SUMMARY 2>&1 || echo "::warning::Vulnerabilities found in production dependencies"
         continue-on-error: true
 
+      # Check dev dependencies (informational only)
       - name: Run pip-audit on dev dependencies
         id: dev-audit
         run: |
@@ -45,23 +48,24 @@ jobs:
           pip-audit -r requirements-dev.txt --desc --format=markdown >> $GITHUB_STEP_SUMMARY 2>&1 || echo "::warning::Vulnerabilities found in dev dependencies"
         continue-on-error: true
 
+      # Scan source code for security issues (B608 SQL injection checks suppressed in .bandit)
       - name: Run bandit code security scan
         id: bandit-scan
         run: |
           echo "## Bandit Code Security Scan" >> $GITHUB_STEP_SUMMARY
-          bandit -c .bandit -r scripts/ api/ config/ utils/ -f txt >> $GITHUB_STEP_SUMMARY 2>&1 || echo "::warning::Security issues found in code"
+          bandit -c .bandit -r scripts/ api/ config/ utils/ profiling/ -f txt >> $GITHUB_STEP_SUMMARY 2>&1 || echo "::warning::Security issues found in code"
         continue-on-error: true
 
+      # BLOCKING: Fail build if production dependencies have vulnerabilities
       - name: Check if production vulnerabilities found
         if: steps.prod-audit.outcome == 'failure'
         run: |
           echo "::error::Security vulnerabilities found in production dependencies. Please review and update."
           exit 1
 
+      # ADVISORY: Warn but don't block on code security issues
       - name: Check if bandit found medium+ severity issues
         if: steps.bandit-scan.outcome == 'failure'
         run: |
-          echo "::warning::Bandit found security issues in code. Please review SECURITY_PLAN.md"
-          # Don't fail the build for now, just warn
-          # Uncomment the line below to make it blocking:
-          # exit 1
+          echo "::warning::Bandit found security issues in code. Review scan output above."
+          # Uncomment to make blocking: exit 1

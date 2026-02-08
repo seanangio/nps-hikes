@@ -23,10 +23,10 @@ import argparse
 import logging
 import os
 import sys
-import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Dict, List, Tuple, TypedDict
 
+import defusedxml.ElementTree as ET
 import pandas as pd
 
 # Add project root to path for imports
