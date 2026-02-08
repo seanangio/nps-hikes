@@ -1,0 +1,19 @@
+# Bandit security linter configuration
+# See https://bandit.readthedocs.io/en/latest/config.html
+
+exclude_dirs:
+  - /tests
+  - /profiling
+  - /.venv
+  - /venv
+  - /env
+  - /.git
+  - /htmlcov
+  - /profiling_results
+  - /data
+
+# Skip specific test IDs with justification
+# B608: Hardcoded SQL - All queries use internal trusted data (park codes, table names)
+#       No user input is directly interpolated into SQL
+skips:
+  - B608

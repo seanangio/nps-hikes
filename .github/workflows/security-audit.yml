@@ -45,8 +45,23 @@ jobs:
           pip-audit -r requirements-dev.txt --desc --format=markdown >> $GITHUB_STEP_SUMMARY 2>&1 || echo "::warning::Vulnerabilities found in dev dependencies"
         continue-on-error: true
 
+      - name: Run bandit code security scan
+        id: bandit-scan
+        run: |
+          echo "## Bandit Code Security Scan" >> $GITHUB_STEP_SUMMARY
+          bandit -c .bandit -r scripts/ api/ config/ utils/ -f txt >> $GITHUB_STEP_SUMMARY 2>&1 || echo "::warning::Security issues found in code"
+        continue-on-error: true
+
       - name: Check if production vulnerabilities found
         if: steps.prod-audit.outcome == 'failure'
         run: |
           echo "::error::Security vulnerabilities found in production dependencies. Please review and update."
           exit 1
+
+      - name: Check if bandit found medium+ severity issues
+        if: steps.bandit-scan.outcome == 'failure'
+        run: |
+          echo "::warning::Bandit found security issues in code. Please review SECURITY_PLAN.md"
+          # Don't fail the build for now, just warn
+          # Uncomment the line below to make it blocking:
+          # exit 1

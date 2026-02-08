@@ -32,6 +32,8 @@ attrs==25.4.0
     #   referencing
 babel==2.17.0
     # via jupyterlab-server
+bandit==1.9.3
+    # via -r requirements-dev.in
 beautifulsoup4==4.14.3
     # via nbconvert
 black==26.1.0
@@ -426,6 +428,7 @@ pytokens==0.4.0
     # via black
 pyyaml==6.0.3
     # via
+    #   bandit
     #   jupyter-events
     #   pre-commit
     #   uvicorn
@@ -461,7 +464,9 @@ rfc3986-validator==0.1.1
 rfc3987-syntax==1.1.0
     # via jsonschema
 rich==14.3.2
-    # via pip-audit
+    # via
+    #   bandit
+    #   pip-audit
 rpds-py==0.30.0
     # via
     #   jsonschema
@@ -491,6 +496,8 @@ stack-data==0.6.3
     # via ipython
 starlette==0.52.1
     # via fastapi
+stevedore==5.6.0
+    # via bandit
 terminado==0.18.1
     # via
     #   jupyter-server
