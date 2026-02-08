@@ -142,6 +142,88 @@ class TestParksEndpoint:
         assert "Error retrieving parks" in data["detail"]
 
 
+class TestVisualizationEndpoints:
+    """Tests for visualization endpoints (GET /parks/{park_code}/viz/*)."""
+
+    def test_get_static_map_success(self, temp_viz_files, monkeypatch):
+        """Test successful retrieval of static map."""
+        import api.main
+
+        # Mock the visualization directory to use temp files
+        def mock_dirname(path):
+            if "api" in str(path):
+                return str(temp_viz_files["viz_dir"].parent.parent)
+            return str(temp_viz_files["viz_dir"].parent.parent)
+
+        monkeypatch.setattr("os.path.dirname", mock_dirname)
+
+        # Make request
+        response = client.get("/parks/yose/viz/static-map")
+
+        # Assertions
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "image/png"
+        assert b"PNG" in response.content  # Check for PNG header
+
+    def test_get_static_map_not_found(self):
+        """Test 404 when static map file doesn't exist."""
+        # Request for a park that doesn't have a visualization
+        response = client.get("/parks/fake/viz/static-map")
+
+        # Assertions
+        assert response.status_code == 404
+        data = response.json()
+        assert "not found" in data["detail"].lower()
+        assert "fake" in data["detail"]
+
+    def test_get_static_map_invalid_park_code(self):
+        """Test validation error for invalid park code format."""
+        invalid_codes = ["YOS", "YOSEM", "YOSE", "yo se"]
+
+        for code in invalid_codes:
+            response = client.get(f"/parks/{code}/viz/static-map")
+            assert response.status_code == 422  # Validation error
+
+    def test_get_elevation_matrix_success(self, temp_viz_files, monkeypatch):
+        """Test successful retrieval of elevation matrix."""
+        import api.main
+
+        # Mock the visualization directory to use temp files
+        def mock_dirname(path):
+            if "api" in str(path):
+                return str(temp_viz_files["viz_dir"].parent.parent)
+            return str(temp_viz_files["viz_dir"].parent.parent)
+
+        monkeypatch.setattr("os.path.dirname", mock_dirname)
+
+        # Make request
+        response = client.get("/parks/yose/viz/elevation-matrix")
+
+        # Assertions
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "image/png"
+        assert b"PNG" in response.content  # Check for PNG header
+
+    def test_get_elevation_matrix_not_found(self):
+        """Test 404 when elevation matrix file doesn't exist."""
+        # Request for a park that doesn't have a visualization
+        response = client.get("/parks/fake/viz/elevation-matrix")
+
+        # Assertions
+        assert response.status_code == 404
+        data = response.json()
+        assert "not found" in data["detail"].lower()
+        assert "fake" in data["detail"]
+
+    def test_get_elevation_matrix_invalid_park_code(self):
+        """Test validation error for invalid park code format."""
+        invalid_codes = ["YOS", "YOSEM", "YOSE", "yo se"]
+
+        for code in invalid_codes:
+            response = client.get(f"/parks/{code}/viz/elevation-matrix")
+            assert response.status_code == 422  # Validation error
+
+
 class TestParkTrailsEndpoint:
     """Tests for the park trails endpoint (GET /parks/{park_code}/trails)."""
 

@@ -481,3 +481,35 @@ def sample_parks_response():
             ),
         ],
     }
+
+
+@pytest.fixture
+def temp_viz_files(tmp_path):
+    """
+    Create temporary visualization files for testing.
+
+    Returns paths to temporary static map and elevation matrix files.
+    """
+    # Create directory structure
+    viz_dir = tmp_path / "profiling_results" / "visualizations"
+    static_maps_dir = viz_dir / "static_maps"
+    elevation_dir = viz_dir / "elevation_changes"
+
+    static_maps_dir.mkdir(parents=True)
+    elevation_dir.mkdir(parents=True)
+
+    # Create dummy PNG files
+    static_map_path = static_maps_dir / "yose_trails.png"
+    elevation_matrix_path = elevation_dir / "yose_elevation_matrix.png"
+
+    # Write minimal PNG header to make it a valid PNG
+    png_header = b"\x89PNG\r\n\x1a\n"
+    static_map_path.write_bytes(png_header)
+    elevation_matrix_path.write_bytes(png_header)
+
+    return {
+        "viz_dir": viz_dir,
+        "static_map": static_map_path,
+        "elevation_matrix": elevation_matrix_path,
+        "park_code": "yose",
+    }

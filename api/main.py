@@ -21,6 +21,7 @@ import os
 import sys
 
 from fastapi import FastAPI, HTTPException, Path, Query
+from fastapi.responses import FileResponse
 from sqlalchemy import text
 
 # Add parent directory to path to import project modules
@@ -143,6 +144,138 @@ async def get_all_parks(
             status_code=500,
             detail=f"Error retrieving parks: {str(e)}",
         )
+
+
+@app.get(
+    "/parks/{park_code}/viz/static-map",
+    tags=["Visualizations"],
+    summary="Get static trail map for a park",
+    description="""
+    Returns a PNG image showing all trails for the specified park on a static map.
+
+    The map displays trail routes overlaid on the park boundary, providing a visual
+    overview of the park's trail network.
+    """,
+    responses={
+        200: {
+            "content": {"image/png": {}},
+            "description": "PNG image of park trail map",
+        },
+        404: {"description": "Park not found or visualization not available"},
+    },
+)
+async def get_static_map(
+    park_code: str = Path(
+        ...,
+        description="4-character lowercase park code (e.g., 'yose' for Yosemite)",
+        min_length=4,
+        max_length=4,
+        pattern="^[a-z]{4}$",
+        examples=["yose", "grca", "zion"],
+    ),
+):
+    """
+    Get static trail map visualization for a park.
+
+    Returns a PNG image showing the park's trail network on a static map background.
+    The visualization includes park boundaries and all collected trails.
+
+    **Example usage:**
+    - Yosemite map: `/parks/yose/viz/static-map`
+    - Grand Canyon map: `/parks/grca/viz/static-map`
+
+    **Use cases:**
+    - Embed park trail maps in web applications
+    - Download maps for offline reference
+    - Generate park trail overviews
+    """
+    # Construct file path
+    viz_dir = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "profiling_results",
+        "visualizations",
+        "static_maps",
+    )
+    file_path = os.path.join(viz_dir, f"{park_code}_trails.png")
+
+    # Check if file exists
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Static map not found for park code '{park_code}'. The park may not exist or visualization has not been generated.",
+        )
+
+    # Return PNG file (inline display, not download)
+    return FileResponse(
+        file_path,
+        media_type="image/png",
+    )
+
+
+@app.get(
+    "/parks/{park_code}/viz/elevation-matrix",
+    tags=["Visualizations"],
+    summary="Get elevation change matrix for a park",
+    description="""
+    Returns a PNG heatmap showing elevation changes between different trail points in the park.
+
+    The matrix visualizes elevation gain/loss patterns across the trail network,
+    helping identify challenging trail segments and elevation profiles.
+    """,
+    responses={
+        200: {
+            "content": {"image/png": {}},
+            "description": "PNG image of elevation change matrix",
+        },
+        404: {"description": "Park not found or visualization not available"},
+    },
+)
+async def get_elevation_matrix(
+    park_code: str = Path(
+        ...,
+        description="4-character lowercase park code (e.g., 'yose' for Yosemite)",
+        min_length=4,
+        max_length=4,
+        pattern="^[a-z]{4}$",
+        examples=["yose", "grca", "zion"],
+    ),
+):
+    """
+    Get elevation change matrix visualization for a park.
+
+    Returns a PNG heatmap showing elevation changes between trail points,
+    useful for understanding trail difficulty and elevation profiles.
+
+    **Example usage:**
+    - Yosemite matrix: `/parks/yose/viz/elevation-matrix`
+    - Grand Canyon matrix: `/parks/grca/viz/elevation-matrix`
+
+    **Use cases:**
+    - Analyze trail difficulty patterns
+    - Visualize elevation gain/loss across trails
+    - Compare elevation profiles between different trail segments
+    """
+    # Construct file path
+    viz_dir = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "profiling_results",
+        "visualizations",
+        "elevation_changes",
+    )
+    file_path = os.path.join(viz_dir, f"{park_code}_elevation_matrix.png")
+
+    # Check if file exists
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Elevation matrix not found for park code '{park_code}'. The park may not exist or visualization has not been generated.",
+        )
+
+    # Return PNG file (inline display, not download)
+    return FileResponse(
+        file_path,
+        media_type="image/png",
+    )
 
 
 @app.get(

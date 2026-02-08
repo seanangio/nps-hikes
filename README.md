@@ -208,6 +208,8 @@ uvicorn api.main:app --reload
 # Example API queries:
 # - All parks: http://localhost:8000/parks
 # - All parks with descriptions: http://localhost:8000/parks?include_description=true
+# - Park static map: http://localhost:8000/parks/yose/viz/static-map
+# - Park elevation matrix: http://localhost:8000/parks/yose/viz/elevation-matrix
 # - All trails: http://localhost:8000/trails
 # - Trails hiked: http://localhost:8000/trails?hiked=true
 # - Long trails (>10 miles): http://localhost:8000/trails?min_length=10
