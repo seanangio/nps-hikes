@@ -7,3 +7,6 @@ pre-commit
 mypy
 types-requests
 isort
+pip-audit
+jupyter
+nbconvert>=7.17.0  # Fix for CVE-2025-53000
