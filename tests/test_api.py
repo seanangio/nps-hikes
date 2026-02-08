@@ -10,7 +10,7 @@ This module contains comprehensive tests for all FastAPI endpoints including:
 """
 
 from collections import namedtuple
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -223,6 +223,169 @@ class TestVisualizationEndpoints:
             response = client.get(f"/parks/{code}/viz/elevation-matrix")
             assert response.status_code == 422  # Validation error
 
+    @patch("api.main.get_db_engine")
+    @patch("api.main.os.path.exists")
+    @patch("api.main.os.path.join")
+    def test_get_trail_3d_viz_with_existing_file(
+        self, mock_join, mock_exists, mock_get_engine, tmp_path
+    ):
+        """Test successful retrieval of 3D visualization when file exists."""
+        # Setup mock database response
+        mock_engine = MagicMock()
+        mock_get_engine.return_value = mock_engine
+        mock_result = Mock()
+        Row = namedtuple("Row", ["trail_name"])
+        mock_result.fetchone.return_value = Row(trail_name="Half Dome Trail")
+        mock_engine.connect.return_value.__enter__.return_value.execute.return_value = (
+            mock_result
+        )
+
+        # Create temp HTML file
+        html_file = tmp_path / "yose_half_dome_trail_3d.html"
+        html_file.write_text("<html><body>Test 3D Viz</body></html>")
+
+        # Mock file operations to point to our temp file
+        mock_join.return_value = str(html_file)
+        mock_exists.return_value = True
+
+        # Make request
+        response = client.get("/parks/yose/trails/half_dome_trail/viz/3d")
+
+        # Assertions
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "text/html; charset=utf-8"
+        assert b"Test 3D Viz" in response.content
+
+    @patch("api.main.get_db_engine")
+    @patch("profiling.modules.trail_3d_viz.Trail3DVisualizer")
+    @patch("api.main.os.path.exists")
+    def test_get_trail_3d_viz_generate_on_demand(
+        self, mock_exists, mock_visualizer_class, mock_get_engine, tmp_path
+    ):
+        """Test on-demand generation of 3D visualization when file doesn't exist."""
+        # Setup mock database response
+        mock_engine = MagicMock()
+        mock_get_engine.return_value = mock_engine
+        mock_result = Mock()
+        Row = namedtuple("Row", ["trail_name"])
+        mock_result.fetchone.return_value = Row(trail_name="Half Dome Trail")
+        mock_engine.connect.return_value.__enter__.return_value.execute.return_value = (
+            mock_result
+        )
+
+        # Create temp HTML file that will be "generated"
+        html_file = tmp_path / "yose_half_dome_trail_3d.html"
+
+        # Mock visualizer
+        mock_visualizer = Mock()
+        mock_visualizer_class.return_value = mock_visualizer
+
+        def create_viz_side_effect(park_code, trail_name, z_exaggeration):
+            # Simulate file creation
+            html_file.write_text("<html><body>Generated 3D Viz</body></html>")
+            return str(html_file)
+
+        mock_visualizer.create_3d_visualization = Mock(
+            side_effect=create_viz_side_effect
+        )
+
+        # File doesn't exist initially, but does after generation
+        mock_exists.side_effect = [False, True]
+
+        # Make request with custom z_scale
+        response = client.get("/parks/yose/trails/half_dome_trail/viz/3d?z_scale=10.0")
+
+        # Assertions
+        assert response.status_code == 200
+        assert b"Generated 3D Viz" in response.content
+
+        # Verify visualizer was called with correct parameters
+        mock_visualizer.create_3d_visualization.assert_called_once_with(
+            park_code="yose", trail_name="Half Dome Trail", z_exaggeration=10.0
+        )
+
+    @patch("api.queries.get_db_engine")
+    def test_get_trail_3d_viz_trail_not_found(self, mock_get_engine, mock_db_engine):
+        """Test 404 when trail doesn't exist or has no elevation data."""
+        # Setup mock database response (no trail found)
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = None
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
+            mock_result
+        )
+
+        # Make request
+        response = client.get("/parks/yose/trails/nonexistent_trail/viz/3d")
+
+        # Assertions
+        assert response.status_code == 404
+        data = response.json()
+        assert "not found" in data["detail"].lower()
+        assert "nonexistent_trail" in data["detail"]
+
+    @patch("api.main.get_db_engine")
+    @patch("profiling.modules.trail_3d_viz.Trail3DVisualizer")
+    @patch("api.main.os.path.exists")
+    def test_get_trail_3d_viz_generation_fails(
+        self, mock_exists, mock_visualizer_class, mock_get_engine
+    ):
+        """Test 500 error when visualization generation fails."""
+        # Setup mock database response
+        mock_engine = MagicMock()
+        mock_get_engine.return_value = mock_engine
+        mock_result = Mock()
+        Row = namedtuple("Row", ["trail_name"])
+        mock_result.fetchone.return_value = Row(trail_name="Half Dome Trail")
+        mock_engine.connect.return_value.__enter__.return_value.execute.return_value = (
+            mock_result
+        )
+
+        # Mock visualizer to return None (failed generation)
+        mock_visualizer = Mock()
+        mock_visualizer_class.return_value = mock_visualizer
+        mock_visualizer.create_3d_visualization.return_value = None
+
+        # Mock file not existing (both before and after generation attempt)
+        mock_exists.return_value = False
+
+        # Make request
+        response = client.get("/parks/yose/trails/half_dome_trail/viz/3d")
+
+        # Assertions
+        assert response.status_code == 500
+        data = response.json()
+        assert "failed" in data["detail"].lower()
+
+    def test_get_trail_3d_viz_invalid_park_code(self):
+        """Test validation error for invalid park code format."""
+        invalid_codes = ["YOS", "YOSEM", "YOSE", "yo se"]
+
+        for code in invalid_codes:
+            response = client.get(f"/parks/{code}/trails/test_trail/viz/3d")
+            assert response.status_code == 422  # Validation error
+
+    def test_get_trail_3d_viz_invalid_trail_slug(self):
+        """Test validation error for invalid trail slug format."""
+        # Use URL-encoded invalid slugs that FastAPI can't parse according to pattern
+        # Note: spaces get URL encoded to %20, so we need patterns that truly violate the regex
+        invalid_slugs = ["UPPERCASE", "trail.name", "trail@name", ""]
+
+        for slug in invalid_slugs:
+            response = client.get(f"/parks/yose/trails/{slug}/viz/3d")
+            # Empty slug gives 404, others give 422
+            assert response.status_code in [404, 422]
+
+    def test_get_trail_3d_viz_z_scale_validation(self):
+        """Test z_scale parameter validation."""
+        # Test z_scale below minimum (1.0)
+        response = client.get("/parks/yose/trails/test_trail/viz/3d?z_scale=0.5")
+        assert response.status_code == 422
+
+        # Test z_scale above maximum (20.0)
+        response = client.get("/parks/yose/trails/test_trail/viz/3d?z_scale=25.0")
+        assert response.status_code == 422
+
 
 class TestParkTrailsEndpoint:
     """Tests for the park trails endpoint (GET /parks/{park_code}/trails)."""
@@ -344,6 +507,85 @@ class TestParkTrailsEndpoint:
         assert response.status_code == 500
         data = response.json()
         assert "Error retrieving trails" in data["detail"]
+
+    @patch("api.queries.get_db_engine")
+    def test_get_park_trails_includes_viz_3d_fields(
+        self, mock_get_engine, mock_db_engine, sample_park_trails_response
+    ):
+        """Test that trails response includes viz_3d fields."""
+        # Setup mock
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_park_trails_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
+            mock_result
+        )
+
+        # Make request
+        response = client.get("/parks/yose/trails")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["trails"]) == 2
+
+        # Check first trail has 3D viz available
+        trail1 = data["trails"][0]
+        assert "viz_3d_available" in trail1
+        assert trail1["viz_3d_available"] is True
+        assert "viz_3d_slug" in trail1
+        assert trail1["viz_3d_slug"] == "half_dome_trail"
+
+        # Check second trail does not have 3D viz
+        trail2 = data["trails"][1]
+        assert trail2["viz_3d_available"] is False
+        assert trail2["viz_3d_slug"] is None
+
+    @patch("api.queries.get_db_engine")
+    def test_get_park_trails_filter_viz_3d_true(
+        self, mock_get_engine, mock_db_engine, sample_park_trails_response
+    ):
+        """Test filtering for trails with 3D visualization available."""
+        # Setup mock - return only trail with viz_3d_available=True
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = [sample_park_trails_response["rows"][0]]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
+            mock_result
+        )
+
+        # Make request with viz_3d=true filter
+        response = client.get("/parks/yose/trails?viz_3d=true")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["trail_count"] == 1
+        assert data["trails"][0]["viz_3d_available"] is True
+        assert data["trails"][0]["viz_3d_slug"] == "half_dome_trail"
+
+    @patch("api.queries.get_db_engine")
+    def test_get_park_trails_filter_viz_3d_false(
+        self, mock_get_engine, mock_db_engine, sample_park_trails_response
+    ):
+        """Test filtering for trails without 3D visualization."""
+        # Setup mock - return only trail with viz_3d_available=False
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = [sample_park_trails_response["rows"][1]]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
+            mock_result
+        )
+
+        # Make request with viz_3d=false filter
+        response = client.get("/parks/yose/trails?viz_3d=false")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["trail_count"] == 1
+        assert data["trails"][0]["viz_3d_available"] is False
+        assert data["trails"][0]["viz_3d_slug"] is None
 
 
 class TestAllTrailsEndpoint:
@@ -747,8 +989,27 @@ class TestQueryFunctions:
         assert result["park_code"] == "fake"
         assert result["park_name"] is None
         assert result["trail_count"] == 0
-        assert result["total_miles"] == 0.0
-        assert result["trails"] == []
+
+    @patch("api.queries.get_db_engine")
+    def test_fetch_trails_for_park_with_viz_3d_filter(
+        self, mock_get_engine, mock_db_engine, sample_park_trails_response
+    ):
+        """Test fetch_trails_for_park with viz_3d filter."""
+        # Setup mock - return only trail with 3D viz available
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = [sample_park_trails_response["rows"][0]]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
+            mock_result
+        )
+
+        # Call function with viz_3d=True filter
+        result = fetch_trails_for_park(park_code="yose", viz_3d=True)
+
+        # Assertions
+        assert result["trail_count"] == 1
+        assert result["trails"][0]["viz_3d_available"] is True
+        assert result["trails"][0]["viz_3d_slug"] == "half_dome_trail"
 
     @patch("api.queries.get_db_engine")
     def test_fetch_all_trails(

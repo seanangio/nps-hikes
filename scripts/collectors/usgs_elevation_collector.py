@@ -45,6 +45,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 import time
 from typing import Dict, List, Tuple
@@ -96,6 +97,32 @@ class USGSElevationCollector:
         # Cache file for persistence
         self.cache_file = "cache/elevation_cache.json"
         self._load_cache()
+
+    def sanitize_trail_name(self, name: str) -> str:
+        """
+        Sanitize trail name for use in URL slug.
+
+        Converts trail name to lowercase, replaces spaces with underscores,
+        and removes special characters. This matches the logic used by
+        Trail3DVisualizer.sanitize_filename() for consistency.
+
+        Args:
+            name: Original trail name
+
+        Returns:
+            Sanitized URL-safe string (trail_slug)
+        """
+        # Convert to lowercase
+        name = name.lower()
+        # Replace spaces with underscores
+        name = name.replace(" ", "_")
+        # Remove special characters except underscores and hyphens
+        name = re.sub(r"[^a-z0-9_-]", "", name)
+        # Remove multiple underscores
+        name = re.sub(r"_+", "_", name)
+        # Remove leading/trailing underscores
+        name = name.strip("_")
+        return name
 
     def _load_cache(self):
         """Load elevation cache from disk."""
@@ -390,13 +417,18 @@ class USGSElevationCollector:
             if self.write_db and self.db_writer:
                 # Ensure table exists before writing (consistent with other collectors)
                 self.db_writer.ensure_table_exists("usgs_trail_elevations")
+
+                # Generate trail_slug from trail_name
+                trail_slug = self.sanitize_trail_name(trail_name)
+
                 insert_sql = """
                     INSERT INTO usgs_trail_elevations
-                    (gmaps_location_id, trail_name, park_code, source, elevation_points,
+                    (gmaps_location_id, trail_name, trail_slug, park_code, source, elevation_points,
                      collection_status, failed_points_count, total_points_count)
-                    VALUES (:gmaps_location_id, :trail_name, :park_code, :source, :elevation_points,
+                    VALUES (:gmaps_location_id, :trail_name, :trail_slug, :park_code, :source, :elevation_points,
                             :collection_status, :failed_points_count, :total_points_count)
                     ON CONFLICT (gmaps_location_id) DO UPDATE SET
+                        trail_slug = EXCLUDED.trail_slug,
                         elevation_points = EXCLUDED.elevation_points,
                         collection_status = EXCLUDED.collection_status,
                         failed_points_count = EXCLUDED.failed_points_count,
@@ -411,6 +443,7 @@ class USGSElevationCollector:
                             {
                                 "gmaps_location_id": trail_id,
                                 "trail_name": trail_name,
+                                "trail_slug": trail_slug,
                                 "park_code": park_code,
                                 "source": source,
                                 "elevation_points": json.dumps(elevation_data),

@@ -89,6 +89,9 @@ async def root():
             "parks": "/parks",
             "all_trails": "/trails",
             "trails_by_park": "/parks/{park_code}/trails",
+            "static_map": "/parks/{park_code}/viz/static-map",
+            "elevation_matrix": "/parks/{park_code}/viz/elevation-matrix",
+            "trail_3d_viz": "/parks/{park_code}/trails/{trail_slug}/viz/3d",
             "health_check": "/health",
         },
     }
@@ -286,7 +289,7 @@ async def get_elevation_matrix(
     description="""
     Returns all hiking trails from OpenStreetMap for the specified park.
 
-    Supports filtering by trail length range and trail type.
+    Supports filtering by trail length range, trail type, and 3D visualization availability.
     Results are ordered by trail length (longest first).
     """,
 )
@@ -315,12 +318,16 @@ async def get_park_trails(
         default=None,
         description="Filter by OSM highway type (e.g., 'path', 'footway', 'track')",
     ),
+    viz_3d: bool | None = Query(
+        default=None,
+        description="Filter by 3D visualization availability. Use true to show only trails with 3D viz, false to show only trails without 3D viz, or omit to show all trails",
+    ),
 ):
     """
     Get all trails for a specific park.
 
     Returns trail data including names, lengths, types, and summary statistics.
-    Supports filtering by length range and trail type.
+    Supports filtering by length range, trail type, and 3D visualization availability.
 
     **Common park codes:**
     - `yose`: Yosemite National Park
@@ -339,6 +346,7 @@ async def get_park_trails(
     - All trails: `/parks/yose/trails`
     - Trails 3-5 miles: `/parks/yose/trails?min_length=3&max_length=5`
     - Only paths: `/parks/yose/trails?trail_type=path`
+    - Trails with 3D viz: `/parks/yose/trails?viz_3d=true`
     """
     try:
         # Fetch trails from database
@@ -347,6 +355,7 @@ async def get_park_trails(
             min_length=min_length,
             max_length=max_length,
             trail_type=trail_type,
+            viz_3d=viz_3d,
         )
 
         # Return 404 if no trails found
@@ -366,6 +375,141 @@ async def get_park_trails(
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving trails: {str(e)}",
+        )
+
+
+@app.get(
+    "/parks/{park_code}/trails/{trail_slug}/viz/3d",
+    tags=["Visualizations"],
+    summary="Get 3D trail visualization",
+    description="""
+    Returns an interactive 3D visualization of a trail with elevation data.
+
+    The visualization displays the trail's elevation profile in an interactive 3D space
+    that can be rotated, zoomed, and panned. Requires elevation data to be available.
+    """,
+    responses={
+        200: {
+            "content": {"text/html": {}},
+            "description": "Interactive HTML 3D visualization",
+        },
+        404: {"description": "Trail not found or elevation data not available"},
+    },
+)
+async def get_trail_3d_visualization(
+    park_code: str = Path(
+        ...,
+        description="4-character lowercase park code (e.g., 'yose' for Yosemite)",
+        min_length=4,
+        max_length=4,
+        pattern="^[a-z]{4}$",
+        examples=["yose", "grca", "zion"],
+    ),
+    trail_slug: str = Path(
+        ...,
+        description="URL-safe trail slug (e.g., 'half_dome_trail')",
+        min_length=1,
+        max_length=255,
+        pattern="^[a-z0-9_-]+$",
+        examples=["half_dome_trail", "bright_angel_trail"],
+    ),
+    z_scale: float = Query(
+        default=5.0,
+        description="Z-axis exaggeration factor for visualization (default: 5.0)",
+        ge=1.0,
+        le=20.0,
+    ),
+):
+    """
+    Get interactive 3D visualization for a specific trail.
+
+    Returns an HTML page with an interactive Plotly 3D visualization showing:
+    - Trail path with elevation profile
+    - Terrain-based color gradient (elevation changes)
+    - Interactive rotation, zoom, and pan controls
+    - Trail statistics (distance, elevation gain/loss, etc.)
+
+    **Example usage:**
+    - Half Dome trail: `/parks/yose/trails/half_dome_trail/viz/3d`
+    - With custom z-scale: `/parks/yose/trails/half_dome_trail/viz/3d?z_scale=10`
+
+    **Use cases:**
+    - Explore trail elevation profiles interactively
+    - Visualize trail difficulty and terrain
+    - Embed 3D trail views in web applications
+
+    **Note:** Requires elevation data to be collected for the trail.
+    """
+    try:
+        # Query database to verify trail exists and get trail_name
+        engine = get_db_engine()
+        query = """
+            SELECT trail_name
+            FROM usgs_trail_elevations
+            WHERE park_code = :park_code
+            AND trail_slug = :trail_slug
+            AND collection_status IN ('COMPLETE', 'PARTIAL')
+            LIMIT 1
+        """
+
+        with engine.connect() as conn:
+            result = conn.execute(
+                text(query), {"park_code": park_code, "trail_slug": trail_slug}
+            )
+            row = result.fetchone()
+
+        if not row:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Trail '{trail_slug}' not found for park '{park_code}' or elevation data not available",
+            )
+
+        trail_name = row.trail_name
+
+        # Construct HTML file path
+        viz_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "profiling_results",
+            "visualizations",
+            "3d_trails",
+        )
+        file_path = os.path.join(viz_dir, f"{park_code}_{trail_slug}_3d.html")
+
+        # Check if visualization already exists
+        if not os.path.exists(file_path):
+            # Import and instantiate Trail3DVisualizer
+            # Import here to avoid circular imports and unnecessary loading
+            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+            from profiling.modules.trail_3d_viz import Trail3DVisualizer
+
+            # Generate visualization on-demand
+            visualizer = Trail3DVisualizer()
+            result_path = visualizer.create_3d_visualization(
+                park_code=park_code, trail_name=trail_name, z_exaggeration=z_scale
+            )
+
+            if not result_path or not os.path.exists(result_path):
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to generate 3D visualization for trail '{trail_slug}'",
+                )
+
+            file_path = result_path
+
+        # Return HTML file (inline display)
+        return FileResponse(
+            file_path,
+            media_type="text/html",
+        )
+
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404)
+        raise
+    except Exception as e:
+        # Catch any other errors and return 500
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving 3D visualization: {str(e)}",
         )
 
 

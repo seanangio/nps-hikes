@@ -94,6 +94,7 @@ def fetch_trails_for_park(
     min_length: float | None = None,
     max_length: float | None = None,
     trail_type: str | None = None,
+    viz_3d: bool | None = None,
 ) -> dict[str, Any]:
     """
     Fetch trails from database for a specific park with optional filters.
@@ -103,6 +104,8 @@ def fetch_trails_for_park(
         min_length: Minimum trail length in miles (optional)
         max_length: Maximum trail length in miles (optional)
         trail_type: OSM highway type filter (e.g., 'path', 'footway') (optional)
+        viz_3d: Filter by 3D visualization availability - True for only trails with 3D viz,
+                False for only trails without 3D viz, None for all trails (optional)
 
     Returns:
         Dictionary containing:
@@ -124,7 +127,10 @@ def fetch_trails_for_park(
     """
     engine = get_db_engine()
 
-    # Base query joining osm_hikes with parks table
+    # Base query joining osm_hikes with parks table and usgs_trail_elevations
+    # Join with gmaps_hiking_locations_matched to connect OSM trails to elevation data
+    # Note: We match on trail name without source filter because trails can be matched
+    # to either TNM or OSM sources in gmaps_hiking_locations_matched
     query = """
     SELECT
         oh.osm_id,
@@ -133,9 +139,19 @@ def fetch_trails_for_park(
         oh.highway as highway_type,
         'osm' as source,
         oh.geometry_type,
-        p.park_name
+        p.park_name,
+        CASE
+            WHEN ute.trail_slug IS NOT NULL THEN true
+            ELSE false
+        END as viz_3d_available,
+        ute.trail_slug as viz_3d_slug
     FROM osm_hikes oh
     LEFT JOIN parks p ON oh.park_code = p.park_code
+    LEFT JOIN gmaps_hiking_locations_matched ghlm
+        ON oh.park_code = ghlm.park_code
+        AND oh.name = ghlm.matched_trail_name
+    LEFT JOIN usgs_trail_elevations ute
+        ON ghlm.gmaps_location_id = ute.gmaps_location_id
     WHERE oh.park_code = :park_code
     """
 
@@ -153,6 +169,12 @@ def fetch_trails_for_park(
     if trail_type is not None:
         query += " AND oh.highway = :trail_type"
         params["trail_type"] = trail_type
+
+    if viz_3d is not None:
+        if viz_3d:
+            query += " AND ute.trail_slug IS NOT NULL"
+        else:
+            query += " AND ute.trail_slug IS NULL"
 
     # Order by length descending (longest trails first)
     query += " ORDER BY oh.length_miles DESC"
@@ -187,6 +209,8 @@ def fetch_trails_for_park(
             "highway_type": row.highway_type,
             "source": row.source,
             "geometry_type": row.geometry_type,
+            "viz_3d_available": row.viz_3d_available,
+            "viz_3d_slug": row.viz_3d_slug,
         }
         trails.append(trail)
         total_miles += float(row.length_miles)

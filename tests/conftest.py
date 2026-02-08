@@ -245,6 +245,8 @@ def sample_park_trails_response():
             "source",
             "geometry_type",
             "park_name",
+            "viz_3d_available",
+            "viz_3d_slug",
         ],
     )
 
@@ -258,6 +260,8 @@ def sample_park_trails_response():
                 source="osm",
                 geometry_type="LineString",
                 park_name="Yosemite National Park",
+                viz_3d_available=True,
+                viz_3d_slug="half_dome_trail",
             ),
             Row(
                 osm_id=987654321,
@@ -267,6 +271,8 @@ def sample_park_trails_response():
                 source="osm",
                 geometry_type="LineString",
                 park_name="Yosemite National Park",
+                viz_3d_available=False,
+                viz_3d_slug=None,
             ),
         ],
         "expected_response": {
@@ -282,6 +288,8 @@ def sample_park_trails_response():
                     "highway_type": "path",
                     "source": "osm",
                     "geometry_type": "LineString",
+                    "viz_3d_available": True,
+                    "viz_3d_slug": "half_dome_trail",
                 },
                 {
                     "osm_id": 987654321,
@@ -290,6 +298,8 @@ def sample_park_trails_response():
                     "highway_type": "path",
                     "source": "osm",
                     "geometry_type": "LineString",
+                    "viz_3d_available": False,
+                    "viz_3d_slug": None,
                 },
             ],
         },

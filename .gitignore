@@ -71,6 +71,9 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# Test artifacts (Mock objects creating temp directories)
+MagicMock/
+
 # Translations
 *.mo
 *.pot

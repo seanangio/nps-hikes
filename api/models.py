@@ -46,6 +46,16 @@ class Trail(BaseModel):
         description="Geometry type (LineString or MultiLineString)",
         examples=["LineString"],
     )
+    viz_3d_available: bool = Field(
+        ...,
+        description="Whether 3D visualization is available for this trail (requires elevation data)",
+        examples=[True],
+    )
+    viz_3d_slug: str | None = Field(
+        None,
+        description="URL-safe trail slug for 3D visualization endpoint (only present if viz_3d_available is true)",
+        examples=["mono_pass_trail"],
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -57,6 +67,8 @@ class Trail(BaseModel):
                     "highway_type": "path",
                     "source": "osm",
                     "geometry_type": "LineString",
+                    "viz_3d_available": True,
+                    "viz_3d_slug": "mono_pass_trail",
                 }
             ]
         }
