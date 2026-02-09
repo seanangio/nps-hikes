@@ -13,12 +13,13 @@ class Trail(BaseModel):
     Individual trail information.
 
     Represents a single hiking trail with metadata but no geometry.
+    Combines data from both TNM and OSM sources.
     """
 
-    osm_id: int = Field(
+    trail_id: str = Field(
         ...,
-        description="OpenStreetMap feature ID",
-        examples=[123456789],
+        description="Unique trail identifier (permanent_identifier for TNM, osm_id for OSM)",
+        examples=["550779"],
     )
     name: str | None = Field(
         None,
@@ -31,15 +32,15 @@ class Trail(BaseModel):
         ge=0,
         examples=[8.2],
     )
-    highway_type: str = Field(
-        ...,
-        description="OSM highway tag (path, footway, track, etc.)",
+    highway_type: str | None = Field(
+        None,
+        description="OSM highway tag (path, footway, track, etc.) - only available for OSM trails",
         examples=["path"],
     )
     source: str = Field(
         ...,
-        description="Data source (osm or tnm)",
-        examples=["osm"],
+        description="Data source (TNM or OSM)",
+        examples=["TNM"],
     )
     geometry_type: str = Field(
         ...,
@@ -61,11 +62,11 @@ class Trail(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    "osm_id": 123456789,
+                    "trail_id": "550779",
                     "name": "Mono Pass Trail",
                     "length_miles": 8.2,
-                    "highway_type": "path",
-                    "source": "osm",
+                    "highway_type": None,
+                    "source": "TNM",
                     "geometry_type": "LineString",
                     "viz_3d_available": True,
                     "viz_3d_slug": "mono_pass_trail",
@@ -120,20 +121,24 @@ class ParkTrailsResponse(BaseModel):
                     "total_miles": 15.8,
                     "trails": [
                         {
-                            "osm_id": 123456789,
+                            "trail_id": "550779",
                             "name": "Mono Pass Trail",
                             "length_miles": 8.2,
-                            "highway_type": "path",
-                            "source": "osm",
+                            "highway_type": None,
+                            "source": "TNM",
                             "geometry_type": "LineString",
+                            "viz_3d_available": False,
+                            "viz_3d_slug": None,
                         },
                         {
-                            "osm_id": 987654321,
+                            "trail_id": "987654321",
                             "name": "Cathedral Lakes Trail",
                             "length_miles": 7.6,
                             "highway_type": "path",
-                            "source": "osm",
+                            "source": "OSM",
                             "geometry_type": "LineString",
+                            "viz_3d_available": False,
+                            "viz_3d_slug": None,
                         },
                     ],
                 }

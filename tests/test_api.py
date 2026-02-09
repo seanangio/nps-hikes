@@ -223,16 +223,18 @@ class TestVisualizationEndpoints:
             response = client.get(f"/parks/{code}/viz/elevation-matrix")
             assert response.status_code == 422  # Validation error
 
-    @patch("api.main.get_db_engine")
-    @patch("api.main.os.path.exists")
-    @patch("api.main.os.path.join")
-    def test_get_trail_3d_viz_with_existing_file(
-        self, mock_join, mock_exists, mock_get_engine, tmp_path
-    ):
+    def test_get_trail_3d_viz_with_existing_file(self, tmp_path, monkeypatch):
         """Test successful retrieval of 3D visualization when file exists."""
-        # Setup mock database response
+        from api.main import app
+
+        # Create temp directory structure and HTML file
+        viz_dir = tmp_path / "profiling_results" / "visualizations" / "3d_trails"
+        viz_dir.mkdir(parents=True)
+        html_file = viz_dir / "yose_half_dome_trail_3d.html"
+        html_file.write_text("<html><body>Test 3D Viz</body></html>")
+
+        # Mock get_db_engine to return trail info
         mock_engine = MagicMock()
-        mock_get_engine.return_value = mock_engine
         mock_result = Mock()
         Row = namedtuple("Row", ["trail_name"])
         mock_result.fetchone.return_value = Row(trail_name="Half Dome Trail")
@@ -240,13 +242,16 @@ class TestVisualizationEndpoints:
             mock_result
         )
 
-        # Create temp HTML file
-        html_file = tmp_path / "yose_half_dome_trail_3d.html"
-        html_file.write_text("<html><body>Test 3D Viz</body></html>")
+        # Patch the database engine and directory paths
+        def mock_get_db_engine():
+            return mock_engine
 
-        # Mock file operations to point to our temp file
-        mock_join.return_value = str(html_file)
-        mock_exists.return_value = True
+        def mock_dirname(path):
+            # Return tmp_path as the project root
+            return str(tmp_path)
+
+        monkeypatch.setattr("api.main.get_db_engine", mock_get_db_engine)
+        monkeypatch.setattr("api.main.os.path.dirname", mock_dirname)
 
         # Make request
         response = client.get("/parks/yose/trails/half_dome_trail/viz/3d")
@@ -444,10 +449,15 @@ class TestParkTrailsEndpoint:
         self, mock_get_engine, mock_db_engine, sample_park_trails_response
     ):
         """Test park trails endpoint with trail type filter."""
-        # Setup mock
+        # Setup mock - return only OSM trail with highway_type='path'
+        # (TNM trails have highway_type=None, so they're excluded when filtering)
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = sample_park_trails_response["rows"]
+        mock_result.fetchall.return_value = [
+            row
+            for row in sample_park_trails_response["rows"]
+            if row.highway_type == "path"
+        ]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )

@@ -99,6 +99,9 @@ def fetch_trails_for_park(
     """
     Fetch trails from database for a specific park with optional filters.
 
+    Combines TNM and OSM trail data, preferring TNM when duplicates exist
+    (based on fuzzy name matching within the same park).
+
     Args:
         park_code: 4-character lowercase park code (e.g., 'yose')
         min_length: Minimum trail length in miles (optional)
@@ -127,47 +130,97 @@ def fetch_trails_for_park(
     """
     engine = get_db_engine()
 
-    # Base query joining osm_hikes with parks table and usgs_trail_elevations
-    # Join with gmaps_hiking_locations_matched to connect OSM trails to elevation data
-    # Note: We match on trail name without source filter because trails can be matched
-    # to either TNM or OSM sources in gmaps_hiking_locations_matched
+    # Build query with CTEs for TNM trails, OSM trails, and deduplication
+    # This follows the same pattern as fetch_all_trails but scoped to one park
     query = """
+    WITH tnm_trails AS (
+        SELECT
+            permanent_identifier as trail_id,
+            name as trail_name,
+            park_code,
+            'TNM' as source,
+            length_miles,
+            geometry_type
+        FROM tnm_hikes
+        WHERE park_code = :park_code
+        AND name IS NOT NULL
+    ),
+    osm_trails AS (
+        SELECT
+            osm_id::text as trail_id,
+            name as trail_name,
+            park_code,
+            'OSM' as source,
+            length_miles,
+            geometry_type,
+            highway as highway_type
+        FROM osm_hikes
+        WHERE park_code = :park_code
+        AND name IS NOT NULL
+    ),
+    -- Find OSM trails that don't match TNM (deduplication via fuzzy matching)
+    osm_unique AS (
+        SELECT o.*
+        FROM osm_trails o
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM tnm_trails t
+            WHERE t.park_code = o.park_code
+            AND similarity(lower(t.trail_name), lower(o.trail_name)) > 0.7
+        )
+    ),
+    -- Combine TNM (preferred) + unique OSM trails
+    all_trails AS (
+        SELECT
+            trail_id,
+            trail_name,
+            park_code,
+            source,
+            length_miles,
+            geometry_type,
+            CAST(NULL AS VARCHAR) as highway_type
+        FROM tnm_trails
+        UNION ALL
+        SELECT * FROM osm_unique
+    )
     SELECT
-        oh.osm_id,
-        oh.name,
-        oh.length_miles,
-        oh.highway as highway_type,
-        'osm' as source,
-        oh.geometry_type,
+        t.trail_id,
+        t.trail_name,
+        t.park_code,
         p.park_name,
+        t.source,
+        t.length_miles,
+        t.geometry_type,
+        t.highway_type,
         CASE
             WHEN ute.trail_slug IS NOT NULL THEN true
             ELSE false
         END as viz_3d_available,
         ute.trail_slug as viz_3d_slug
-    FROM osm_hikes oh
-    LEFT JOIN parks p ON oh.park_code = p.park_code
+    FROM all_trails t
+    LEFT JOIN parks p ON t.park_code = p.park_code
     LEFT JOIN gmaps_hiking_locations_matched ghlm
-        ON oh.park_code = ghlm.park_code
-        AND oh.name = ghlm.matched_trail_name
+        ON t.park_code = ghlm.park_code
+        AND t.source = ghlm.source
+        AND t.trail_name = ghlm.matched_trail_name
     LEFT JOIN usgs_trail_elevations ute
         ON ghlm.gmaps_location_id = ute.gmaps_location_id
-    WHERE oh.park_code = :park_code
+    WHERE 1=1
     """
 
     # Build dynamic WHERE clauses based on optional filters
     params: dict[str, Any] = {"park_code": park_code}
 
     if min_length is not None:
-        query += " AND oh.length_miles >= :min_length"
+        query += " AND t.length_miles >= :min_length"
         params["min_length"] = min_length
 
     if max_length is not None:
-        query += " AND oh.length_miles <= :max_length"
+        query += " AND t.length_miles <= :max_length"
         params["max_length"] = max_length
 
     if trail_type is not None:
-        query += " AND oh.highway = :trail_type"
+        query += " AND t.highway_type = :trail_type"
         params["trail_type"] = trail_type
 
     if viz_3d is not None:
@@ -177,7 +230,7 @@ def fetch_trails_for_park(
             query += " AND ute.trail_slug IS NULL"
 
     # Order by length descending (longest trails first)
-    query += " ORDER BY oh.length_miles DESC"
+    query += " ORDER BY t.length_miles DESC"
 
     # Execute query
     with engine.connect() as conn:
@@ -203,8 +256,8 @@ def fetch_trails_for_park(
 
     for row in rows:
         trail = {
-            "osm_id": row.osm_id,
-            "name": row.name,
+            "trail_id": row.trail_id,
+            "name": row.trail_name,
             "length_miles": float(row.length_miles),
             "highway_type": row.highway_type,
             "source": row.source,
