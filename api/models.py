@@ -21,149 +21,10 @@ class Trail(BaseModel):
         description="Unique trail identifier (permanent_identifier for TNM, osm_id for OSM)",
         examples=["550779"],
     )
-    name: str | None = Field(
+    trail_name: str | None = Field(
         None,
         description="Trail name (may be null for unnamed trails)",
         examples=["Mono Pass Trail"],
-    )
-    length_miles: float = Field(
-        ...,
-        description="Trail length in miles",
-        ge=0,
-        examples=[8.2],
-    )
-    highway_type: str | None = Field(
-        None,
-        description="OSM highway tag (path, footway, track, etc.) - only available for OSM trails",
-        examples=["path"],
-    )
-    source: str = Field(
-        ...,
-        description="Data source (TNM or OSM)",
-        examples=["TNM"],
-    )
-    geometry_type: str = Field(
-        ...,
-        description="Geometry type (LineString or MultiLineString)",
-        examples=["LineString"],
-    )
-    viz_3d_available: bool = Field(
-        ...,
-        description="Whether 3D visualization is available for this trail (requires elevation data)",
-        examples=[True],
-    )
-    viz_3d_slug: str | None = Field(
-        None,
-        description="URL-safe trail slug for 3D visualization endpoint (only present if viz_3d_available is true)",
-        examples=["mono_pass_trail"],
-    )
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "trail_id": "550779",
-                    "name": "Mono Pass Trail",
-                    "length_miles": 8.2,
-                    "highway_type": None,
-                    "source": "TNM",
-                    "geometry_type": "LineString",
-                    "viz_3d_available": True,
-                    "viz_3d_slug": "mono_pass_trail",
-                }
-            ]
-        }
-    }
-
-
-class ParkTrailsResponse(BaseModel):
-    """
-    Response model for park trails endpoint.
-
-    Contains park information and a list of trails with summary statistics.
-    """
-
-    park_code: str = Field(
-        ...,
-        description="4-character lowercase park code",
-        pattern="^[a-z]{4}$",
-        examples=["yose"],
-    )
-    park_name: str | None = Field(
-        None,
-        description="Full park name",
-        examples=["Yosemite National Park"],
-    )
-    trail_count: int = Field(
-        ...,
-        description="Number of trails returned",
-        ge=0,
-        examples=[47],
-    )
-    total_miles: float = Field(
-        ...,
-        description="Total trail mileage for all returned trails",
-        ge=0,
-        examples=[234.5],
-    )
-    trails: list[Trail] = Field(
-        ...,
-        description="List of trails in the park",
-    )
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "park_code": "yose",
-                    "park_name": "Yosemite National Park",
-                    "trail_count": 2,
-                    "total_miles": 15.8,
-                    "trails": [
-                        {
-                            "trail_id": "550779",
-                            "name": "Mono Pass Trail",
-                            "length_miles": 8.2,
-                            "highway_type": None,
-                            "source": "TNM",
-                            "geometry_type": "LineString",
-                            "viz_3d_available": False,
-                            "viz_3d_slug": None,
-                        },
-                        {
-                            "trail_id": "987654321",
-                            "name": "Cathedral Lakes Trail",
-                            "length_miles": 7.6,
-                            "highway_type": "path",
-                            "source": "OSM",
-                            "geometry_type": "LineString",
-                            "viz_3d_available": False,
-                            "viz_3d_slug": None,
-                        },
-                    ],
-                }
-            ]
-        }
-    }
-
-
-class AllTrail(BaseModel):
-    """
-    Trail information for the all-trails endpoint.
-
-    Includes trail metadata from both TNM and OSM sources, along with
-    park information and hiking status.
-    """
-
-    trail_id: str = Field(
-        ...,
-        description="Unique trail identifier (permanent_identifier for TNM, osm_id for OSM)",
-        examples=["550779"],
-    )
-    trail_name: str = Field(
-        ...,
-        description="Trail name",
-        examples=["Half Dome Trail"],
     )
     park_code: str = Field(
         ...,
@@ -190,17 +51,32 @@ class AllTrail(BaseModel):
         ...,
         description="Trail length in miles",
         ge=0,
-        examples=[14.2],
+        examples=[8.2],
     )
     geometry_type: str = Field(
         ...,
-        description="Geometry type (LineString, MultiLineString, etc.)",
+        description="Geometry type (LineString or MultiLineString)",
         examples=["LineString"],
+    )
+    highway_type: str | None = Field(
+        None,
+        description="OSM highway tag (path, footway, track, etc.) - only available for OSM trails",
+        examples=["path"],
     )
     hiked: bool = Field(
         ...,
         description="Whether this trail has been hiked",
         examples=[True],
+    )
+    viz_3d_available: bool = Field(
+        ...,
+        description="Whether 3D visualization is available for this trail (requires elevation data)",
+        examples=[True],
+    )
+    viz_3d_slug: str | None = Field(
+        None,
+        description="URL-safe trail slug for 3D visualization endpoint (only present if viz_3d_available is true)",
+        examples=["mono_pass_trail"],
     )
 
     model_config = {
@@ -208,21 +84,24 @@ class AllTrail(BaseModel):
             "examples": [
                 {
                     "trail_id": "550779",
-                    "trail_name": "Half Dome Trail",
+                    "trail_name": "Mono Pass Trail",
                     "park_code": "yose",
                     "park_name": "Yosemite National Park",
                     "states": "CA",
                     "source": "TNM",
-                    "length_miles": 14.2,
+                    "length_miles": 8.2,
                     "geometry_type": "LineString",
+                    "highway_type": None,
                     "hiked": True,
+                    "viz_3d_available": True,
+                    "viz_3d_slug": "mono_pass_trail",
                 }
             ]
         }
     }
 
 
-class AllTrailsResponse(BaseModel):
+class TrailsResponse(BaseModel):
     """
     Response model for all trails endpoint.
 
@@ -241,7 +120,7 @@ class AllTrailsResponse(BaseModel):
         ge=0,
         examples=[892.3],
     )
-    trails: list[AllTrail] = Field(
+    trails: list[Trail] = Field(
         ...,
         description="List of trails matching the query",
     )
@@ -262,7 +141,10 @@ class AllTrailsResponse(BaseModel):
                             "source": "TNM",
                             "length_miles": 14.2,
                             "geometry_type": "LineString",
+                            "highway_type": None,
                             "hiked": True,
+                            "viz_3d_available": True,
+                            "viz_3d_slug": "half_dome_trail",
                         },
                         {
                             "trail_id": "123456789",
@@ -273,7 +155,10 @@ class AllTrailsResponse(BaseModel):
                             "source": "OSM",
                             "length_miles": 6.3,
                             "geometry_type": "LineString",
+                            "highway_type": "path",
                             "hiked": False,
+                            "viz_3d_available": False,
+                            "viz_3d_slug": None,
                         },
                     ],
                 }

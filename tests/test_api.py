@@ -3,8 +3,9 @@ Tests for the NPS Trails API endpoints.
 
 This module contains comprehensive tests for all FastAPI endpoints including:
 - Root endpoint
-- Park trails endpoint
-- All trails endpoint
+- Parks endpoint
+- Trails endpoint
+- Visualization endpoints
 - Health check endpoint
 - Query functions
 """
@@ -17,7 +18,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from api.main import app
-from api.queries import fetch_all_parks, fetch_all_trails, fetch_trails_for_park
+from api.queries import fetch_all_parks, fetch_trails
 
 # Create test client
 client = TestClient(app)
@@ -37,8 +38,7 @@ class TestRootEndpoint:
         assert "documentation" in data
         assert "endpoints" in data
         assert data["endpoints"]["parks"] == "/parks"
-        assert data["endpoints"]["all_trails"] == "/trails"
-        assert data["endpoints"]["trails_by_park"] == "/parks/{park_code}/trails"
+        assert data["endpoints"]["trails"] == "/trails"
 
 
 class TestParksEndpoint:
@@ -392,224 +392,18 @@ class TestVisualizationEndpoints:
         assert response.status_code == 422
 
 
-class TestParkTrailsEndpoint:
-    """Tests for the park trails endpoint (GET /parks/{park_code}/trails)."""
+class TestTrailsEndpoint:
+    """Tests for the trails endpoint (GET /trails)."""
 
     @patch("api.queries.get_db_engine")
-    def test_get_park_trails_success(
-        self, mock_get_engine, mock_db_engine, sample_park_trails_response
+    def test_get_trails_no_filters(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
     ):
-        """Test successful retrieval of park trails."""
+        """Test trails endpoint without filters."""
         # Setup mock
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = sample_park_trails_response["rows"]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Make request
-        response = client.get("/parks/yose/trails")
-
-        # Assertions
-        assert response.status_code == 200
-        data = response.json()
-        assert data["park_code"] == "yose"
-        assert data["park_name"] == "Yosemite National Park"
-        assert data["trail_count"] == 2
-        assert data["total_miles"] == 20.7
-        assert len(data["trails"]) == 2
-        assert data["trails"][0]["name"] == "Half Dome Trail"
-
-    @patch("api.queries.get_db_engine")
-    def test_get_park_trails_with_length_filters(
-        self, mock_get_engine, mock_db_engine, sample_park_trails_response
-    ):
-        """Test park trails endpoint with min and max length filters."""
-        # Setup mock
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        # Return only one trail that matches the filter
-        mock_result.fetchall.return_value = [sample_park_trails_response["rows"][0]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Make request with filters
-        response = client.get("/parks/yose/trails?min_length=10&max_length=20")
-
-        # Assertions
-        assert response.status_code == 200
-        data = response.json()
-        assert data["trail_count"] == 1
-        assert data["trails"][0]["length_miles"] == 14.2
-
-    @patch("api.queries.get_db_engine")
-    def test_get_park_trails_with_trail_type_filter(
-        self, mock_get_engine, mock_db_engine, sample_park_trails_response
-    ):
-        """Test park trails endpoint with trail type filter."""
-        # Setup mock - return only OSM trail with highway_type='path'
-        # (TNM trails have highway_type=None, so they're excluded when filtering)
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        mock_result.fetchall.return_value = [
-            row
-            for row in sample_park_trails_response["rows"]
-            if row.highway_type == "path"
-        ]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Make request with trail_type filter
-        response = client.get("/parks/yose/trails?trail_type=path")
-
-        # Assertions
-        assert response.status_code == 200
-        data = response.json()
-        assert all(trail["highway_type"] == "path" for trail in data["trails"])
-
-    @patch("api.queries.get_db_engine")
-    def test_get_park_trails_not_found(self, mock_get_engine, mock_db_engine):
-        """Test 404 response when park has no trails."""
-        # Setup mock to return empty result
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        mock_result.fetchall.return_value = []
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Make request
-        response = client.get("/parks/fake/trails")
-
-        # Assertions
-        assert response.status_code == 404
-        data = response.json()
-        assert "No trails found" in data["detail"]
-
-    def test_get_park_trails_invalid_park_code_format(self):
-        """Test validation error for invalid park code format."""
-        # Test various invalid formats
-        invalid_codes = [
-            "YOS",  # Too short
-            "YOSEM",  # Too long
-            "YOSE",  # Uppercase
-            "yo se",  # Contains space
-            "123",  # Too short
-        ]
-
-        for code in invalid_codes:
-            response = client.get(f"/parks/{code}/trails")
-            assert response.status_code == 422  # Validation error
-
-    @patch("api.queries.get_db_engine")
-    def test_get_park_trails_database_error(self, mock_get_engine):
-        """Test 500 error when database query fails."""
-        # Setup mock to raise exception
-        mock_get_engine.side_effect = Exception("Database connection failed")
-
-        # Make request
-        response = client.get("/parks/yose/trails")
-
-        # Assertions
-        assert response.status_code == 500
-        data = response.json()
-        assert "Error retrieving trails" in data["detail"]
-
-    @patch("api.queries.get_db_engine")
-    def test_get_park_trails_includes_viz_3d_fields(
-        self, mock_get_engine, mock_db_engine, sample_park_trails_response
-    ):
-        """Test that trails response includes viz_3d fields."""
-        # Setup mock
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        mock_result.fetchall.return_value = sample_park_trails_response["rows"]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Make request
-        response = client.get("/parks/yose/trails")
-
-        # Assertions
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data["trails"]) == 2
-
-        # Check first trail has 3D viz available
-        trail1 = data["trails"][0]
-        assert "viz_3d_available" in trail1
-        assert trail1["viz_3d_available"] is True
-        assert "viz_3d_slug" in trail1
-        assert trail1["viz_3d_slug"] == "half_dome_trail"
-
-        # Check second trail does not have 3D viz
-        trail2 = data["trails"][1]
-        assert trail2["viz_3d_available"] is False
-        assert trail2["viz_3d_slug"] is None
-
-    @patch("api.queries.get_db_engine")
-    def test_get_park_trails_filter_viz_3d_true(
-        self, mock_get_engine, mock_db_engine, sample_park_trails_response
-    ):
-        """Test filtering for trails with 3D visualization available."""
-        # Setup mock - return only trail with viz_3d_available=True
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        mock_result.fetchall.return_value = [sample_park_trails_response["rows"][0]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Make request with viz_3d=true filter
-        response = client.get("/parks/yose/trails?viz_3d=true")
-
-        # Assertions
-        assert response.status_code == 200
-        data = response.json()
-        assert data["trail_count"] == 1
-        assert data["trails"][0]["viz_3d_available"] is True
-        assert data["trails"][0]["viz_3d_slug"] == "half_dome_trail"
-
-    @patch("api.queries.get_db_engine")
-    def test_get_park_trails_filter_viz_3d_false(
-        self, mock_get_engine, mock_db_engine, sample_park_trails_response
-    ):
-        """Test filtering for trails without 3D visualization."""
-        # Setup mock - return only trail with viz_3d_available=False
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        mock_result.fetchall.return_value = [sample_park_trails_response["rows"][1]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Make request with viz_3d=false filter
-        response = client.get("/parks/yose/trails?viz_3d=false")
-
-        # Assertions
-        assert response.status_code == 200
-        data = response.json()
-        assert data["trail_count"] == 1
-        assert data["trails"][0]["viz_3d_available"] is False
-        assert data["trails"][0]["viz_3d_slug"] is None
-
-
-class TestAllTrailsEndpoint:
-    """Tests for the all trails endpoint (GET /trails)."""
-
-    @patch("api.queries.get_db_engine")
-    def test_get_all_trails_no_filters(
-        self, mock_get_engine, mock_db_engine, sample_all_trails_response
-    ):
-        """Test all trails endpoint without filters."""
-        # Setup mock
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        mock_result.fetchall.return_value = sample_all_trails_response["rows"]
+        mock_result.fetchall.return_value = sample_trails_response["rows"]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )
@@ -625,14 +419,14 @@ class TestAllTrailsEndpoint:
         assert len(data["trails"]) == 2
 
     @patch("api.queries.get_db_engine")
-    def test_get_all_trails_with_length_filters(
-        self, mock_get_engine, mock_db_engine, sample_all_trails_response
+    def test_get_trails_with_length_filters(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
     ):
-        """Test all trails endpoint with min and max length filters."""
+        """Test trails endpoint with min and max length filters."""
         # Setup mock - return only trails matching filter
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = [sample_all_trails_response["rows"][0]]
+        mock_result.fetchall.return_value = [sample_trails_response["rows"][0]]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )
@@ -648,14 +442,14 @@ class TestAllTrailsEndpoint:
         assert data["trails"][0]["length_miles"] <= 20
 
     @patch("api.queries.get_db_engine")
-    def test_get_all_trails_with_park_code(
-        self, mock_get_engine, mock_db_engine, sample_all_trails_response
+    def test_get_trails_with_park_code(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
     ):
-        """Test all trails endpoint filtered by park code."""
+        """Test trails endpoint filtered by park code."""
         # Setup mock
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = sample_all_trails_response["rows"]
+        mock_result.fetchall.return_value = sample_trails_response["rows"]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )
@@ -669,14 +463,14 @@ class TestAllTrailsEndpoint:
         assert all(trail["park_code"] == "yose" for trail in data["trails"])
 
     @patch("api.queries.get_db_engine")
-    def test_get_all_trails_with_state(
-        self, mock_get_engine, mock_db_engine, sample_all_trails_response
+    def test_get_trails_with_state(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
     ):
-        """Test all trails endpoint filtered by state."""
+        """Test trails endpoint filtered by state."""
         # Setup mock
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = sample_all_trails_response["rows"]
+        mock_result.fetchall.return_value = sample_trails_response["rows"]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )
@@ -690,14 +484,14 @@ class TestAllTrailsEndpoint:
         assert all("CA" in trail["states"] for trail in data["trails"])
 
     @patch("api.queries.get_db_engine")
-    def test_get_all_trails_with_source_filter(
-        self, mock_get_engine, mock_db_engine, sample_all_trails_response
+    def test_get_trails_with_source_filter(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
     ):
-        """Test all trails endpoint filtered by source."""
+        """Test trails endpoint filtered by source."""
         # Setup mock - return only TNM trails
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = [sample_all_trails_response["rows"][0]]
+        mock_result.fetchall.return_value = [sample_trails_response["rows"][0]]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )
@@ -711,14 +505,14 @@ class TestAllTrailsEndpoint:
         assert all(trail["source"] == "TNM" for trail in data["trails"])
 
     @patch("api.queries.get_db_engine")
-    def test_get_all_trails_with_hiked_status_true(
-        self, mock_get_engine, mock_db_engine, sample_all_trails_response
+    def test_get_trails_with_hiked_status_true(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
     ):
-        """Test all trails endpoint filtered by hiked=true."""
+        """Test trails endpoint filtered by hiked=true."""
         # Setup mock - return only hiked trails
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = [sample_all_trails_response["rows"][0]]
+        mock_result.fetchall.return_value = [sample_trails_response["rows"][0]]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )
@@ -732,14 +526,14 @@ class TestAllTrailsEndpoint:
         assert all(trail["hiked"] is True for trail in data["trails"])
 
     @patch("api.queries.get_db_engine")
-    def test_get_all_trails_with_hiked_status_false(
-        self, mock_get_engine, mock_db_engine, sample_all_trails_response
+    def test_get_trails_with_hiked_status_false(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
     ):
-        """Test all trails endpoint filtered by hiked=false."""
+        """Test trails endpoint filtered by hiked=false."""
         # Setup mock - return only non-hiked trails
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = [sample_all_trails_response["rows"][1]]
+        mock_result.fetchall.return_value = [sample_trails_response["rows"][1]]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )
@@ -753,14 +547,14 @@ class TestAllTrailsEndpoint:
         assert all(trail["hiked"] is False for trail in data["trails"])
 
     @patch("api.queries.get_db_engine")
-    def test_get_all_trails_combined_filters(
-        self, mock_get_engine, mock_db_engine, sample_all_trails_response
+    def test_get_trails_combined_filters(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
     ):
-        """Test all trails endpoint with multiple filters combined."""
+        """Test trails endpoint with multiple filters combined."""
         # Setup mock
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = [sample_all_trails_response["rows"][0]]
+        mock_result.fetchall.return_value = [sample_trails_response["rows"][0]]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )
@@ -778,7 +572,7 @@ class TestAllTrailsEndpoint:
         assert trail["hiked"] is True
         assert trail["length_miles"] >= 10
 
-    def test_get_all_trails_invalid_state_format(self):
+    def test_get_trails_invalid_state_format(self):
         """Test validation error for invalid state format."""
         # Test various invalid state formats
         invalid_states = [
@@ -792,7 +586,7 @@ class TestAllTrailsEndpoint:
             response = client.get(f"/trails?state={state}")
             assert response.status_code == 422  # Validation error
 
-    def test_get_all_trails_invalid_source(self):
+    def test_get_trails_invalid_source(self):
         """Test validation error for invalid source value."""
         # Test invalid source values
         invalid_sources = ["osm", "tnm", "USGS", "invalid"]
@@ -801,7 +595,7 @@ class TestAllTrailsEndpoint:
             response = client.get(f"/trails?source={source}")
             assert response.status_code == 422  # Validation error
 
-    def test_get_all_trails_invalid_park_code_format(self):
+    def test_get_trails_invalid_park_code_format(self):
         """Test validation error for invalid park code format in query param."""
         # Test various invalid formats
         invalid_codes = ["YOS", "YOSEM", "YOSE", "yo se"]
@@ -811,7 +605,7 @@ class TestAllTrailsEndpoint:
             assert response.status_code == 422  # Validation error
 
     @patch("api.queries.get_db_engine")
-    def test_get_all_trails_database_error(self, mock_get_engine):
+    def test_get_trails_database_error(self, mock_get_engine):
         """Test 500 error when database query fails."""
         # Setup mock to raise exception
         mock_get_engine.side_effect = Exception("Database connection failed")
@@ -934,108 +728,20 @@ class TestQueryFunctions:
         assert result["parks"] == []
 
     @patch("api.queries.get_db_engine")
-    def test_fetch_trails_for_park(
-        self, mock_get_engine, mock_db_engine, sample_park_trails_response
+    def test_fetch_trails(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
     ):
-        """Test fetch_trails_for_park function directly."""
+        """Test fetch_trails function without park_code."""
         # Setup mock
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = sample_park_trails_response["rows"]
+        mock_result.fetchall.return_value = sample_trails_response["rows"]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )
 
         # Call function
-        result = fetch_trails_for_park(park_code="yose")
-
-        # Assertions
-        assert result["park_code"] == "yose"
-        assert result["park_name"] == "Yosemite National Park"
-        assert result["trail_count"] == 2
-        assert result["total_miles"] == 20.7
-        assert len(result["trails"]) == 2
-
-    @patch("api.queries.get_db_engine")
-    def test_fetch_trails_for_park_with_filters(
-        self, mock_get_engine, mock_db_engine, sample_park_trails_response
-    ):
-        """Test fetch_trails_for_park with filters."""
-        # Setup mock
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        mock_result.fetchall.return_value = [sample_park_trails_response["rows"][0]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Call function with filters
-        result = fetch_trails_for_park(
-            park_code="yose",
-            min_length=10.0,
-            max_length=20.0,
-            trail_type="path",
-        )
-
-        # Assertions
-        assert result["trail_count"] == 1
-        assert result["trails"][0]["length_miles"] == 14.2
-
-    @patch("api.queries.get_db_engine")
-    def test_fetch_trails_for_park_empty_result(self, mock_get_engine, mock_db_engine):
-        """Test fetch_trails_for_park returns proper structure for empty results."""
-        # Setup mock to return empty result
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        mock_result.fetchall.return_value = []
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Call function
-        result = fetch_trails_for_park(park_code="fake")
-
-        # Assertions
-        assert result["park_code"] == "fake"
-        assert result["park_name"] is None
-        assert result["trail_count"] == 0
-
-    @patch("api.queries.get_db_engine")
-    def test_fetch_trails_for_park_with_viz_3d_filter(
-        self, mock_get_engine, mock_db_engine, sample_park_trails_response
-    ):
-        """Test fetch_trails_for_park with viz_3d filter."""
-        # Setup mock - return only trail with 3D viz available
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        mock_result.fetchall.return_value = [sample_park_trails_response["rows"][0]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Call function with viz_3d=True filter
-        result = fetch_trails_for_park(park_code="yose", viz_3d=True)
-
-        # Assertions
-        assert result["trail_count"] == 1
-        assert result["trails"][0]["viz_3d_available"] is True
-        assert result["trails"][0]["viz_3d_slug"] == "half_dome_trail"
-
-    @patch("api.queries.get_db_engine")
-    def test_fetch_all_trails(
-        self, mock_get_engine, mock_db_engine, sample_all_trails_response
-    ):
-        """Test fetch_all_trails function directly."""
-        # Setup mock
-        mock_get_engine.return_value = mock_db_engine
-        mock_result = Mock()
-        mock_result.fetchall.return_value = sample_all_trails_response["rows"]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
-
-        # Call function
-        result = fetch_all_trails()
+        result = fetch_trails()
 
         # Assertions
         assert result["trail_count"] == 2
@@ -1043,20 +749,20 @@ class TestQueryFunctions:
         assert len(result["trails"]) == 2
 
     @patch("api.queries.get_db_engine")
-    def test_fetch_all_trails_with_filters(
-        self, mock_get_engine, mock_db_engine, sample_all_trails_response
+    def test_fetch_trails_with_filters(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
     ):
-        """Test fetch_all_trails with various filters."""
+        """Test fetch_trails with various filters."""
         # Setup mock
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
-        mock_result.fetchall.return_value = [sample_all_trails_response["rows"][0]]
+        mock_result.fetchall.return_value = [sample_trails_response["rows"][0]]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
             mock_result
         )
 
         # Call function with filters
-        result = fetch_all_trails(
+        result = fetch_trails(
             min_length=10.0,
             max_length=20.0,
             park_code="yose",
@@ -1073,8 +779,8 @@ class TestQueryFunctions:
         assert trail["park_code"] == "yose"
 
     @patch("api.queries.get_db_engine")
-    def test_fetch_all_trails_empty_result(self, mock_get_engine, mock_db_engine):
-        """Test fetch_all_trails returns proper structure for empty results."""
+    def test_fetch_trails_empty_result(self, mock_get_engine, mock_db_engine):
+        """Test fetch_trails returns proper structure for empty results."""
         # Setup mock to return empty result
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
@@ -1084,7 +790,7 @@ class TestQueryFunctions:
         )
 
         # Call function
-        result = fetch_all_trails()
+        result = fetch_trails()
 
         # Assertions
         assert result["trail_count"] == 0

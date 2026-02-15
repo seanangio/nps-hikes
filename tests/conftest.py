@@ -226,95 +226,11 @@ def mock_db_engine():
 
 
 @pytest.fixture
-def sample_park_trails_response():
+def sample_trails_response():
     """
-    Provide sample data for park trails endpoint testing.
+    Provide sample data for trails endpoint testing.
 
-    Returns a dictionary matching the ParkTrailsResponse structure
-    with realistic trail data for Yosemite National Park.
-    """
-    from collections import namedtuple
-
-    Row = namedtuple(
-        "Row",
-        [
-            "trail_id",
-            "trail_name",
-            "park_code",
-            "park_name",
-            "source",
-            "length_miles",
-            "geometry_type",
-            "highway_type",
-            "viz_3d_available",
-            "viz_3d_slug",
-        ],
-    )
-
-    return {
-        "rows": [
-            Row(
-                trail_id="550779",
-                trail_name="Half Dome Trail",
-                park_code="yose",
-                park_name="Yosemite National Park",
-                source="TNM",
-                length_miles=14.2,
-                geometry_type="LineString",
-                highway_type=None,
-                viz_3d_available=True,
-                viz_3d_slug="half_dome_trail",
-            ),
-            Row(
-                trail_id="987654321",
-                trail_name="Mist Trail",
-                park_code="yose",
-                park_name="Yosemite National Park",
-                source="OSM",
-                length_miles=6.5,
-                geometry_type="LineString",
-                highway_type="path",
-                viz_3d_available=False,
-                viz_3d_slug=None,
-            ),
-        ],
-        "expected_response": {
-            "park_code": "yose",
-            "park_name": "Yosemite National Park",
-            "trail_count": 2,
-            "total_miles": 20.7,
-            "trails": [
-                {
-                    "trail_id": "550779",
-                    "name": "Half Dome Trail",
-                    "length_miles": 14.2,
-                    "highway_type": None,
-                    "source": "TNM",
-                    "geometry_type": "LineString",
-                    "viz_3d_available": True,
-                    "viz_3d_slug": "half_dome_trail",
-                },
-                {
-                    "trail_id": "987654321",
-                    "name": "Mist Trail",
-                    "length_miles": 6.5,
-                    "highway_type": "path",
-                    "source": "OSM",
-                    "geometry_type": "LineString",
-                    "viz_3d_available": False,
-                    "viz_3d_slug": None,
-                },
-            ],
-        },
-    }
-
-
-@pytest.fixture
-def sample_all_trails_response():
-    """
-    Provide sample data for all trails endpoint testing.
-
-    Returns a dictionary matching the AllTrailsResponse structure
+    Returns a dictionary matching the TrailsResponse structure
     with realistic trail data from multiple parks and sources.
     """
     from collections import namedtuple
@@ -330,7 +246,10 @@ def sample_all_trails_response():
             "source",
             "length_miles",
             "geometry_type",
+            "highway_type",
             "hiked",
+            "viz_3d_available",
+            "viz_3d_slug",
         ],
     )
 
@@ -345,7 +264,10 @@ def sample_all_trails_response():
                 source="TNM",
                 length_miles=14.2,
                 geometry_type="LineString",
+                highway_type=None,
                 hiked=True,
+                viz_3d_available=True,
+                viz_3d_slug="half_dome_trail",
             ),
             Row(
                 trail_id="123456789",
@@ -356,7 +278,10 @@ def sample_all_trails_response():
                 source="OSM",
                 length_miles=6.5,
                 geometry_type="LineString",
+                highway_type="path",
                 hiked=False,
+                viz_3d_available=False,
+                viz_3d_slug=None,
             ),
         ],
         "expected_response": {
@@ -372,7 +297,10 @@ def sample_all_trails_response():
                     "source": "TNM",
                     "length_miles": 14.2,
                     "geometry_type": "LineString",
+                    "highway_type": None,
                     "hiked": True,
+                    "viz_3d_available": True,
+                    "viz_3d_slug": "half_dome_trail",
                 },
                 {
                     "trail_id": "123456789",
@@ -383,7 +311,10 @@ def sample_all_trails_response():
                     "source": "OSM",
                     "length_miles": 6.5,
                     "geometry_type": "LineString",
+                    "highway_type": "path",
                     "hiked": False,
+                    "viz_3d_available": False,
+                    "viz_3d_slug": None,
                 },
             ],
         },
