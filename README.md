@@ -161,6 +161,17 @@ For contributors and developers working on the codebase:
    pre-commit run --all-files
    ```
 
+4. **Run security scans** (optional, checks for vulnerabilities)
+   ```bash
+   # Check dependencies for known vulnerabilities
+   pip-audit -r requirements.txt
+
+   # Scan code for security issues
+   bandit -c .bandit -r scripts/ api/ config/ utils/ profiling/
+   ```
+
+   Security scans run automatically in CI on PRs and weekly.
+
 ## 🎯 Quick Start
 
 ### Option 1: Complete Pipeline (Recommended)

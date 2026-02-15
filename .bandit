@@ -1,0 +1,29 @@
+# Bandit security linter configuration
+# Scans Python source code for common security issues
+#
+# Usage: bandit -c .bandit -r scripts/ api/ config/ utils/ profiling/
+# See: https://bandit.readthedocs.io/en/latest/
+
+exclude_dirs:
+  - /tests           # Test code has intentional security anti-patterns
+  - /scratch         # Throwaway experimental code (gitignored)
+  - /.venv           # Don't scan installed dependencies
+  - /venv
+  - /env
+  - /.git
+  - /htmlcov
+  - /profiling_results  # Generated outputs, not code
+  - /artifacts       # Output directory
+  - /data            # Data files
+  - /cache           # OSMnx/USGS cache
+
+# Suppressed checks with justification:
+#
+# B608 (SQL injection via string formatting):
+#   False positives - all SQL queries use trusted internal data only:
+#   - park_code values come from our own database
+#   - table_name and column_name are hardcoded constants
+#   - No user input is ever directly interpolated into SQL queries
+#   - Public API uses SQLAlchemy ORM with proper parameterization
+skips:
+  - B608
