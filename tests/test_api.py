@@ -309,7 +309,7 @@ class TestVisualizationEndpoints:
             park_code="yose", trail_name="Half Dome Trail", z_exaggeration=10.0
         )
 
-    @patch("api.queries.get_db_engine")
+    @patch("api.main.get_db_engine")
     def test_get_trail_3d_viz_trail_not_found(self, mock_get_engine, mock_db_engine):
         """Test 404 when trail doesn't exist or has no elevation data."""
         # Setup mock database response (no trail found)
