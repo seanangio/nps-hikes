@@ -13,7 +13,7 @@ from sqlalchemy.engine import Engine
 # Add parent directory to path to import project modules
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from config.settings import Config
+from config.settings import config
 
 # Global engine instance (created once, reused)
 _engine = None
@@ -23,7 +23,7 @@ def get_db_engine() -> Engine:
     """
     Get or create a SQLAlchemy engine for database connections.
 
-    Uses the existing Config class from the project for database credentials.
+    Uses the existing config instance from the project for database credentials.
     The engine is created once and reused across requests.
 
     Returns:
@@ -32,10 +32,10 @@ def get_db_engine() -> Engine:
     global _engine
 
     if _engine is None:
-        # Build PostgreSQL connection string from Config
+        # Build PostgreSQL connection string from config
         db_url = (
-            f"postgresql://{Config.DB_USER}:{Config.DB_PASSWORD}"
-            f"@{Config.DB_HOST}:{Config.DB_PORT}/{Config.DB_NAME}"
+            f"postgresql://{config.DB_USER}:{config.DB_PASSWORD}"
+            f"@{config.DB_HOST}:{config.DB_PORT}/{config.DB_NAME}"
         )
 
         # Create engine with connection pooling

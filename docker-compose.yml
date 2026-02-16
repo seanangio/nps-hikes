@@ -1,0 +1,50 @@
+# docker-compose.yml
+#
+# Runs the NPS Trails API with a PostGIS database.
+#
+# Usage:
+#   docker compose up --build       # Build and start both services
+#   docker compose up -d            # Start in background (detached)
+#   docker compose down             # Stop and remove containers
+#   docker compose down -v          # Stop and remove containers AND database data
+#   docker compose logs api         # View API logs
+#   docker compose logs db          # View database logs
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nps_hikes_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "5433:5432"   # 5433 on host to avoid conflict with local PostgreSQL
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh
+      - ./sql/schema:/docker-entrypoint-initdb.d/schema
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-nps_hikes_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-nps_hikes_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - ./profiling_results:/app/profiling_results
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

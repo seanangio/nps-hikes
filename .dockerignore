@@ -1,0 +1,66 @@
+# Version control
+.git
+.github
+
+# Python artifacts
+__pycache__
+*.py[cod]
+*.egg-info
+.mypy_cache
+.pytest_cache
+.coverage
+htmlcov
+
+# Virtual environments
+.venv
+venv
+env
+
+# Local data and generated files (mounted as volumes, not baked in)
+profiling_results
+artifacts
+raw_data
+cache
+logs
+scratch*
+
+# IDE and editor files
+.cursor
+.cursorrules
+.cursorignore
+.cursorindexingignore
+.ipynb_checkpoints
+.vscode
+
+# Docker files (don't need themselves in the image)
+Dockerfile
+docker-compose.yml
+docker
+
+# Development and CI files
+.pre-commit-config.yaml
+.bandit
+requirements-dev.in
+requirements-dev.txt
+pyproject.toml
+tests
+
+# Documentation
+README.md
+CLAUDE.md
+LICENSE
+
+# Environment files (secrets must not be in the image)
+.env
+.env.example
+
+# macOS
+.DS_Store
+
+# MCP configuration
+cursor-mcp-config.json
+start_pgmcp.sh
+
+# Misc
+nps_hikes.egg-info
+MagicMock
