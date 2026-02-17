@@ -1,3 +1,6 @@
+# database dumps
+*.dump
+
 # artifacts
 artifacts/*
 !artifacts/.gitkeep

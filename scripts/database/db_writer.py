@@ -1042,53 +1042,47 @@ class DatabaseWriter:
 
     def _replace_geodataframe(self, gdf: gpd.GeoDataFrame, table_name: str) -> None:
         """
-        Replace all data in a table using geopandas to_postgis.
+        Replace all data in a table using truncate + append.
 
-        For tables with foreign key dependencies, this method truncates the table
-        instead of dropping and recreating it to avoid constraint violations.
+        Uses truncate + append instead of to_postgis(if_exists="replace") to
+        preserve the table schema (constraints, indexes, FKs) created by
+        ensure_table_exists.
+
+        Rows with null geometries are written separately via to_sql to work
+        around a geopandas bug where _get_geometry_type crashes on NaN
+        geometry types (geopandas 1.1.x + pandas 3.0).
 
         Args:
             gdf (gpd.GeoDataFrame): Spatial data to replace existing data with
             table_name (str): Target table name
         """
         try:
-            # First try the standard replace approach
-            gdf.to_postgis(table_name, self.engine, if_exists="replace", index=False)
+            with self.engine.begin() as conn:
+                conn.execute(
+                    text(f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE")
+                )
+
+            has_geom = ~gdf.geometry.isna()
+
+            if has_geom.any():
+                gdf[has_geom].to_postgis(
+                    table_name, self.engine, if_exists="append", index=False
+                )
+
+            if (~has_geom).any():
+                no_geom_df = pd.DataFrame(gdf[~has_geom]).drop(
+                    columns=[gdf.geometry.name]
+                )
+                no_geom_df.to_sql(
+                    table_name, self.engine, if_exists="append", index=False
+                )
+
             self.logger.info(
                 f"Replaced all data in {table_name} with {len(gdf)} spatial records"
             )
         except Exception as e:
-            # If replace fails due to foreign key constraints, try truncate + append
-            if "DependentObjectsStillExist" in str(e) or "CASCADE" in str(e):
-                self.logger.info(
-                    f"Replace failed due to foreign key constraints, using truncate + append for {table_name}"
-                )
-                try:
-                    # Truncate the table
-                    with self.engine.begin() as conn:
-                        conn.execute(
-                            text(
-                                f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE"
-                            )
-                        )
-
-                    # Append the new data
-                    gdf.to_postgis(
-                        table_name, self.engine, if_exists="append", index=False
-                    )
-                    self.logger.info(
-                        f"Truncated and replaced all data in {table_name} with {len(gdf)} spatial records"
-                    )
-                except Exception as truncate_error:
-                    self.logger.error(
-                        f"Failed to truncate and replace spatial data in {table_name}: {truncate_error}"
-                    )
-                    raise
-            else:
-                self.logger.error(
-                    f"Failed to replace spatial data in {table_name}: {e}"
-                )
-                raise
+            self.logger.error(f"Failed to replace spatial data in {table_name}: {e}")
+            raise
 
     def truncate_tables(self, table_names: List[str]) -> None:
         """

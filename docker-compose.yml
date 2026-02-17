@@ -12,7 +12,7 @@
 
 services:
   db:
-    image: postgis/postgis:16-3.4
+    image: imresamu/postgis:16-3.4-bookworm
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nps_hikes_db}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}

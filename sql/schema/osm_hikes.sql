@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS osm_hikes (
     length_miles DECIMAL(8,3) NOT NULL,
     collected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     geometry_type VARCHAR(50) NOT NULL,
-    geometry geometry(LINESTRING, 4326) NOT NULL,
+    geometry geometry(GEOMETRY, 4326) NOT NULL,
 
     PRIMARY KEY (park_code, osm_id),
 
@@ -48,4 +48,4 @@ COMMENT ON COLUMN osm_hikes.osm_id IS 'OpenStreetMap feature ID (may be modified
 COMMENT ON COLUMN osm_hikes.park_code IS '4-character lowercase park identifier, references parks table';
 COMMENT ON COLUMN osm_hikes.highway IS 'OSM highway tag value (path, footway, etc.)';
 COMMENT ON COLUMN osm_hikes.length_miles IS 'Trail length in miles with 3 decimal places precision (0.001 mile = ~5 feet)';
-COMMENT ON COLUMN osm_hikes.geometry IS 'LineString geometry in WGS84 (EPSG:4326)';
+COMMENT ON COLUMN osm_hikes.geometry IS 'LineString or MultiLineString geometry in WGS84 (EPSG:4326)';

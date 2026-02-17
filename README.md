@@ -236,6 +236,43 @@ python -m profiling.orchestrator
 python -m profiling.orchestrator nps_parks data_quality
 ```
 
+## 🐳 Docker
+
+Docker packages the API and database into containers that run anywhere without manual setup.
+
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+
+### Start the API
+
+```bash
+# Build and start the API + PostGIS database
+docker compose up --build
+
+# The API is available at http://localhost:8000
+# The database is available at localhost:5433 (not 5432, to avoid conflicts with local PostgreSQL)
+```
+
+### Populate the Database
+
+The database starts with empty tables. Choose one option:
+
+**Option A: Restore from an existing local database**
+```bash
+# Dump your local database
+pg_dump -Fc -h localhost -p 5432 -U <your_db_user> nps_hikes_db > nps_hikes_backup.dump
+
+# Restore into the Docker database (with Docker running)
+# Use the POSTGRES_USER from your .env file
+pg_restore -h localhost -p 5433 -U <your_db_user> -d nps_hikes_db --no-owner --clean --if-exists nps_hikes_backup.dump
+```
+
+**Option B: Run the collection pipeline against the Docker database**
+```bash
+# With Docker running, run the pipeline from your local environment
+POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db
+```
+
 ## 🔄 Pipeline Orchestration
 
 The project includes a comprehensive pipeline orchestrator (`scripts/orchestrator.py`) that executes the complete data collection workflow in the correct dependency order:
