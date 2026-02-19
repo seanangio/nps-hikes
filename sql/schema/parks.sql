@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS parks (
     visit_month VARCHAR(10),
     visit_year INTEGER,
     full_name TEXT,
+    designation VARCHAR(100),
     states VARCHAR(100),
     url TEXT,
     latitude DECIMAL(10,8),
@@ -32,9 +33,10 @@ CREATE INDEX IF NOT EXISTS idx_parks_states ON parks (states);
 -- Add table comments
 COMMENT ON TABLE parks IS 'National Park Service park metadata and basic information';
 COMMENT ON COLUMN parks.park_code IS '4-character lowercase park identifier (e.g., yell, grca)';
-COMMENT ON COLUMN parks.visit_month IS 'Month of park visit from raw_data/parks.csv';
-COMMENT ON COLUMN parks.visit_year IS 'Year of park visit from raw_data/parks.csv';
+COMMENT ON COLUMN parks.visit_month IS 'Month of park visit (NULL if not yet visited)';
+COMMENT ON COLUMN parks.visit_year IS 'Year of park visit (NULL if not yet visited)';
 COMMENT ON COLUMN parks.full_name IS 'Official full name of the park';
+COMMENT ON COLUMN parks.designation IS 'NPS designation (e.g., National Park, National Park & Preserve)';
 COMMENT ON COLUMN parks.collection_status IS 'Status of data collection (success, error, etc.)';
 COMMENT ON COLUMN parks.collected_at IS 'Timestamp when park data was collected';
 COMMENT ON COLUMN parks.latitude IS 'Latitude coordinate with 8 decimal places precision (~1 meter accuracy)';

@@ -39,7 +39,7 @@ app = FastAPI(
 
     ## Features
 
-    * List all National Parks visited with metadata and coordinates
+    * List all National Parks with metadata, coordinates, and visit status
     * Query trails with flexible filters (park, state, length, source, hiking status, trail type, 3D viz)
     * Automatic deduplication (TNM preferred over OSM for duplicates)
     * Static map and elevation matrix visualizations per park
@@ -102,9 +102,10 @@ async def root():
     tags=["Parks"],
     summary="Get all parks",
     description="""
-    Returns all National Parks visited with metadata.
+    Returns all National Parks with metadata and optional visit status filtering.
 
-    By default, excludes park descriptions.
+    By default, returns all parks. Use `visited=true` to get only visited parks,
+    or `visited=false` to get only unvisited parks.
     Use `include_description=true` to include full park descriptions.
     """,
 )
@@ -113,30 +114,39 @@ async def get_all_parks(
         default=False,
         description="Include full park descriptions in the response (increases response size)",
     ),
+    visited: bool | None = Query(
+        default=None,
+        description="Filter by visit status: true=visited only, false=not yet visited, omit=all parks",
+    ),
 ):
     """
     Get all parks with metadata.
 
-    Returns a list of all National Parks visited, including:
+    Returns a list of all National Parks, including:
     - Park codes (used in other endpoints)
-    - Park names and locations
+    - Park names, designations, and locations
     - Coordinates (latitude/longitude)
-    - Visit dates (month/year)
+    - Visit dates (month/year, if visited)
     - NPS website URLs
     - Descriptions (optional, excluded by default)
 
     **Example queries:**
-    - All parks (without descriptions): `/parks`
-    - All parks (with descriptions): `/parks?include_description=true`
+    - All parks: `/parks`
+    - Only visited parks: `/parks?visited=true`
+    - Unvisited parks: `/parks?visited=false`
+    - All parks with descriptions: `/parks?include_description=true`
 
     **Use cases:**
     - Get park codes for use in other endpoints (trails, visualizations)
-    - Build a map of visited parks using coordinates
+    - Build a progress map of all national parks
     - Display a list of parks with visit dates
     """
     try:
         # Fetch parks from database
-        result = fetch_all_parks(include_description=include_description)
+        result = fetch_all_parks(
+            include_description=include_description,
+            visited=visited,
+        )
         return result
 
     except Exception as e:

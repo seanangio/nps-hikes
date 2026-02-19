@@ -171,6 +171,7 @@ class DatabaseWriter:
             Column("visit_month", String),
             Column("visit_year", String),
             Column("full_name", Text),
+            Column("designation", String, nullable=True),
             Column("states", String),
             Column("url", Text),
             Column("latitude", Float),
@@ -698,7 +699,9 @@ class DatabaseWriter:
         """
         with self.engine.begin() as conn:
             for _, row in df.iterrows():
-                row_dict = row.to_dict()
+                row_dict = {
+                    k: (None if pd.isna(v) else v) for k, v in row.to_dict().items()
+                }
                 stmt = insert(self.parks_table).values(**row_dict)
                 update_cols = {
                     col: stmt.excluded[col] for col in row_dict if col != "park_code"

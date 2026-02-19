@@ -214,6 +214,11 @@ class Park(BaseModel):
         description="NPS website URL for the park",
         examples=["https://www.nps.gov/yose/index.htm"],
     )
+    designation: str | None = Field(
+        None,
+        description="NPS designation (e.g., 'National Park', 'National Park & Preserve')",
+        examples=["National Park"],
+    )
     visit_month: str | None = Field(
         None,
         description="Month of park visit",
@@ -256,14 +261,20 @@ class ParksResponse(BaseModel):
     """
     Response model for parks listing endpoint.
 
-    Contains park count and a list of all parks visited.
+    Contains park count, visited count, and a list of all National Parks.
     """
 
     park_count: int = Field(
         ...,
-        description="Number of parks returned",
+        description="Total number of parks returned",
         ge=0,
-        examples=[20],
+        examples=[63],
+    )
+    visited_count: int = Field(
+        ...,
+        description="Number of parks that have been visited",
+        ge=0,
+        examples=[36],
     )
     parks: list[Park] = Field(
         ...,
@@ -275,28 +286,29 @@ class ParksResponse(BaseModel):
             "examples": [
                 {
                     "park_count": 2,
+                    "visited_count": 1,
                     "parks": [
+                        {
+                            "park_code": "dena",
+                            "park_name": "Denali National Park & Preserve",
+                            "full_name": "Denali National Park & Preserve",
+                            "designation": "National Park & Preserve",
+                            "states": "AK",
+                            "latitude": 63.3334,
+                            "longitude": -150.5013,
+                            "url": "https://www.nps.gov/dena/index.htm",
+                        },
                         {
                             "park_code": "yose",
                             "park_name": "Yosemite National Park",
                             "full_name": "Yosemite National Park",
+                            "designation": "National Park",
                             "states": "CA",
                             "latitude": 37.8651,
                             "longitude": -119.5383,
                             "url": "https://www.nps.gov/yose/index.htm",
                             "visit_month": "July",
                             "visit_year": 2023,
-                        },
-                        {
-                            "park_code": "zion",
-                            "park_name": "Zion National Park",
-                            "full_name": "Zion National Park",
-                            "states": "UT",
-                            "latitude": 37.2982,
-                            "longitude": -113.0265,
-                            "url": "https://www.nps.gov/zion/index.htm",
-                            "visit_month": "June",
-                            "visit_year": 2022,
                         },
                     ],
                 }

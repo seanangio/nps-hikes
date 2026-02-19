@@ -19,6 +19,10 @@ class NPSParkResponse(BaseModel):
     states: str = Field(default="", description="State codes (comma-separated)")
     url: str = Field(default="", description="Park website URL")
     description: str = Field(default="", description="Park description")
+    designation: str = Field(
+        default="",
+        description="Park designation (e.g., 'National Park', 'National Park & Preserve')",
+    )
     latitude: str | None = Field(default=None, description="Latitude as string")
     longitude: str | None = Field(default=None, description="Longitude as string")
 

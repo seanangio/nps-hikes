@@ -52,6 +52,19 @@ class Config:
     BOUNDARY_MAX_RETRIES: int = 3
     BOUNDARY_RETRY_DELAY: float = 5.0
 
+    # NPS Bulk Fetch Settings
+    NPS_BULK_FETCH_LIMIT: int = 50
+    NPS_DESIGNATION_FILTERS: list = [
+        "National Park",
+        "National Park & Preserve",
+        "National Parks",
+        "National and State Parks",
+    ]
+    # Parks with missing/empty designation in the API that should still be included
+    NPS_ADDITIONAL_PARK_CODES: list = [
+        "npsa",  # National Park of American Samoa (designation is empty in NPS API)
+    ]
+
     # Database Configuration
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
@@ -60,7 +73,7 @@ class Config:
     DB_PASSWORD: str | None = None
 
     # File Paths
-    DEFAULT_INPUT_CSV: str = "raw_data/parks.csv"
+    DEFAULT_INPUT_CSV: str = "raw_data/park_visit_log.csv"
     DEFAULT_OUTPUT_CSV: str = "artifacts/park_data_collected.csv"
     DEFAULT_OUTPUT_GPKG: str = "artifacts/park_boundaries_collected.gpkg"
     NPS_LOG_FILE: str = "logs/nps_collector.log"

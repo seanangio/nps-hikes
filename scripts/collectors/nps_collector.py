@@ -1,36 +1,33 @@
 """
 National Park Service API Data Collector
 
-This module provides a solution for collecting National Park Service (NPS)
-data from the NPS API. It reads a list of parks from a CSV file, queries
-multiple NPS API endpoints for each park to collect basic park information and
-spatial boundary data, then creates structured datasets with comprehensive park metadata.
+This module collects data for all official U.S. National Parks from the NPS API.
+It fetches all NPS sites in bulk, filters for national parks by designation,
+merges visit dates from a visit log CSV, and collects spatial boundary data.
 
 The module handles the foundational data collection that
 enables subsequent trail data collection from OSM and TNM sources.
 
 Key Features:
-- Automated park discovery and data collection from NPS API
-- Intelligent park name matching and fuzzy search capabilities
+- Bulk fetch of all national parks from NPS API with designation filtering
+- Visit date tracking via CSV visit log (raw_data/park_visit_log.csv)
 - Comprehensive park metadata collection (descriptions, coordinates, URLs, etc.)
 - Spatial boundary data collection with proper geometry handling
 - Data quality validation and coordinate verification
-- Resumable collection runs for large datasets
 - Rate limiting to respect NPS API policies
 - Comprehensive logging and progress tracking
 - Dual output: CSV/GPKG files and PostgreSQL database
-- Error handling and retry logic for robust data collection
 
 Data Processing Pipeline:
 Stage 1 - Basic Park Data Collection:
-1. Load park list from CSV file with visit dates and names
-2. Query NPS API for basic park information using fuzzy name matching
-3. Extract and validate comprehensive park metadata (descriptions, coordinates, URLs, etc.)
-4. Save basic park data to CSV file and optionally to database
+1. Fetch all NPS sites from API using paginated bulk fetch
+2. Filter for national parks by designation (National Park, National Park & Preserve, etc.)
+3. Merge visit dates from visit log CSV using name matching
+4. Save park data to CSV file and optionally to database
 5. Extract valid park codes for boundary collection
 
 Stage 2 - Spatial Boundary Data Collection:
-6. Query NPS API for spatial boundary data using validated park codes from Stage 1
+6. Query NPS API for spatial boundary data for all national parks
 7. Transform boundary geometries to standardized format (MultiPolygon)
 8. Validate coordinate data and geometry quality
 9. Save boundary data to GeoPackage file and optionally to database
@@ -288,24 +285,28 @@ class NPSDataCollector:
 
         return None
 
-    def extract_park_data(self, park_api_data: Dict, original_data: pd.Series) -> Dict:
+    def extract_park_data(
+        self, park_api_data: Dict, visit_data: pd.Series | Dict | None = None
+    ) -> Dict:
         """
         Extract the specific fields needed from the API response.
 
         Args:
             park_api_data (Dict): Raw park data from the NPS API
-            original_data (pd.Series): Original row from CSV with visit info
+            visit_data (pd.Series | Dict | None): Optional visit info with 'park_name', 'month', 'year'.
+                If None, visit_month and visit_year will be NULL (unvisited park).
 
         Returns:
             Dict: Clean, structured park data for our dataset
         """
         # Extract basic park information with safe defaults
         extracted_data = {
-            "park_name": original_data["park_name"],
-            "visit_month": original_data["month"],
-            "visit_year": original_data["year"],
+            "park_name": park_api_data.get("fullName", ""),
+            "visit_month": visit_data["month"] if visit_data is not None else None,
+            "visit_year": visit_data["year"] if visit_data is not None else None,
             "park_code": park_api_data.get("parkCode", ""),
             "full_name": park_api_data.get("fullName", ""),
+            "designation": park_api_data.get("designation", ""),
             "states": park_api_data.get("states", ""),
             "url": park_api_data.get("url", ""),
             "latitude": None,
@@ -339,6 +340,174 @@ class NPSDataCollector:
 
         return extracted_data
 
+    def fetch_all_national_parks(
+        self,
+        delay_seconds: float | None = None,
+    ) -> List[Dict]:
+        """
+        Fetch all National Parks from the NPS API using paginated bulk fetch.
+
+        Queries all ~474 NPS sites and filters client-side for parks with
+        designations matching the configured NPS_DESIGNATION_FILTERS list.
+
+        Args:
+            delay_seconds (float): Delay between paginated API calls
+
+        Returns:
+            List[Dict]: List of validated park data dictionaries for national parks
+        """
+        delay_seconds = delay_seconds or config.DEFAULT_DELAY_SECONDS
+        limit = config.NPS_BULK_FETCH_LIMIT
+        designation_filters = config.NPS_DESIGNATION_FILTERS
+        additional_park_codes = config.NPS_ADDITIONAL_PARK_CODES
+
+        logger.info("Fetching all NPS sites from API for national park filtering...")
+        logger.info(f"Designation filters: {designation_filters}")
+        logger.info(f"Additional park codes: {additional_park_codes}")
+
+        all_parks = []
+        start = 0
+        total = None
+        fields = "addresses,contacts,description,directionsInfo,latitude,longitude,name,parkCode,states,url,fullName,designation"
+
+        while True:
+            try:
+                endpoint = f"{self.base_url}/parks"
+                params = {
+                    "limit": limit,
+                    "start": start,
+                    "fields": fields,
+                }
+
+                response = self.session.get(
+                    endpoint, params=params, timeout=config.REQUEST_TIMEOUT
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                if total is None:
+                    total = int(data.get("total", 0))
+                    logger.info(f"Total NPS sites in API: {total}")
+
+                page_parks = data.get("data", [])
+                if not page_parks:
+                    break
+
+                all_parks.extend(page_parks)
+                logger.debug(
+                    f"Fetched page {start // limit + 1}: {len(page_parks)} sites (total fetched: {len(all_parks)})"
+                )
+
+                start += limit
+                if start >= total:
+                    break
+
+                # Rate limiting between pages
+                time.sleep(delay_seconds)
+
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Error fetching NPS sites (start={start}): {str(e)}")
+                break
+
+        logger.info(f"Fetched {len(all_parks)} total NPS sites")
+
+        # Filter for national parks by designation or explicit park code
+        national_parks = []
+        for park in all_parks:
+            designation = park.get("designation", "")
+            park_code = park.get("parkCode", "")
+            if designation in designation_filters or park_code in additional_park_codes:
+                # Validate through Pydantic schema
+                try:
+                    validated = NPSParkResponse(**park)
+                    national_parks.append(validated.model_dump())
+                except ValidationError as e:
+                    logger.warning(
+                        f"Invalid park data for '{park.get('fullName', 'unknown')}': {e}"
+                    )
+
+        # Log the complete filtered list for verification
+        logger.info(f"Filtered to {len(national_parks)} national parks:")
+        for park in sorted(national_parks, key=lambda p: p.get("fullName", "")):
+            logger.info(
+                f"  {park['parkCode']:5s}  {park['fullName']:<55s}  [{park.get('designation', '')}]"
+            )
+
+        return national_parks
+
+    def merge_visit_dates(
+        self,
+        api_parks: List[Dict],
+        csv_path: str,
+    ) -> List[Dict]:
+        """
+        Merge visit dates from the visit log CSV into API-fetched park data.
+
+        Uses name matching to associate CSV visit records with API parks.
+        Parks without matching CSV entries get NULL visit_month/visit_year.
+
+        Args:
+            api_parks (List[Dict]): Park data from fetch_all_national_parks()
+            csv_path (str): Path to the visit log CSV
+
+        Returns:
+            List[Dict]: Park data dicts with visit dates merged in
+        """
+        # Load visit log
+        visit_df = self.load_parks_from_csv(csv_path)
+        logger.info(f"Loaded {len(visit_df)} visit records from {csv_path}")
+
+        # Build a lookup of API parks by fullName (lowered) for matching
+        parks_by_name: Dict[str, int] = {}
+        for idx, park in enumerate(api_parks):
+            full_name_lower = park.get("fullName", "").lower()
+            parks_by_name[full_name_lower] = idx
+
+        # Process each park through extract_park_data
+        results = []
+        matched_indices: set = set()
+
+        for _, visit_row in visit_df.iterrows():
+            csv_name = visit_row["park_name"]
+            # Try matching by appending "National Park" and comparing to fullName
+            search_name = f"{csv_name} National Park".lower()
+
+            matched_idx = parks_by_name.get(search_name)
+
+            # Try broader matching if exact match fails
+            if matched_idx is None:
+                # Search for parks whose fullName contains the CSV name
+                for full_name_lower, idx in parks_by_name.items():
+                    if csv_name.lower() in full_name_lower:
+                        matched_idx = idx
+                        break
+
+            if matched_idx is not None:
+                matched_indices.add(matched_idx)
+                park_data = self.extract_park_data(api_parks[matched_idx], visit_row)
+                results.append(park_data)
+                logger.info(
+                    f"Matched visit '{csv_name}' -> {api_parks[matched_idx]['fullName']}"
+                )
+            else:
+                logger.warning(
+                    f"Could not match visit record '{csv_name}' to any national park"
+                )
+
+        # Add unvisited parks (those not matched to any CSV entry)
+        for idx, park in enumerate(api_parks):
+            if idx not in matched_indices:
+                park_data = self.extract_park_data(park)
+                results.append(park_data)
+
+        visited_count = len(matched_indices)
+        unvisited_count = len(api_parks) - visited_count
+        logger.info(
+            f"Visit merge complete: {visited_count} visited, {unvisited_count} unvisited"
+        )
+
+        return results
+
     def process_park_data(
         self,
         csv_path: str,
@@ -350,11 +519,11 @@ class NPSDataCollector:
         """
         Main orchestration method that processes all parks and builds the final dataset.
 
-        This method includes complete error tracking and incremental processing
-        to avoid unnecessary API calls for existing data.
+        Fetches all national parks from the NPS API, merges visit dates from the
+        visit log CSV, and returns a complete dataset of all national parks.
 
         Args:
-            csv_path (str): Path to the CSV file with park names
+            csv_path (str): Path to the visit log CSV file with park visit dates
             delay_seconds (float): Delay between API calls to be respectful
             limit_for_testing (int | None): For development/testing - limit to first N parks.
                                               None processes all parks (production default).
@@ -362,7 +531,7 @@ class NPSDataCollector:
             output_path (str): Path to output CSV file (used for incremental processing)
 
         Returns:
-            pd.DataFrame: Complete dataset with all park information, including error records
+            pd.DataFrame: Complete dataset with all national park information
         """
         # Use config defaults if not provided
         delay_seconds = delay_seconds or config.DEFAULT_DELAY_SECONDS
@@ -370,133 +539,42 @@ class NPSDataCollector:
 
         logger.info("Starting park data collection process")
 
-        # Load park list
-        parks_df = self.load_parks_from_csv(csv_path)
-
-        # EARLY DEDUPLICATION: Remove duplicate parks by park_code immediately after loading CSV.
-        # Aggregate park_name/full_name and take the first for other fields.
-        parks_df = self._deduplicate_and_aggregate_parks(parks_df)
-
-        # FOR TESTING: Limit to specified number of parks
-        if limit_for_testing is not None:
-            parks_df = parks_df.head(limit_for_testing)
-            logger.info(f"TESTING MODE: Limited to first {limit_for_testing} parks")
-
         # Handle incremental processing
-        existing_data = pd.DataFrame()
-        parks_to_process = parks_df.copy()
-
         if not force_refresh and os.path.exists(output_path):
             try:
                 existing_data = pd.read_csv(output_path)
-                logger.info(f"Found existing data with {len(existing_data)} records")
-
-                # Identify parks that still need processing
-                if not existing_data.empty and "park_name" in existing_data.columns:
-                    # Check if existing data has been deduplicated (has combined park names)
-                    has_combined_names = (
-                        existing_data["park_name"].str.contains(" / ").any()
-                    )
-
-                    if has_combined_names:
-                        logger.info(
-                            "Found existing data with deduplicated park names. Processing all parks to ensure consistency."
-                        )
-                        parks_to_process = parks_df.copy()
-                    else:
-                        # Original logic for non-deduplicated data
-                        existing_park_names = list(existing_data["park_name"].tolist())
-                        parks_to_process = parks_df[
-                            ~parks_df["park_name"].isin(existing_park_names)
-                        ]
-
-                        skipped_count = len(parks_df) - len(parks_to_process)
-                        if skipped_count > 0:
-                            logger.info(
-                                f"Incremental processing: Skipping {skipped_count} parks already collected"
-                            )
-                            logger.info(
-                                f"Processing {len(parks_to_process)} new/missing parks"
-                            )
-                        else:
-                            logger.info(
-                                "All parks already collected, no new processing needed"
-                            )
-
+                logger.info(
+                    f"Found existing data with {len(existing_data)} records. "
+                    "Use --force-refresh to reprocess."
+                )
+                return existing_data
             except Exception as e:
                 logger.warning(f"Could not load existing data from {output_path}: {e}")
                 logger.info("Proceeding with full processing")
-                existing_data = pd.DataFrame()
-                parks_to_process = parks_df.copy()
-        elif force_refresh:
-            logger.info("Force refresh mode: Processing all parks")
-        else:
-            logger.info("No existing data found: Processing all parks")
 
-        total_parks = len(parks_to_process)
+        # Step 1: Fetch all national parks from the NPS API
+        api_parks = self.fetch_all_national_parks(delay_seconds=delay_seconds)
 
-        if total_parks == 0:
-            logger.info("No parks to process")
-            return existing_data if not existing_data.empty else pd.DataFrame()
+        if not api_parks:
+            logger.error("No national parks retrieved from API")
+            return pd.DataFrame()
 
-        # Track all results including failures
-        new_results = []
+        # FOR TESTING: Limit to specified number of parks
+        if limit_for_testing is not None:
+            api_parks = api_parks[:limit_for_testing]
+            logger.info(f"TESTING MODE: Limited to first {limit_for_testing} parks")
 
-        # Process each park with progress tracking
-        for index, (_, park_row) in enumerate(parks_to_process.iterrows()):
-            park_name = park_row["park_name"]
-            progress = f"({index + 1}/{total_parks})"
+        # Step 2: Merge visit dates from CSV
+        park_results = self.merge_visit_dates(api_parks, csv_path)
 
-            logger.info(f"Processing {progress}: {park_name}")
-
-            # Query the API for this park
-            park_data = self.query_park_api(park_name)
-
-            if park_data:
-                # Extract the data needed
-                extracted = self.extract_park_data(park_data, park_row)
-                new_results.append(extracted)
-                logger.info(f"✓ Successfully processed {park_name}")
-            else:
-                # Create error record to maintain complete dataset
-                error_record = {
-                    "park_name": park_row["park_name"],
-                    "visit_month": park_row["month"],
-                    "visit_year": park_row["year"],
-                    "park_code": "",
-                    "full_name": "",
-                    "states": "",
-                    "url": "",
-                    "latitude": None,
-                    "longitude": None,
-                    "description": "",
-                    "error_message": "Failed to retrieve park data - see logs for details",
-                    "collection_status": "failed",
-                }
-                new_results.append(error_record)
-                logger.error(f"✗ Failed to process {park_name}")
-
-            # Be respectful to the API with rate limiting
-            if index < total_parks - 1:  # Don't delay after the last request
-                time.sleep(delay_seconds)
-
-        # Combine existing data with new results
-        if not existing_data.empty and new_results:
-            # Combine existing and new data
-            new_results_df = pd.DataFrame(new_results)
-            combined_df = pd.concat([existing_data, new_results_df], ignore_index=True)
-            logger.info(
-                f"Combined {len(existing_data)} existing records with {len(new_results)} new records"
-            )
-        elif new_results:
-            # Only new data
-            combined_df = pd.DataFrame(new_results)
-        else:
-            # Only existing data (no new processing)
-            combined_df = existing_data
-
-        # FINAL DEDUPLICATION: As a safety net, deduplicate and aggregate again at the end for output integrity.
+        # Step 3: Convert to DataFrame and deduplicate (handles seki case)
+        combined_df = pd.DataFrame(park_results)
+        # Replace NaN with None so PostgreSQL gets NULL instead of NaN
+        # (pandas converts None to NaN for numeric columns like visit_year)
+        combined_df = combined_df.where(combined_df.notna(), None)
         combined_df = self._deduplicate_and_aggregate_parks(combined_df)
+
+        logger.info(f"Final dataset: {len(combined_df)} parks")
         return combined_df
 
     def save_park_results(self, df: pd.DataFrame, output_path: str) -> None:
@@ -1289,7 +1367,7 @@ Examples:
         "--input-csv",
         default=config.DEFAULT_INPUT_CSV,
         metavar="FILE",
-        help=f"Input CSV file with park data (default: {config.DEFAULT_INPUT_CSV})",
+        help=f"Visit log CSV file with park visit dates (default: {config.DEFAULT_INPUT_CSV})",
     )
     parser.add_argument(
         "--park-output",
@@ -1361,25 +1439,17 @@ Examples:
         # Initialize NPS data collector (API key loaded from config)
         collector = NPSDataCollector()
 
-        # Check that input file exists before starting
+        # Check that visit log CSV exists before starting
         if not os.path.exists(args.input_csv):
-            raise FileNotFoundError(
-                f"Input file '{args.input_csv}' not found. Please create this file with your park data."
+            logger.warning(
+                f"Visit log file '{args.input_csv}' not found. "
+                "All parks will be marked as unvisited."
             )
 
-        # STAGE 1: Collect basic park data
+        # STAGE 1: Collect basic park data from NPS API
         logger.info("=" * 60)
-        logger.info("STAGE 1: COLLECTING BASIC PARK DATA")
+        logger.info("STAGE 1: FETCHING ALL NATIONAL PARKS FROM NPS API")
         logger.info("=" * 60)
-
-        if args.force_refresh:
-            logger.info("Force refresh mode: Will reprocess all parks")
-        elif os.path.exists(args.park_output):
-            logger.info(
-                f"Incremental mode: Will skip parks already in {args.park_output}"
-            )
-        else:
-            logger.info("No existing data found: Will process all parks")
 
         park_data = collector.process_park_data(
             csv_path=args.input_csv,

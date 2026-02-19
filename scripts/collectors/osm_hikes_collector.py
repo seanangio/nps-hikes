@@ -136,8 +136,11 @@ class OSMHikesCollector:
         Raises:
             SQLAlchemyError: If database connection or query fails
         """
-        self.logger.info("Loading park boundaries from DB...")
-        sql = "SELECT park_code, geometry FROM park_boundaries"
+        self.logger.info("Loading park boundaries from DB (visited parks only)...")
+        sql = """SELECT pb.park_code, pb.geometry
+        FROM park_boundaries pb
+        JOIN parks p ON pb.park_code = p.park_code
+        WHERE p.visit_year IS NOT NULL"""
         gdf = gpd.read_postgis(
             sql, self.engine, geom_col="geometry", crs=config.DEFAULT_CRS
         )

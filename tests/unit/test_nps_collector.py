@@ -74,6 +74,7 @@ class TestNPSDataCollector:
         mock_api_data = {
             "parkCode": "zion",
             "fullName": "Zion National Park",
+            "designation": "National Park",
             "states": "UT",
             "url": "https://www.nps.gov/zion/",
             "latitude": "37.2982022",
@@ -83,19 +84,42 @@ class TestNPSDataCollector:
 
         result = collector.extract_park_data(mock_api_data, sample_csv_row)
 
-        assert result["park_name"] == "Zion"
+        assert result["park_name"] == "Zion National Park"
         assert result["visit_month"] == "June"
         assert result["visit_year"] == 2024
         assert result["park_code"] == "zion"
         assert result["full_name"] == "Zion National Park"
+        assert result["designation"] == "National Park"
         assert result["latitude"] == 37.2982022
         assert result["longitude"] == -113.026505
+
+    def test_extract_park_data_no_visit_data(self, collector):
+        """Test data extraction without visit data (unvisited park)."""
+        mock_api_data = {
+            "parkCode": "dena",
+            "fullName": "Denali National Park & Preserve",
+            "designation": "National Park & Preserve",
+            "states": "AK",
+            "url": "https://www.nps.gov/dena/",
+            "latitude": "63.33333333",
+            "longitude": "-150.5",
+            "description": "Test description",
+        }
+
+        result = collector.extract_park_data(mock_api_data)
+
+        assert result["park_name"] == "Denali National Park & Preserve"
+        assert result["visit_month"] is None
+        assert result["visit_year"] is None
+        assert result["park_code"] == "dena"
+        assert result["designation"] == "National Park & Preserve"
 
     def test_extract_park_data_missing_coordinates(self, collector, sample_csv_row):
         """Test data extraction when coordinates are missing."""
         mock_api_data = {
             "parkCode": "test",
             "fullName": "Test Park",
+            "designation": "National Park",
             "states": "UT",
             "url": "https://test.com",
             "description": "Test description",

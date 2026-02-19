@@ -12,22 +12,29 @@ from sqlalchemy import text
 from api.database import get_db_engine
 
 
-def fetch_all_parks(include_description: bool = False) -> dict[str, Any]:
+def fetch_all_parks(
+    include_description: bool = False,
+    visited: bool | None = None,
+) -> dict[str, Any]:
     """
-    Fetch all parks from the database.
+    Fetch all parks from the database with optional visit status filtering.
 
     Args:
         include_description: Whether to include park descriptions (default: False)
+        visited: Filter by visit status. True=visited only, False=unvisited only,
+                 None=all parks (default: None)
 
     Returns:
         Dictionary containing:
-            - park_count: int
+            - park_count: int (number of parks returned)
+            - visited_count: int (number of visited parks in the result)
             - parks: list of park dictionaries
 
     Example:
         >>> fetch_all_parks()
         {
-            'park_count': 20,
+            'park_count': 63,
+            'visited_count': 36,
             'parks': [...]
         }
     """
@@ -38,6 +45,7 @@ def fetch_all_parks(include_description: bool = False) -> dict[str, Any]:
         "park_code",
         "park_name",
         "full_name",
+        "designation",
         "states",
         "latitude",
         "longitude",
@@ -51,10 +59,20 @@ def fetch_all_parks(include_description: bool = False) -> dict[str, Any]:
 
     columns_str = ", ".join(columns)
 
+    # Build WHERE clause based on visited filter
+    where_clauses = []
+    if visited is True:
+        where_clauses.append("visit_year IS NOT NULL")
+    elif visited is False:
+        where_clauses.append("visit_year IS NULL")
+
+    where_str = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
     # Query parks ordered by park name
     query = f"""
     SELECT {columns_str}
     FROM parks
+    {where_str}
     ORDER BY park_name
     """
 
@@ -65,11 +83,13 @@ def fetch_all_parks(include_description: bool = False) -> dict[str, Any]:
 
     # Format parks
     parks = []
+    visited_count = 0
     for row in rows:
         park = {
             "park_code": row.park_code,
             "park_name": row.park_name,
             "full_name": row.full_name,
+            "designation": row.designation,
             "states": row.states,
             "latitude": float(row.latitude) if row.latitude is not None else None,
             "longitude": float(row.longitude) if row.longitude is not None else None,
@@ -78,6 +98,9 @@ def fetch_all_parks(include_description: bool = False) -> dict[str, Any]:
             "visit_year": row.visit_year,
         }
 
+        if row.visit_year is not None:
+            visited_count += 1
+
         if include_description:
             park["description"] = row.description
 
@@ -85,6 +108,7 @@ def fetch_all_parks(include_description: bool = False) -> dict[str, Any]:
 
     return {
         "park_count": len(parks),
+        "visited_count": visited_count,
         "parks": parks,
     }
 

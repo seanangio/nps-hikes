@@ -66,12 +66,14 @@ class TestParksEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["park_count"] == 2
+        assert data["visited_count"] == 2
         assert len(data["parks"]) == 2
 
         # Check first park
         park1 = data["parks"][0]
         assert park1["park_code"] == "yose"
         assert park1["park_name"] == "Yosemite National Park"
+        assert park1["designation"] == "National Park"
         assert park1["states"] == "CA"
         assert park1["latitude"] == 37.8651
         assert park1["longitude"] == -119.5383
@@ -100,6 +102,7 @@ class TestParksEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["park_count"] == 2
+        assert data["visited_count"] == 2
         assert len(data["parks"]) == 2
 
         # Check that description is included
@@ -125,7 +128,46 @@ class TestParksEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["park_count"] == 0
+        assert data["visited_count"] == 0
         assert data["parks"] == []
+
+    @patch("api.queries.get_db_engine")
+    def test_get_all_parks_visited_filter(
+        self, mock_get_engine, mock_db_engine, sample_parks_response
+    ):
+        """Test parks endpoint with visited=true filter."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_parks_response[
+            "rows_without_description"
+        ]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
+            mock_result
+        )
+
+        response = client.get("/parks?visited=true")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "visited_count" in data
+        assert "park_count" in data
+
+    @patch("api.queries.get_db_engine")
+    def test_get_all_parks_unvisited_filter(self, mock_get_engine, mock_db_engine):
+        """Test parks endpoint with visited=false filter."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = []
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
+            mock_result
+        )
+
+        response = client.get("/parks?visited=false")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["park_count"] == 0
+        assert data["visited_count"] == 0
 
     @patch("api.queries.get_db_engine")
     def test_get_all_parks_database_error(self, mock_get_engine):
@@ -683,6 +725,7 @@ class TestQueryFunctions:
 
         # Assertions
         assert result["park_count"] == 2
+        assert result["visited_count"] == 2
         assert len(result["parks"]) == 2
         assert result["parks"][0]["park_code"] == "yose"
         assert "description" not in result["parks"][0]
@@ -705,6 +748,7 @@ class TestQueryFunctions:
 
         # Assertions
         assert result["park_count"] == 2
+        assert result["visited_count"] == 2
         assert len(result["parks"]) == 2
         assert "description" in result["parks"][0]
         assert "shrine to human foresight" in result["parks"][0]["description"]
@@ -725,6 +769,7 @@ class TestQueryFunctions:
 
         # Assertions
         assert result["park_count"] == 0
+        assert result["visited_count"] == 0
         assert result["parks"] == []
 
     @patch("api.queries.get_db_engine")

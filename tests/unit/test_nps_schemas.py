@@ -143,6 +143,7 @@ class TestNPSParkResponse:
         assert park.parkCode == "test"
         assert park.fullName == "Test Park"
         assert park.name == ""
+        assert park.designation == ""
         assert park.states == ""
         assert park.url == ""
         assert park.description == ""
