@@ -1,0 +1,7 @@
+extends: substitution
+message: "Prefer direct address: use '%s' instead of '%s'."
+level: suggestion
+ignorecase: true
+swap:
+  the user: you
+  the users: you

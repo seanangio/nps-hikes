@@ -2,14 +2,14 @@
 
 This guide walks you through setting up NPS Hikes from scratch: collecting national park and trail data, personalizing it with your own visit history, and exploring it through the REST API. By the end, you'll have a PostGIS database with all 63 U.S. national parks and thousands of hiking trails, queryable through an interactive API.
 
-## What you'll need
+## Step 0: Prerequisites
 
-Before you begin, make sure you have the following installed and ready:
+Before you begin, make sure you have the following:
 
-- **Docker Desktop** &mdash; [Install Docker Desktop](https://www.docker.com/products/docker-desktop/) for your platform. Docker runs the database and API in containers so you don't need to install PostgreSQL or PostGIS locally.
-- **Python 3.12+** &mdash; The data collection scripts run on your local machine. Check your version with `python3 --version`. If you need to install or upgrade, see [python.org](https://www.python.org/downloads/) or use a version manager like [pyenv](https://github.com/pyenv/pyenv).
-- **Git** &mdash; To clone the repository.
-- **An NPS API key** &mdash; Free and instant. Sign up at the [NPS Developer Portal](https://www.nps.gov/subjects/developer/get-started.htm). You'll receive your key by email within minutes.
+- **Docker Desktop**: [Install Docker Desktop](https://www.docker.com/products/docker-desktop/) for your operating system. Docker runs the database and API in containers so you don't need to install PostgreSQL or PostGIS locally.
+- **Python 3.12+**: The data collection pipeline runs on your local machine. Check your version with `python3 --version`. If you need to install or upgrade, see [python.org](https://www.python.org/downloads/).
+- **Git**: You'll need to clone the repository.
+- **An NPS API key**; Free to sign up at the [NPS Developer Portal](https://www.nps.gov/subjects/developer/get-started.htm). You should receive a key by email within minutes.
 
 ## Step 1: Clone the repository
 
@@ -20,7 +20,7 @@ cd nps-hikes
 
 ## Step 2: Set up a Python environment
 
-Create a virtual environment and install the project dependencies. These are needed for the data collection pipeline, which runs outside of Docker.
+Create a virtual environment, and install the project dependencies. You need them for the data collection pipeline, which runs outside of Docker.
 
 ```bash
 python3.12 -m venv .venv
@@ -28,17 +28,15 @@ source .venv/bin/activate    # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-> **Tip:** If you use [pyenv](https://github.com/pyenv/pyenv), the `.python-version` file in the repo will automatically select the right Python version.
-
 ## Step 3: Configure environment variables
 
-Copy the example environment file and fill in your credentials:
+Copy the example environment file, and fill in your credentials:
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` in your editor. You need to set three values:
+Open `.env` in your editor. You need to set two values:
 
 ```dotenv
 # Required: your NPS API key from Step 0
@@ -46,32 +44,28 @@ NPS_API_KEY=your_actual_api_key
 
 # Required: choose any password for the Docker database
 POSTGRES_PASSWORD=choose_a_password
-
-# Required: choose a database username (or keep the default)
-POSTGRES_USER=postgres
 ```
 
 The remaining defaults work as-is for the Docker setup:
 
 ```dotenv
-# These defaults are fine — no changes needed
+# No changes required for these defaults
+POSTGRES_USER=postgres
 NPS_USER_EMAIL=your_email@example.com
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_DB=nps_hikes_db
 ```
 
-> **How the `.env` file is used:** Docker Compose reads it automatically to configure the database container. The Python scripts also read it (via `python-dotenv`) for API credentials and database connections.
+> **How the project uses the `.env` file:** Docker Compose reads it automatically to configure the database container. The Python scripts also read it (via `python-dotenv`) for API credentials and database connections.
 
-## Step 4: Create your park visit log
+## Step 4: Personalize the raw data
 
-The project tracks which national parks you've visited. The pipeline reads a simple CSV file at `raw_data/park_visit_log.csv` with three columns:
+The repository includes two types of sample raw data that you can substitute with your own.
 
-```
-park_name,month,year
-```
+### Park visit log
 
-**To add your own visits**, edit this file with the parks you've been to:
+The file `raw_data/park_visit_log.csv` records which parks you've visited:
 
 ```csv
 park_name,month,year
@@ -80,19 +74,47 @@ Grand Canyon,March,2024
 Acadia,Oct,2024
 ```
 
-The `park_name` column uses fuzzy matching &mdash; you don't need exact official names. "Yosemite" matches "Yosemite National Park", "Grand Canyon" matches "Grand Canyon National Park", and so on.
+Edit this file with your own visits. The `park_name` column requires the common short name (for example, "Yosemite" not "Yosemite National Park"). The collector appends "National Park" automatically, so "Yosemite" becomes "Yosemite National Park" and matches directly.
 
-**If you haven't visited any parks yet** (or want to start fresh), just keep the header row:
+For parks with other designations like "National Park & Preserve," the collector falls back to substring matching. For example, "Denali" doesn't match "Denali National Park & Preserve" exactly, but the pipeline finds a match because the string "Denali" is a substring of the official name.
 
-```csv
-park_name,month,year
+Make sure your entry is an exact substring of the official name. For example, use "Redwood" (not "Redwoods") for Redwood National and State Parks.
+
+> **Tip:** When you test the pipeline below in Step 6, it processes the first NPS park alphabetically (Acadia). If you include **Acadia** in your visit log, you'll have a visited park with trail data to explore.
+
+### Google My Maps hiking data (KML files)
+
+The `raw_data/gmaps/` directory contains KML files with hiking locations exported from [Google My Maps](https://www.google.com/maps/d/). The pipeline uses these named points to match hiking locations to trail geometries, and then collects elevation data for the matched trails. This enables personalized trail matching, hiked/unhiked filtering, and 3D trail visualizations with elevation profiles.
+
+> **Tip:** The repository includes sample KML files from the author's hikes. You can substitute your own files following the instructions below. Otherwise, leave the samples as-is, and skip ahead to [Step 5](#step-5-start-the-docker-services).
+
+#### How it works
+
+The pipeline processes every `.kml` file in the `raw_data/gmaps/` directory. Inside each KML file, it looks for **folders** (layers) named for 4-letter park codes, and reads the placemarks within them. A single Google My Maps KML file can contain up to ten layers (one per park).
+
+> **Finding park codes:** You can find the 4-letter abbreviation for each park on the [NPS website](https://www.nps.gov/) in each park's URL. Once the API is running, they're also available at `http://localhost:8000/parks`.
+
+#### Create your hiking maps
+
+In [Google My Maps](https://www.google.com/maps/d/), create one or more maps for your hikes:
+
+1. Add a **layer** for each park, named with the 4-letter park code (for example, `zion`).
+2. Add placemarks to each layer for the trails or locations you've hiked.
+
+
+#### Export and add KML files
+
+Export each map as a KML file, and save the files to `raw_data/gmaps/`:
+
 ```
-
-Either way, all 63 national parks will be collected. Parks without a matching row in this file are simply marked as unvisited.
+raw_data/gmaps/
+├── nps_points_west.kml    # could contain layers: zion, yose, grca, ...
+└── nps_points_east.kml    # could contain layers: acad, shen, grsm, ...
+```
 
 ## Step 5: Start the Docker services
 
-Launch the database and API containers:
+Make sure Docker Desktop is running. Then launch the database and API containers:
 
 ```bash
 docker compose up --build -d
@@ -104,6 +126,8 @@ This starts two services:
 |---------|------|-------------|
 | `db` | 5433 | PostGIS database (mapped to 5433 to avoid conflicts with any local PostgreSQL) |
 | `api` | 8000 | FastAPI REST API |
+
+> **Tip:** The first run may take a few minutes while Docker downloads the base images. Subsequent runs are much faster.
 
 On first startup, the database container automatically creates the required PostGIS and pg_trgm extensions and runs all schema migrations. You can verify the services are running:
 
@@ -117,15 +141,15 @@ You should see both `db` and `api` with a status of "Up" (the database should sh
 
 ## Step 6: Run the data collection pipeline
 
-Now you'll populate the database with park and trail data. The pipeline runs on your local machine and writes to the Docker database.
+Next, populate the database with park and trail data. The pipeline runs on your local machine and writes to the Docker database.
 
 Since the Docker database is on port 5433, override the port when running the pipeline:
 
 ```bash
-POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db --test-limit 3
+POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db --test-limit 1
 ```
 
-The `--test-limit 3` flag processes only 3 parks, so you can verify everything works before committing to the full run. This should complete in a few minutes.
+The `--test-limit 1` flag processes only one park, so you can verify everything works before committing to the full run. Due to the elevation data collection step, this test run may take approximately 10 minutes.
 
 The pipeline runs six steps in order:
 
@@ -133,32 +157,41 @@ The pipeline runs six steps in order:
 |------|-------------|-------------|
 | 1. NPS Data Collection | Park metadata, coordinates, and boundary polygons | [NPS API](https://www.nps.gov/subjects/developer/) |
 | 2. OSM Trails Collection | Hiking trails within park boundaries | [OpenStreetMap](https://www.openstreetmap.org/) |
-| 3. TNM Trails Collection | Additional trail data with detailed attributes | [The National Map](https://www.usgs.gov/programs/national-geospatial-program/national-map) |
-| 4. GMaps Import | Personal hiking locations from Google Maps (optional) | Your KML files |
-| 5. Trail Matching | Matches GMaps locations to trail geometries | Internal |
-| 6. Elevation Collection | Elevation profiles for matched trails | [USGS](https://www.usgs.gov/) |
+| 3. TNM Trails Collection | Official trail data within park boundaries | [The National Map](https://www.usgs.gov/programs/national-geospatial-program/national-map) |
+| 4. GMaps Import | Hiking locations from Google Maps KML files | KML files in `raw_data/gmaps/` |
+| 5. Trail Matching | Matches GMaps locations to preferably TNM (otherwise OSM) trail geometries | Internal |
+| 6. Elevation Collection | Elevation profiles for matched trails | [USGS EPQS](https://apps.nationalmap.gov/epqs/) |
 
-> **About steps 4&ndash;6:** These steps use Google Maps hiking data, which is covered in the [advanced personalization](#advanced-add-your-google-maps-hiking-data) section below. If you haven't added any KML files, these steps will run but simply find no data to process. This is normal &mdash; the pipeline completes successfully either way.
 
 ### Verify the test run
 
-Check that data was collected by querying the API:
+First, confirm that the pipeline created and populated the tables by querying the database directly:
+
+```bash
+docker compose exec db bash -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT park_code, park_name FROM parks;"'
+```
+
+> **Tip**: You should see the park code and name of parks collected (one if you used `--test-limit 1`). This runs `psql` inside the already-running database container, so you don't need PostgreSQL installed locally.
+
+You can also verify through the API:
 
 ```bash
 curl http://localhost:8000/parks | python3 -m json.tool
 ```
 
-You should see a JSON response with `park_count` showing the number of parks collected and a `parks` array with details for each one. If you set up your visit log, parks you've visited will have `visit_month` and `visit_year` populated.
+You should see a JSON response with `park_count` showing the number of parks collected and a `parks` array with details for each one.
 
 ### Run the full pipeline
 
-Once you've confirmed the test run works, collect data for all 63 national parks:
+Once you've confirmed the test run works, collect data for all 63[^1] national parks:
 
 ```bash
 POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db
 ```
 
-This takes longer &mdash; mainly due to the OSM and TNM trail collection steps, which query external APIs for each park. Expect roughly 30&ndash;60 minutes for the full run depending on your internet connection and API response times.
+This takes longer &mdash; expect roughly 30&ndash;60 minutes for the full run. The main bottleneck is the elevation collection step, which queries the USGS EPQS API for sampled points along each matched trail (one request per point, with a rate limit delay between calls). The more trails matched from your KML files, the longer this step takes.
+
+The pipeline is resumable: with `--write-db`, each collector skips parks or trails that already have data in the database, and the elevation collector also maintains a persistent cache of individual elevation lookups. If a run is interrupted, re-running the same command picks up roughly where it left off. To force a full re-collection, pass `--force-refresh`.
 
 > **Tip:** The pipeline is fail-fast. If a step fails, check `logs/orchestrator.log` for details. You can also run individual collectors directly for debugging (see the [README](../README.md) for individual component commands).
 
@@ -274,56 +307,9 @@ The response should show `"database": "connected"`. If connected but no data, re
 
 ---
 
-## Advanced: Add your Google Maps hiking data
-
-If you track your hikes using [Google My Maps](https://www.google.com/maps/d/), you can import that data to enable additional features: trail matching, hiked/unhiked filtering, and 3D trail visualizations with elevation profiles.
-
-### How it works
-
-The project reads KML files exported from Google My Maps. Each KML file contains hiking locations (points) organized into folders named by park code. For example, a map for Zion would have a folder named `zion` containing placemarks like "Angels Landing" and "The Narrows".
-
-### Step 1: Create your hiking maps
-
-In [Google My Maps](https://www.google.com/maps/d/), create a map for each park where you've hiked. For each map:
-
-1. Name it using the pattern `nps_points_<park_code>` (e.g., `nps_points_zion`)
-2. Create a layer (folder) named with the 4-letter park code (e.g., `zion`)
-3. Add placemarks for each trail or location you've hiked
-
-> **Finding park codes:** Park codes are the 4-letter abbreviations used by the NPS (e.g., `yose` for Yosemite, `grca` for Grand Canyon). You can find them in the API response at `http://localhost:8000/parks` or on the [NPS website](https://www.nps.gov/) in each park's URL.
-
-### Step 2: Export and add KML files
-
-Export each map as KML and save the files to `raw_data/gmaps/`:
-
-```
-raw_data/gmaps/
-├── nps_points_zion.kml
-├── nps_points_yose.kml
-└── nps_points_grca.kml
-```
-
-### Step 3: Re-run the pipeline
-
-Run the full pipeline again to process the new data:
-
-```bash
-POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db
-```
-
-Steps 4&ndash;6 will now find your KML data and:
-- Import your hiking locations
-- Match them to trail geometries from OSM and TNM
-- Collect elevation data for matched trails
-
-After this, you can use the API to filter trails by hiking status and view 3D trail visualizations:
-
-```
-http://localhost:8000/trails?hiked=true
-http://localhost:8000/parks/zion/trails/angels_landing/viz/3d
-```
-
 ## Next steps
 
 - **[API Tutorial](api-tutorial.md)** &mdash; A guided tour of the API's query capabilities and visualizations
 - **[README](../README.md)** &mdash; Full project documentation including architecture, testing, and data profiling
+
+[^1]: The NPS manages Sequoia and Kings Canyon as one park (`seki`), and so it appears as one entry.

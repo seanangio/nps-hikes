@@ -31,3 +31,12 @@ repos:
     rev: 7.0.0
     hooks:
       - id: isort
+
+  - repo: local
+    hooks:
+      - id: vale
+        name: vale
+        entry: vale
+        language: system
+        types: [markdown]
+        pass_filenames: true

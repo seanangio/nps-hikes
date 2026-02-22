@@ -79,8 +79,6 @@ nps-hikes/
 - Python 3.12+ (see `pyproject.toml`)
 - PostgreSQL 12+ with PostGIS 3.0+ and pg_trgm extensions
 - NPS API key (free from [NPS API](https://www.nps.gov/subjects/developer/api-documentation.htm))
-- Optional: `pyenv` or `asdf` for automatic Python version management
-
 ### Setup
 
 1. **Clone the repository**
@@ -90,26 +88,9 @@ nps-hikes/
    ```
 
 2. **Set up Python environment**
-
-   The project requires Python 3.12+. Choose your preferred method:
-
-   **Using virtualenvwrapper:**
-   ```bash
-   mkvirtualenv -p python3.12 nps-hikes
-   workon nps-hikes
-   ```
-
-   **Using venv:**
    ```bash
    python3.12 -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-   **Using pyenv:**
-   ```bash
-   # pyenv will automatically use the version from .python-version
-   pyenv install 3.12  # If not already installed
-   python --version    # Should show Python 3.12.x
    ```
 
 3. **Install dependencies**
@@ -156,12 +137,23 @@ For contributors and developers working on the codebase:
    pre-commit install
    ```
 
-3. **Test the pre-commit hooks** (optional, runs on all files)
+3. **Install Vale** (prose linter for Markdown files)
+   ```bash
+   # macOS
+   brew install vale
+
+   # Download style packages (Google, proselint)
+   vale sync
+   ```
+
+   Vale runs automatically as a pre-commit hook and in CI on pull requests.
+
+4. **Test the pre-commit hooks** (optional, runs on all files)
    ```bash
    pre-commit run --all-files
    ```
 
-4. **Run security scans** (optional, checks for vulnerabilities)
+5. **Run security scans** (optional, checks for vulnerabilities)
    ```bash
    # Check dependencies for known vulnerabilities
    pip-audit -r requirements.txt
@@ -444,9 +436,9 @@ profiling_results/
 ```
 
 **File Naming Convention:**
-- General analysis files use descriptive names (e.g., `collection_status_summary.csv`)
-- Park-specific files use park codes (e.g., `acad.csv` for Acadia National Park)
-- Statistical files include `_stats` suffix (e.g., `acad_stats.csv`)
+- General analysis files use descriptive names (for example, `collection_status_summary.csv`)
+- Park-specific files use park codes (for example, `acad.csv` for Acadia National Park)
+- Statistical files include `_stats` suffix (for example, `acad_stats.csv`)
 
 ## 🔧 Database Schema
 

@@ -1,0 +1,35 @@
+extends: substitution
+message: "Use '%s' instead of '%s'."
+level: warning
+ignorecase: false
+swap:
+  Postgres: PostgreSQL
+  postgres: PostgreSQL
+  POSTGRES: PostgreSQL
+  postgis: PostGIS
+  postGIS: PostGIS
+  Postgis: PostGIS
+  POSTGIS: PostGIS
+  Openstreetmap: OpenStreetMap
+  openstreetmap: OpenStreetMap
+  Open Street Map: OpenStreetMap
+  open street map: OpenStreetMap
+  Geopackage: GeoPackage
+  geopackage: GeoPackage
+  GEOPACKAGE: GeoPackage
+  geo package: GeoPackage
+  Geo Package: GeoPackage
+  national park service: National Park Service
+  National park service: National Park Service
+  National Park service: National Park Service
+  osmnx: OSMnx
+  Osmnx: OSMnx
+  OSMNX: OSMnx
+  geodataframe: GeoDataFrame
+  Geodataframe: GeoDataFrame
+  geopandas: GeoPandas
+  Geopandas: GeoPandas
+  shapely: Shapely
+  fastapi: FastAPI
+  Fastapi: FastAPI
+  pydantic: Pydantic

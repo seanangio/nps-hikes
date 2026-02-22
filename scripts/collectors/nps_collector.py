@@ -160,7 +160,7 @@ class NPSDataCollector:
         retry_delay: float | None = None,
     ) -> dict | None:
         """
-        Query the NPS API for a specific park using fuzzy matching with retry logic.
+        Query the NPS API for a specific park using relevance-based search with retry logic.
 
         This method includes automatic retry logic for temporary server errors,
         using conservative retry settings since park data is critical for the pipeline.

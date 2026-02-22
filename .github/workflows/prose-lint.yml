@@ -1,0 +1,36 @@
+name: Prose Lint
+
+# Runs Vale prose linter on Markdown files.
+# Triggers on PRs to main and pushes to main when docs or Vale config change.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.md'
+      - '.vale.ini'
+      - 'styles/NPS/**'
+      - 'styles/config/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.md'
+      - '.vale.ini'
+      - 'styles/NPS/**'
+      - 'styles/config/**'
+
+jobs:
+  prose-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run Vale
+        uses: errata-ai/vale-action@v2
+        with:
+          reporter: github-pr-check
+          fail_on_error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
