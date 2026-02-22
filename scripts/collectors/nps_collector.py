@@ -539,30 +539,47 @@ class NPSDataCollector:
 
         logger.info("Starting park data collection process")
 
-        # Handle incremental processing
+        # Handle incremental processing - load existing data to identify already-collected parks
+        existing_data = pd.DataFrame()
+        existing_park_codes = set()
+
         if not force_refresh and os.path.exists(output_path):
             try:
                 existing_data = pd.read_csv(output_path)
-                logger.info(
-                    f"Found existing data with {len(existing_data)} records. "
-                    "Use --force-refresh to reprocess."
-                )
-                return existing_data
+                if not existing_data.empty and "park_code" in existing_data.columns:
+                    existing_park_codes = set(existing_data["park_code"].tolist())
+                logger.info(f"Found existing data with {len(existing_data)} records")
             except Exception as e:
                 logger.warning(f"Could not load existing data from {output_path}: {e}")
                 logger.info("Proceeding with full processing")
+        elif force_refresh:
+            logger.info("Force refresh mode: reprocessing all parks")
 
         # Step 1: Fetch all national parks from the NPS API
         api_parks = self.fetch_all_national_parks(delay_seconds=delay_seconds)
 
         if not api_parks:
             logger.error("No national parks retrieved from API")
-            return pd.DataFrame()
+            return existing_data if not existing_data.empty else pd.DataFrame()
 
         # FOR TESTING: Limit to specified number of parks
         if limit_for_testing is not None:
             api_parks = api_parks[:limit_for_testing]
             logger.info(f"TESTING MODE: Limited to first {limit_for_testing} parks")
+
+        # Skip parks already in existing data
+        if existing_park_codes:
+            new_parks = [
+                p for p in api_parks if p.get("parkCode", "") not in existing_park_codes
+            ]
+            skipped = len(api_parks) - len(new_parks)
+            if skipped > 0:
+                logger.info(f"Skipping {skipped} already collected parks")
+            api_parks = new_parks
+
+        if not api_parks:
+            logger.info("No new parks to process")
+            return existing_data
 
         # Step 2: Merge visit dates from CSV
         park_results = self.merge_visit_dates(api_parks, csv_path)
@@ -572,6 +589,15 @@ class NPSDataCollector:
         # Replace NaN with None so PostgreSQL gets NULL instead of NaN
         # (pandas converts None to NaN for numeric columns like visit_year)
         combined_df = combined_df.where(combined_df.notna(), None)
+
+        # Combine with existing data if any
+        if not existing_data.empty:
+            combined_df = pd.concat([existing_data, combined_df], ignore_index=True)
+            logger.info(
+                f"Combined {len(existing_data)} existing parks with "
+                f"{len(park_results)} new parks"
+            )
+
         combined_df = self._deduplicate_and_aggregate_parks(combined_df)
 
         logger.info(f"Final dataset: {len(combined_df)} parks")
