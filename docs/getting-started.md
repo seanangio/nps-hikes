@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide walks you through setting up NPS Hikes from scratch: collecting national park and trail data, personalizing it with your own visit history, and exploring it through the REST API. By the end, you'll have a PostGIS database with all 63 U.S. national parks and thousands of hiking trails, queryable through an interactive API.
+This guide walks through setting up this NPS hiking project from scratch: collecting national park and trail data, personalizing it with your own visit history, and exploring it through the REST API. By the end, you'll have a PostGIS database with all 63 U.S. national parks and thousands of hiking trails, queryable through an interactive API.
 
 ## Step 0: Prerequisites
 
@@ -8,7 +8,7 @@ Before you begin, make sure you have the following:
 
 - **Docker Desktop**: [Install Docker Desktop](https://www.docker.com/products/docker-desktop/) for your operating system. Docker runs the database and API in containers so you don't need to install PostgreSQL or PostGIS locally.
 - **Python 3.12+**: The data collection pipeline runs on your local machine. Check your version with `python3 --version`. If you need to install or upgrade, see [python.org](https://www.python.org/downloads/).
-- **Git**: You'll need to clone the repository.
+- **Git**: Install [Git](https://git-scm.com/install/) for your operating system to clone the repository.
 - **An NPS API key**; Free to sign up at the [NPS Developer Portal](https://www.nps.gov/subjects/developer/get-started.htm). You should receive a key by email within minutes.
 
 ## Step 1: Clone the repository
@@ -98,7 +98,7 @@ The pipeline processes every `.kml` file in the `raw_data/gmaps/` directory. Ins
 
 In [Google My Maps](https://www.google.com/maps/d/), create one or more maps for your hikes:
 
-1. Add a **layer** for each park, named with the 4-letter park code (for example, `zion`).
+1. Add a **layer** for each park, named according to the 4-letter park code (for example, `zion`).
 2. Add placemarks to each layer for the trails or locations you've hiked.
 
 
@@ -149,7 +149,7 @@ Since the Docker database is on port 5433, override the port when running the pi
 POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db --test-limit 1
 ```
 
-The `--test-limit 1` flag processes only one park, so you can verify everything works before committing to the full run. Due to the elevation data collection step, this test run may take approximately 10 minutes.
+The `--test-limit 1` flag processes only one park, so you can verify it works before committing to the full run. Due to the elevation data collection step, this test run may take approximately 10 minutes.
 
 The pipeline runs six steps in order:
 
@@ -158,8 +158,8 @@ The pipeline runs six steps in order:
 | 1. NPS Data Collection | Park metadata, coordinates, and boundary polygons | [NPS API](https://www.nps.gov/subjects/developer/) |
 | 2. OSM Trails Collection | Hiking trails within park boundaries | [OpenStreetMap](https://www.openstreetmap.org/) |
 | 3. TNM Trails Collection | Official trail data within park boundaries | [The National Map](https://www.usgs.gov/programs/national-geospatial-program/national-map) |
-| 4. GMaps Import | Hiking locations from Google Maps KML files | KML files in `raw_data/gmaps/` |
-| 5. Trail Matching | Matches GMaps locations to preferably TNM (otherwise OSM) trail geometries | Internal |
+| 4. GMaps Import | Hiking locations from Google My Maps KML files | KML files in `raw_data/gmaps/` |
+| 5. Trail Matching | Matches GMaps locations to TNM or OSM trail geometries | Internal |
 | 6. Elevation Collection | Elevation profiles for matched trails | [USGS EPQS](https://apps.nationalmap.gov/epqs/) |
 
 
@@ -189,7 +189,7 @@ Once you've confirmed the test run works, collect data for all 63[^1] national p
 POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db
 ```
 
-This takes longer &mdash; expect roughly 30&ndash;60 minutes for the full run. The main bottleneck is the elevation collection step, which queries the USGS EPQS API for sampled points along each matched trail (one request per point, with a rate limit delay between calls). The more trails matched from your KML files, the longer this step takes.
+This takes longer. If using the author's files, expect 60 minutes for the full run. The main bottleneck is the elevation collection step, which queries the USGS EPQS API for sampled points along each matched trail (one request per point, with a rate limit delay between calls). The more trails matched from your KML files, the longer this step takes.
 
 The pipeline is resumable: with `--write-db`, each collector skips parks or trails that already have data in the database, and the elevation collector also maintains a persistent cache of individual elevation lookups. If a run is interrupted, re-running the same command picks up roughly where it left off. To force a full re-collection, pass `--force-refresh`.
 
@@ -201,41 +201,19 @@ With the pipeline complete, you now have a database full of national park and tr
 
 ### Interactive API documentation
 
-Open **http://localhost:8000/docs** in your browser to access the Swagger UI. This interactive interface lets you try every endpoint, see request/response schemas, and experiment with query parameters &mdash; no code required.
+Open **http://localhost:8000/docs** in your browser to access the Swagger UI. This interactive interface lets you try every endpoint, see request/response schemas, and experiment with query parameters.
 
 ### Quick examples
 
-**Browse all parks:**
+| Description | URL |
+|---|---|
+| Browse all parks | `http://localhost:8000/parks` |
+| Filter to parks you've visited | `http://localhost:8000/parks?visited=true` |
+| See all trails for a specific park | `http://localhost:8000/parks/yose/trails` |
+| Find long trails across all parks | `http://localhost:8000/trails?min_length=10` |
+| Filter by state | `http://localhost:8000/trails?state=CA` |
 
-```
-http://localhost:8000/parks
-```
-
-**Filter to parks you've visited:**
-
-```
-http://localhost:8000/parks?visited=true
-```
-
-**See all trails for a specific park** (use the 4-letter park code, e.g., `yose` for Yosemite):
-
-```
-http://localhost:8000/parks/yose/trails
-```
-
-**Find long trails across all parks:**
-
-```
-http://localhost:8000/trails?min_length=10
-```
-
-**Filter by state:**
-
-```
-http://localhost:8000/trails?state=CA
-```
-
-For a deeper dive into the API's capabilities, see the [API Tutorial](api-tutorial.md).
+> **Tip**: For a deeper dive into the API's capabilities, see the [API Tutorial](api-tutorial.md).
 
 ## Stopping and restarting
 
