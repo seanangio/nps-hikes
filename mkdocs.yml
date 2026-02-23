@@ -1,0 +1,10 @@
+site_name: NPS Hikes
+site_url: https://seanangio.github.io/nps-hikes/
+repo_url: https://github.com/seanangio/nps-hikes
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
