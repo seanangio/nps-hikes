@@ -84,7 +84,7 @@ Make sure your entry is an exact substring of the official name. For example, us
 
 > **Tip:** When you test the pipeline below in Step 6, it processes the first NPS park alphabetically (Acadia). If you include **Acadia** in your visit log, you'll have a visited park with trail data to explore.
 
-### Google My Maps hiking data (KML files)
+### Google My Maps hiking data
 
 The `raw_data/gmaps/` directory contains KML files with hiking locations exported from [Google My Maps](https://www.google.com/maps/d/). The pipeline uses these named points to match hiking locations to trail geometries, and then collects elevation data for the matched trails. This enables personalized trail matching, hiked/unhiked filtering, and 3D trail visualizations with elevation profiles.
 

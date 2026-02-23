@@ -26,5 +26,5 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
-  - Data Sources & Schema: data-sources.md
+  - Data Sources & Schema: data.md
   - API Tutorial: api-tutorial.md
