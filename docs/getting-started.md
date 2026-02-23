@@ -191,7 +191,7 @@ POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --writ
 
 This takes longer. If using the author's files, expect more than 2 hours for the full run. The main bottleneck is the elevation collection step, which queries the USGS EPQS API for sampled points along each matched trail (one request per point, with a rate limit delay between calls). The more trails matched from your KML files, the longer this step takes.
 
-The pipeline is resumable: with `--write-db`, each collector skips parks or trails that already have data in the database, and the elevation collector also maintains a persistent cache of individual elevation lookups. If a run is interrupted, re-running the same command picks up roughly where it left off. To force a full re-collection, pass `--force-refresh`.
+The pipeline is resumable: with `--write-db`, each collector skips parks or trails that already have data in the database, and the elevation collector also maintains a persistent cache of individual elevation lookups. If something interrupts a run, re-running the same command picks up roughly where it left off. To force a full re-collection, pass `--force-refresh`.
 
 > **Tip:** The pipeline is fail-fast. If a step fails, check `logs/orchestrator.log` for details. You can also run individual collectors directly for debugging (see the [README](https://github.com/seanangio/nps-hikes) for individual component commands).
 
@@ -219,7 +219,7 @@ Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to
 
 Here are a few handy commands for stopping and restarting the Docker services.
 
-**Stop the services** (data is preserved):
+**Stop the services** (preserving the data):
 
 ```bash
 docker compose down
@@ -241,7 +241,7 @@ docker compose down -v
 
 ### "Set POSTGRES_PASSWORD in .env"
 
-Docker Compose requires `POSTGRES_PASSWORD` to be set. Make sure your `.env` file exists in the project root and contains a `POSTGRES_PASSWORD` value.
+Docker Compose requires setting a `POSTGRES_PASSWORD`. Make sure your `.env` file exists in the project root and contains a `POSTGRES_PASSWORD` value.
 
 ### Pipeline can't connect to the database
 
@@ -277,7 +277,7 @@ docker compose logs api
 
 ### API returns empty results after pipeline
 
-Verify data was written to the database:
+Verify that the pipeline wrote data to the database:
 
 ```bash
 curl http://localhost:8000/health
@@ -289,7 +289,7 @@ The response should show `"database": "connected"`. If connected but no data, re
 
 ## Next steps
 
-- **[API Tutorial](api-tutorial.md)** &mdash; A guided tour of the API's query capabilities and visualizations
-- **[README](https://github.com/seanangio/nps-hikes)** &mdash; Full project documentation including architecture, testing, and data profiling
+- **[API Tutorial](api-tutorial.md)**: A guided tour of the API's query capabilities and visualizations
+- **[README](https://github.com/seanangio/nps-hikes)**; Full project documentation including architecture, testing, and data profiling
 
 [^1]: The NPS manages Sequoia and Kings Canyon as one park (`seki`), and so it appears as one entry.

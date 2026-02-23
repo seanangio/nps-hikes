@@ -43,4 +43,4 @@ The pipeline runs six steps in order:
 | 5. Trail Matching | Matches GMaps locations to TNM or OSM trail geometries | Internal |
 | 6. Elevation Collection | Elevation profiles for matched trails | [USGS EPQS](https://apps.nationalmap.gov/epqs/) |
 
-The pipeline is resumable: each collector skips parks or trails that already have data in the database. If a run is interrupted, re-running picks up where it left off.
+The pipeline is resumable: each collector skips parks or trails that already have data in the database. If something interrupts a run, re-running picks up where it left off.
