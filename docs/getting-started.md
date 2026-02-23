@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide walks through setting up this NPS hiking project from scratch: collecting national park and trail data, personalizing it with your own visit history, and exploring it through the REST API. By the end, you'll have a PostGIS database with all 63 U.S. national parks and thousands of hiking trails, queryable through an interactive API.
+This guide walks through setting up this NPS hiking project from scratch. By the end, you'll have a PostGIS database with all 63 U.S. national parks and hundreds of hiking trails, queryable through an interactive API.
 
 ## Step 0: Prerequisites
 
@@ -9,9 +9,11 @@ Before you begin, make sure you have the following:
 - **Docker Desktop**: [Install Docker Desktop](https://www.docker.com/products/docker-desktop/) for your operating system. Docker runs the database and API in containers so you don't need to install PostgreSQL or PostGIS locally.
 - **Python 3.12+**: The data collection pipeline runs on your local machine. Check your version with `python3 --version`. If you need to install or upgrade, see [python.org](https://www.python.org/downloads/).
 - **Git**: Install [Git](https://git-scm.com/install/) for your operating system to clone the repository.
-- **An NPS API key**; Free to sign up at the [NPS Developer Portal](https://www.nps.gov/subjects/developer/get-started.htm). You should receive a key by email within minutes.
+- An **NPS API key**: Free to sign up at the [NPS Developer Portal](https://www.nps.gov/subjects/developer/get-started.htm). You should receive a key by email within minutes.
 
 ## Step 1: Clone the repository
+
+Start by cloning the repository.
 
 ```bash
 git clone https://github.com/seanangio/nps-hikes.git
@@ -101,7 +103,6 @@ In [Google My Maps](https://www.google.com/maps/d/), create one or more maps for
 1. Add a **layer** for each park, named according to the 4-letter park code (for example, `zion`).
 2. Add placemarks to each layer for the trails or locations you've hiked.
 
-
 #### Export and add KML files
 
 Export each map as a KML file, and save the files to `raw_data/gmaps/`:
@@ -162,7 +163,6 @@ The pipeline runs six steps in order:
 | 5. Trail Matching | Matches GMaps locations to TNM or OSM trail geometries | Internal |
 | 6. Elevation Collection | Elevation profiles for matched trails | [USGS EPQS](https://apps.nationalmap.gov/epqs/) |
 
-
 ### Verify the test run
 
 First, confirm that the pipeline created and populated the tables by querying the database directly:
@@ -171,7 +171,7 @@ First, confirm that the pipeline created and populated the tables by querying th
 docker compose exec db bash -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT park_code, park_name FROM parks;"'
 ```
 
-> **Tip**: You should see the park code and name of parks collected (one if you used `--test-limit 1`). This runs `psql` inside the already-running database container, so you don't need PostgreSQL installed locally.
+> **Tip:** You should see the park code and name of parks collected (one if you used `--test-limit 1`). This runs `psql` inside the already-running database container, so you don't need PostgreSQL installed locally.
 
 You can also verify through the API:
 
@@ -189,19 +189,19 @@ Once you've confirmed the test run works, collect data for all 63[^1] national p
 POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db
 ```
 
-This takes longer. If using the author's files, expect 60 minutes for the full run. The main bottleneck is the elevation collection step, which queries the USGS EPQS API for sampled points along each matched trail (one request per point, with a rate limit delay between calls). The more trails matched from your KML files, the longer this step takes.
+This takes longer. If using the author's files, expect more than 2 hours for the full run. The main bottleneck is the elevation collection step, which queries the USGS EPQS API for sampled points along each matched trail (one request per point, with a rate limit delay between calls). The more trails matched from your KML files, the longer this step takes.
 
 The pipeline is resumable: with `--write-db`, each collector skips parks or trails that already have data in the database, and the elevation collector also maintains a persistent cache of individual elevation lookups. If a run is interrupted, re-running the same command picks up roughly where it left off. To force a full re-collection, pass `--force-refresh`.
 
-> **Tip:** The pipeline is fail-fast. If a step fails, check `logs/orchestrator.log` for details. You can also run individual collectors directly for debugging (see the [README](../README.md) for individual component commands).
+> **Tip:** The pipeline is fail-fast. If a step fails, check `logs/orchestrator.log` for details. You can also run individual collectors directly for debugging (see the [README](https://github.com/seanangio/nps-hikes) for individual component commands).
 
 ## Step 7: Explore your data
 
-With the pipeline complete, you now have a database full of national park and trail data. The API is already running at `http://localhost:8000`.
+With the pipeline complete, you now have a database full of national park and trail data. The API should be running at `http://localhost:8000`.
 
 ### Interactive API documentation
 
-Open **http://localhost:8000/docs** in your browser to access the Swagger UI. This interactive interface lets you try every endpoint, see request/response schemas, and experiment with query parameters.
+Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to access the Swagger UI. This interactive interface lets you try every endpoint, see request/response schemas, and experiment with query parameters.
 
 ### Quick examples
 
@@ -216,6 +216,8 @@ Open **http://localhost:8000/docs** in your browser to access the Swagger UI. Th
 > **Tip**: For a deeper dive into the API's capabilities, see the [API Tutorial](api-tutorial.md).
 
 ## Stopping and restarting
+
+Here are a few handy commands for stopping and restarting the Docker services.
 
 **Stop the services** (data is preserved):
 
@@ -288,6 +290,6 @@ The response should show `"database": "connected"`. If connected but no data, re
 ## Next steps
 
 - **[API Tutorial](api-tutorial.md)** &mdash; A guided tour of the API's query capabilities and visualizations
-- **[README](../README.md)** &mdash; Full project documentation including architecture, testing, and data profiling
+- **[README](https://github.com/seanangio/nps-hikes)** &mdash; Full project documentation including architecture, testing, and data profiling
 
 [^1]: The NPS manages Sequoia and Kings Canyon as one park (`seki`), and so it appears as one entry.
