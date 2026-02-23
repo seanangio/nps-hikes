@@ -8,8 +8,7 @@ on:
       - 'mkdocs.yml'
 
 permissions:
-  pages: write
-  id-token: write
+  contents: write
 
 jobs:
   deploy:
