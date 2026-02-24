@@ -1,5 +1,6 @@
 -r requirements.in
 pip-tools
+Pillow
 pytest
 pytest-cov
 black
