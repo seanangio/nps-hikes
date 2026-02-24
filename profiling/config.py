@@ -127,6 +127,13 @@ PROFILING_MODULES = {
         "dependencies": ["usgs_elevation_stats"],
         "output_prefix": "trail_3d_viz",
     },
+    "us_park_map": {
+        "enabled": True,
+        "description": "US overview map showing visited and unvisited national parks",
+        "queries": [],  # visualization is done in Python
+        "dependencies": [],
+        "output_prefix": "us_park_map",
+    },
 }
 
 # Global profiling settings
