@@ -42,6 +42,7 @@ app = FastAPI(
     * List all National Parks with metadata, coordinates, and visit status
     * Query trails with flexible filters (park, state, length, source, hiking status, trail type, 3D viz)
     * Automatic deduplication (TNM preferred over OSM for duplicates)
+    * US-wide static and interactive park maps
     * Static map and elevation matrix visualizations per park
     * Interactive 3D trail visualizations with elevation data
 
@@ -87,6 +88,8 @@ async def root():
         "endpoints": {
             "parks": "/parks",
             "trails": "/trails",
+            "us_static_park_map": "/parks/viz/us-static-park-map",
+            "us_interactive_park_map": "/parks/viz/us-interactive-park-map",
             "static_map": "/parks/{park_code}/viz/static-map",
             "elevation_matrix": "/parks/{park_code}/viz/elevation-matrix",
             "trail_3d_viz": "/parks/{park_code}/trails/{trail_slug}/viz/3d",
@@ -261,6 +264,98 @@ async def get_trails(
             status_code=500,
             detail=f"Error retrieving trails: {str(e)}",
         )
+
+
+@app.get(
+    "/parks/viz/us-static-park-map",
+    tags=["Visualizations"],
+    summary="Get static US park map",
+    description="""
+    Returns a PNG image showing all national parks on a US map with AK/HI insets.
+
+    Parks are color-coded by visited/unvisited status with a visit count legend.
+    """,
+    responses={
+        200: {
+            "content": {"image/png": {}},
+            "description": "PNG image of US park map",
+        },
+        404: {"description": "Visualization not available"},
+    },
+)
+async def get_us_static_park_map():
+    """
+    Get static US park map showing visited and unvisited parks.
+
+    Returns a PNG image with an Albers Equal Area projection and AK/HI insets.
+
+    **Example usage:**
+    - `/parks/viz/us-static-park-map`
+    """
+    viz_dir = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "profiling_results",
+        "visualizations",
+        "us_park_map",
+    )
+    file_path = os.path.join(viz_dir, "us_park_map_static.png")
+
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=404,
+            detail="US static park map not available. Run the us_park_map profiling module to generate it.",
+        )
+
+    return FileResponse(
+        file_path,
+        media_type="image/png",
+    )
+
+
+@app.get(
+    "/parks/viz/us-interactive-park-map",
+    tags=["Visualizations"],
+    summary="Get interactive US park map",
+    description="""
+    Returns an interactive HTML map showing all national parks with boundaries and hover tooltips.
+
+    Parks are color-coded by visited/unvisited status. The map is zoomable and pannable.
+    """,
+    responses={
+        200: {
+            "content": {"text/html": {}},
+            "description": "Interactive HTML park map",
+        },
+        404: {"description": "Visualization not available"},
+    },
+)
+async def get_us_interactive_park_map():
+    """
+    Get interactive US park map with boundaries and hover tooltips.
+
+    Returns an HTML page with a zoomable Plotly map.
+
+    **Example usage:**
+    - `/parks/viz/us-interactive-park-map`
+    """
+    viz_dir = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "profiling_results",
+        "visualizations",
+        "us_park_map",
+    )
+    file_path = os.path.join(viz_dir, "us_park_map_interactive.html")
+
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=404,
+            detail="US interactive park map not available. Run the us_park_map profiling module to generate it.",
+        )
+
+    return FileResponse(
+        file_path,
+        media_type="text/html",
+    )
 
 
 @app.get(
