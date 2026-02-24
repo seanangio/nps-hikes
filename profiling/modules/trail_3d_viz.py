@@ -372,7 +372,7 @@ class Trail3DVisualizer:
                 mode="lines+markers",
                 line=dict(
                     color=elevations,
-                    colorscale="Earth",  # Classic terrain colors (green -> yellow -> brown -> white)
+                    colorscale="Earth",  # Terrain colors (brown -> cream -> blue-green)
                     width=6,
                     colorbar=dict(
                         title="Elevation (m)",

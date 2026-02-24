@@ -34,7 +34,7 @@ class TestRootEndpoint:
 
         data = response.json()
         assert data["name"] == "NPS Trails API"
-        assert data["version"] == "0.1.0"
+        assert data["version"] == "1.0.0"
         assert "documentation" in data
         assert "endpoints" in data
         assert data["endpoints"]["parks"] == "/parks"

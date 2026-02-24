@@ -213,7 +213,7 @@ Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to
 | Find long trails across all parks | `http://localhost:8000/trails?min_length=10` |
 | Filter by state | `http://localhost:8000/trails?state=CA` |
 
-> **Tip**: For a deeper dive into the API's capabilities, see the [API Tutorial](api-tutorial.md).
+> **Note:** The data endpoints (`/parks`, `/trails`) work immediately after the pipeline. The visualization endpoints (park maps, trail maps, elevation charts) require an additional generation step covered in the [API Tutorial](api-tutorial.md).
 
 ## Stopping and restarting
 

@@ -39,7 +39,7 @@ app = FastAPI(
 
     See the [full project documentation](https://seanangio.github.io/nps-hikes/) for details.
     """,
-    version="0.1.0",
+    version="1.0.0",
     contact={
         "name": "NPS Hikes Project",
     },
@@ -59,7 +59,7 @@ async def root():
     """
     return {
         "name": "NPS Trails API",
-        "version": "0.1.0",
+        "version": "1.0.0",
         "description": "Query National Park trail data from OpenStreetMap and The National Map",
         "documentation": {
             "swagger_ui": "/docs",
