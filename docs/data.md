@@ -1,4 +1,4 @@
-# Data sources and schema
+# Data Sources and Schema
 
 ## External sources
 
