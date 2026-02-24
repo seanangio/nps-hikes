@@ -20,7 +20,7 @@ repos:
         exclude: \.gpkg$
       - id: check-yaml
       - id: check-added-large-files
-        args: ['--maxkb=1000']  # Prevent accidentally committing large files
+        args: ['--maxkb=500']  # Prevent accidentally committing large files
       - id: check-json
       - id: check-toml
       - id: check-merge-conflict
