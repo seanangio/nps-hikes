@@ -2,7 +2,7 @@
 NPS Trails API
 
 A FastAPI application that provides access to National Park trail data
-collected from OpenStreetMap and The National Map.
+collected from OpenStreetMap and USGS.
 
 This API exposes analytical outputs from the NPS Hikes project, allowing
 users to query trail information without needing to run the collection pipeline.
@@ -33,30 +33,11 @@ from api.queries import fetch_all_parks, fetch_trails
 
 # Create FastAPI app with metadata for OpenAPI documentation
 app = FastAPI(
-    title="NPS Trails API",
+    title="NPS Hikes API",
     description="""
-    API for exploring National Park hiking trails from OpenStreetMap and The National Map data sources.
+    API for exploring National Park hiking trails from OpenStreetMap and USGS data sources.
 
-    ## Features
-
-    * List all National Parks with metadata, coordinates, and visit status
-    * Query trails with flexible filters (park, state, length, source, hiking status, trail type, 3D viz)
-    * Automatic deduplication (TNM preferred over OSM for duplicates)
-    * US-wide static and interactive park maps
-    * Static map and elevation matrix visualizations per park
-    * Interactive 3D trail visualizations with elevation data
-
-    ## Data Sources
-
-    This API provides access to trail data collected from:
-    - **OpenStreetMap (OSM)**: Community-contributed trail data
-    - **The National Map (TNM)**: USGS trail datasets
-
-    ## Example Park Codes
-
-    - `yose` - Yosemite National Park
-    - `grca` - Grand Canyon National Park
-    - `zion` - Zion National Park
+    See the [full project documentation](https://seanangio.github.io/nps-hikes/) for details.
     """,
     version="0.1.0",
     contact={
