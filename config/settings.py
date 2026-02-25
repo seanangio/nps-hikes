@@ -71,6 +71,7 @@ class Config:
     DB_NAME: str = "nps_hikes_db"
     DB_USER: str = "postgres"
     DB_PASSWORD: str | None = None
+    DB_SSLMODE: str | None = None
 
     # File Paths
     DEFAULT_INPUT_CSV: str = "raw_data/park_visit_log.csv"
@@ -190,6 +191,10 @@ class Config:
         if db_password:
             self.DB_PASSWORD = db_password
 
+        db_sslmode = os.getenv("POSTGRES_SSLMODE")
+        if db_sslmode:
+            self.DB_SSLMODE = db_sslmode
+
         # Optional overrides
         api_base_url = os.getenv("API_BASE_URL")
         if api_base_url:
@@ -250,7 +255,10 @@ class Config:
         Returns:
             str: PostgreSQL connection URL
         """
-        return f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        url = f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        if self.DB_SSLMODE:
+            url += f"?sslmode={self.DB_SSLMODE}"
+        return url
 
 
 # Global configuration instance
