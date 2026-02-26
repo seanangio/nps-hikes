@@ -1,0 +1,1172 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://seanangio.github.io/nps-hikes/api-tutorial/">
+      
+      
+        <link rel="prev" href="../data/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Using the API - NPS Hikes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#using-the-api" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NPS Hikes" class="md-header__button md-logo" aria-label="NPS Hikes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NPS Hikes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Using the API
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/seanangio/nps-hikes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NPS Hikes" class="md-nav__button md-logo" aria-label="NPS Hikes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NPS Hikes
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/seanangio/nps-hikes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Sources and Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the API
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#orient-yourself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orient yourself
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browse-your-parks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browse your parks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-the-big-picture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See the big picture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#park-level-visualizations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Park-level visualizations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Park-level visualizations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#static-trail-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Static trail map
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#elevation-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Elevation matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#explore-trails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Explore trails
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Explore trails">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filter-by-data-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter by data source
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filter-by-hiked-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter by hiked status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filter-by-length" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter by length
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filter-by-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter by state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-3d-trail-journey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The 3D trail journey
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The 3D trail journey">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#find-trails-with-3d-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Find trails with 3D data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-the-3d-visualization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open the 3D visualization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adjust-the-vertical-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adjust the vertical scale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-makes-a-trail-eligible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What makes a trail eligible
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#combine-and-discover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Combine and discover
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#orient-yourself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orient yourself
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browse-your-parks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browse your parks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-the-big-picture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See the big picture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#park-level-visualizations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Park-level visualizations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Park-level visualizations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#static-trail-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Static trail map
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#elevation-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Elevation matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#explore-trails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Explore trails
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Explore trails">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filter-by-data-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter by data source
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filter-by-hiked-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter by hiked status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filter-by-length" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter by length
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filter-by-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter by state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-3d-trail-journey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The 3D trail journey
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The 3D trail journey">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#find-trails-with-3d-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Find trails with 3D data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-the-3d-visualization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open the 3D visualization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adjust-the-vertical-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adjust the vertical scale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-makes-a-trail-eligible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What makes a trail eligible
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#combine-and-discover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Combine and discover
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="using-the-api">Using the API</h1>
+<p>This tutorial walks through the API's capabilities, starting with a broad overview of your parks and progressively narrowing down to individual trail visualizations. By the end, you'll know how to query parks and trails, generate visualizations, and build a 3D elevation profile for a specific trail.</p>
+<p>The tutorial assumes you've completed the <a href="../getting-started/">Getting Started</a> guide, run the full data collection pipeline, and have both Docker services running.</p>
+<p>The examples below use <code>curl</code> with <code>python3 -m json.tool</code> for pretty-printed output. You can also paste the URLs directly into your browser, which is especially useful for the visualization endpoints that return images and interactive HTML.</p>
+<blockquote>
+<p><strong>Tip:</strong> Don't want to set up locally? You can try the data query endpoints on the <a href="https://seanangio-nps-hikes.onrender.com/docs">live demo</a>. In the examples below, replace <code>http://localhost:8000</code> with <code>https://seanangio-nps-hikes.onrender.com</code>. Note that visualization endpoints (maps, elevation charts, etc.) are only available locally.</p>
+</blockquote>
+<h2 id="orient-yourself">Orient yourself</h2>
+<p>First, confirm that the API is running and that the database is connected:</p>
+<pre><code class="language-bash">curl http://localhost:8000/health | python3 -m json.tool
+</code></pre>
+<p>You should see:</p>
+<pre><code class="language-json">{
+    &quot;status&quot;: &quot;healthy&quot;,
+    &quot;database&quot;: &quot;connected&quot;
+}
+</code></pre>
+<p>The root endpoint lists all available endpoints:</p>
+<pre><code class="language-bash">curl http://localhost:8000/ | python3 -m json.tool
+</code></pre>
+<pre><code class="language-json">{
+    &quot;name&quot;: &quot;NPS Trails API&quot;,
+    &quot;version&quot;: &quot;1.0.0&quot;,
+    &quot;description&quot;: &quot;Query National Park trail data from OpenStreetMap and The National Map&quot;,
+    &quot;documentation&quot;: {
+        &quot;swagger_ui&quot;: &quot;/docs&quot;,
+        &quot;redoc&quot;: &quot;/redoc&quot;,
+        &quot;openapi_json&quot;: &quot;/openapi.json&quot;
+    },
+    &quot;endpoints&quot;: {
+        &quot;parks&quot;: &quot;/parks&quot;,
+        &quot;trails&quot;: &quot;/trails&quot;,
+        &quot;us_static_park_map&quot;: &quot;/parks/viz/us-static-park-map&quot;,
+        &quot;us_interactive_park_map&quot;: &quot;/parks/viz/us-interactive-park-map&quot;,
+        &quot;static_map&quot;: &quot;/parks/{park_code}/viz/static-map&quot;,
+        &quot;elevation_matrix&quot;: &quot;/parks/{park_code}/viz/elevation-matrix&quot;,
+        &quot;trail_3d_viz&quot;: &quot;/parks/{park_code}/trails/{trail_slug}/viz/3d&quot;,
+        &quot;health_check&quot;: &quot;/health&quot;
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> For a full interactive reference, open <a href="http://localhost:8000/docs">http://localhost:8000/docs</a> in your browser. The Swagger UI lets you try every endpoint, inspect request/response schemas, and experiment with query parameters.</p>
+</blockquote>
+<h2 id="browse-your-parks">Browse your parks</h2>
+<p>The <code>/parks</code> endpoint returns a <code>park_count</code>, a <code>visited_count</code>, and a <code>parks</code> array. Each park includes its 4-letter code, name, state, coordinates, and NPS URL.</p>
+<pre><code class="language-bash">curl http://localhost:8000/parks | python3 -m json.tool
+</code></pre>
+<p>To see only the parks from your visit log, add the <code>visited</code> filter:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/parks?visited=true&quot; | python3 -m json.tool
+</code></pre>
+<pre><code class="language-json">{
+    &quot;park_count&quot;: 3,
+    &quot;visited_count&quot;: 3,
+    &quot;parks&quot;: [
+        {
+            &quot;park_code&quot;: &quot;acad&quot;,
+            &quot;park_name&quot;: &quot;Acadia National Park&quot;,
+            &quot;full_name&quot;: &quot;Acadia National Park&quot;,
+            &quot;designation&quot;: &quot;National Park&quot;,
+            &quot;states&quot;: &quot;ME&quot;,
+            &quot;latitude&quot;: 44.3386,
+            &quot;longitude&quot;: -68.2733,
+            &quot;url&quot;: &quot;https://www.nps.gov/acad/index.htm&quot;,
+            &quot;visit_month&quot;: &quot;Oct&quot;,
+            &quot;visit_year&quot;: 2024
+        },
+        ...
+    ]
+}
+</code></pre>
+<p>Visited parks include <code>visit_month</code> and <code>visit_year</code> from your visit log. Flip the filter to see your park bucket list:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/parks?visited=false&quot; | python3 -m json.tool
+</code></pre>
+<p>For richer responses, add <code>include_description=true</code> to include the full NPS description for each park:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/parks?visited=true&amp;include_description=true&quot; | python3 -m json.tool
+</code></pre>
+<h2 id="see-the-big-picture">See the big picture</h2>
+<p>The API can serve map visualizations of all your parks. These endpoints return pre-generated images, so you need to generate them first. Run the US park map profiling module:</p>
+<pre><code class="language-bash">POSTGRES_HOST=localhost POSTGRES_PORT=5433 python profiling/orchestrator.py us_park_map
+</code></pre>
+<p>Now open the static map in your browser:</p>
+<pre><code>http://localhost:8000/parks/viz/us-static-park-map
+</code></pre>
+<p>This returns a PNG image showing all national parks on a US map with Alaska and Hawaii insets. Parks are color-coded by your visit log.</p>
+<p><img alt="US park map showing visited and unvisited national parks" src="../_img/us-park-map-static.png" /></p>
+<p>For an interactive version with hover tooltips and park boundaries, open:</p>
+<pre><code>http://localhost:8000/parks/viz/us-interactive-park-map
+</code></pre>
+<p>This returns an HTML page with a zoomable Plotly map. Hover over any park to see its name, state, and visit status. You can zoom in to see (rough) park boundary outlines.</p>
+<h2 id="park-level-visualizations">Park-level visualizations</h2>
+<p>The API also serves per-park trail maps and elevation charts. Generate them with:</p>
+<pre><code class="language-bash">POSTGRES_HOST=localhost POSTGRES_PORT=5433 python profiling/orchestrator.py visualization usgs_elevation_viz
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> The <code>visualization</code> module generates static trail maps for every park with trail data. The <code>usgs_elevation_viz</code> module generates elevation matrices for parks with elevation data. Depending on how many parks have data, this may take a few minutes.</p>
+</blockquote>
+<h3 id="static-trail-map">Static trail map</h3>
+<p>Open a trail map for a specific park using its 4-letter code:</p>
+<pre><code>http://localhost:8000/parks/acad/viz/static-map
+</code></pre>
+<p>This returns a PNG image showing the park boundary and all collected trails. Trails are color-coded by data source: blue for OpenStreetMap, orange for The National Map. Purple points mark hiking locations imported from your KML files.</p>
+<p><img alt="Acadia trail map showing OSM and TNM trails" src="../_img/acad-trails.png" /></p>
+<blockquote>
+<p><strong>Tip:</strong> Replace <code>acad</code> with any park code to see its trail map (for example, <code>/parks/yose/viz/static-map</code> for Yosemite).</p>
+</blockquote>
+<h3 id="elevation-matrix">Elevation matrix</h3>
+<p>For parks where you have matched trails with elevation data, there's an elevation profile matrix:</p>
+<pre><code>http://localhost:8000/parks/acad/viz/elevation-matrix
+</code></pre>
+<p>This returns a PNG grid of elevation charts, one per matched trail. Each chart shows distance on the x-axis and elevation on the y-axis, giving you a quick visual comparison across trails.</p>
+<p><img alt="Acadia elevation matrix showing elevation profiles for matched trails" src="../_img/acad-elevation-matrix.png" /></p>
+<h2 id="explore-trails">Explore trails</h2>
+<p>The <code>/trails</code> endpoint returns trail data from both The National Map (TNM) and OpenStreetMap (OSM). Start by querying trails for a specific park:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/trails?park_code=acad&quot; | python3 -m json.tool
+</code></pre>
+<p>The response includes a <code>trail_count</code>, <code>total_miles</code>, and a <code>trails</code> array. Each trail includes:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>trail_id</code></td>
+<td>Unique identifier (from TNM or OSM)</td>
+</tr>
+<tr>
+<td><code>trail_name</code></td>
+<td>Trail name</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>Data source (<code>TNM</code> or <code>OSM</code>)</td>
+</tr>
+<tr>
+<td><code>length_miles</code></td>
+<td>Trail length in miles</td>
+</tr>
+<tr>
+<td><code>hiked</code></td>
+<td>Whether you've hiked this trail (matched from your KML files)</td>
+</tr>
+<tr>
+<td><code>viz_3d_available</code></td>
+<td>Whether a 3D visualization can be generated</td>
+</tr>
+<tr>
+<td><code>viz_3d_slug</code></td>
+<td>URL slug for the 3D endpoint (if available)</td>
+</tr>
+</tbody>
+</table>
+<p>When querying a single park, results are sorted by length (longest first). When querying across multiple parks, results are sorted by park code and trail name.</p>
+<blockquote>
+<p><strong>Note:</strong> The API deduplicates trails that appear in both data sources. When a TNM trail and an OSM trail in the same park share more than 70% name similarity, the API keeps the TNM version. This avoids double-counting while preferring the more detailed TNM data.</p>
+</blockquote>
+<h3 id="filter-by-data-source">Filter by data source</h3>
+<p>Compare what each data source provides:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/trails?park_code=acad&amp;source=TNM&quot; | python3 -m json.tool
+curl &quot;http://localhost:8000/trails?park_code=acad&amp;source=OSM&quot; | python3 -m json.tool
+</code></pre>
+<h3 id="filter-by-hiked-status">Filter by hiked status</h3>
+<p>See which trails you've hiked based on your KML data:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/trails?hiked=true&quot; | python3 -m json.tool
+</code></pre>
+<p>Or find trails you haven't hiked yet in a specific park:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/trails?park_code=acad&amp;hiked=false&quot; | python3 -m json.tool
+</code></pre>
+<h3 id="filter-by-length">Filter by length</h3>
+<p>Find trails within a specific length range:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/trails?min_length=5&amp;max_length=15&quot; | python3 -m json.tool
+</code></pre>
+<h3 id="filter-by-state">Filter by state</h3>
+<p>Query trails across all parks in a state:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/trails?state=CA&quot; | python3 -m json.tool
+</code></pre>
+<p>You can combine multiple states by repeating the parameter:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/trails?state=CA&amp;state=UT&quot; | python3 -m json.tool
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> State parameters surface state data as returned from the NPS API, rather than geographic validation. Keep this in mind when querying trails in parks that span multiple states (Yellowstone for example).</p>
+</blockquote>
+<h2 id="the-3d-trail-journey">The 3D trail journey</h2>
+<p>The most detailed visualization in the API is an interactive 3D elevation profile for individual trails. Getting there takes a few steps because you need to discover which trails have elevation data and find their URL slugs.</p>
+<h3 id="find-trails-with-3d-data">Find trails with 3D data</h3>
+<p>Start by filtering for trails with 3D visualizations available:</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/trails?park_code=acad&amp;viz_3d=true&quot; | python3 -m json.tool
+</code></pre>
+<p>In the response, look for the <code>viz_3d_slug</code> field on each trail:</p>
+<pre><code class="language-json">{
+    &quot;trail_count&quot;: 2,
+    &quot;total_miles&quot;: 5.8,
+    &quot;trails&quot;: [
+        {
+            &quot;trail_id&quot;: &quot;123456&quot;,
+            &quot;trail_name&quot;: &quot;Jordan Pond Path&quot;,
+            &quot;park_code&quot;: &quot;acad&quot;,
+            &quot;source&quot;: &quot;TNM&quot;,
+            &quot;length_miles&quot;: 3.4,
+            &quot;hiked&quot;: true,
+            &quot;viz_3d_available&quot;: true,
+            &quot;viz_3d_slug&quot;: &quot;jordan_pond_path&quot;
+        },
+        ...
+    ]
+}
+</code></pre>
+<p>The <code>viz_3d_slug</code> value is what you need for the next step.</p>
+<h3 id="open-the-3d-visualization">Open the 3D visualization</h3>
+<p>Build the URL using the park code and trail slug, and open it in your browser:</p>
+<pre><code>http://localhost:8000/parks/acad/trails/jordan_pond_path/viz/3d
+</code></pre>
+<p>This opens an interactive 3D Plotly visualization. You can rotate, zoom, and pan the trail. The trail is color-coded by elevation using a terrain gradient (brown at lower elevations, cream in the middle, and blue-green at higher elevations). Hover over any point to see its distance along the trail and elevation.</p>
+<p><img alt="Interactive 3D trail visualization showing elevation profile" src="../_img/acad-3d-trail.png" /></p>
+<h3 id="adjust-the-vertical-scale">Adjust the vertical scale</h3>
+<p>By default, the z-axis is exaggerated by a factor of 5 to make elevation changes more visible. You can adjust this with the <code>z_scale</code> parameter (range: 1 to 20):</p>
+<pre><code>http://localhost:8000/parks/acad/trails/jordan_pond_path/viz/3d?z_scale=10
+</code></pre>
+<p>A higher value makes elevation changes more dramatic. A value of 1 shows true proportions, which can make trails appear nearly flat.</p>
+<h3 id="what-makes-a-trail-eligible">What makes a trail eligible</h3>
+<p>Not every trail has a 3D visualization. A trail needs elevation data, which requires this chain:</p>
+<ol>
+<li>You added a hiking point near the trail in your KML files.</li>
+<li>The trail matching step matched that point to a trail geometry.</li>
+<li>The elevation collection step sampled points along the trail and queried the USGS for elevations.</li>
+</ol>
+<p>This is why your KML files matter. They determine which trails get elevation data and 3D visualizations.</p>
+<blockquote>
+<p><strong>Note:</strong> Unlike the park maps and elevation matrices from the previous sections, 3D trail visualizations don't require the profiling step. The API generates them on-demand from the elevation data already in the database.</p>
+</blockquote>
+<h2 id="combine-and-discover">Combine and discover</h2>
+<p>All the filters on the <code>/trails</code> endpoint can be combined. Here are a few queries that answer real questions:</p>
+<p><strong>What long trails haven't I hiked in Utah?</strong></p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/trails?state=UT&amp;hiked=false&amp;min_length=5&quot; | python3 -m json.tool
+</code></pre>
+<p><strong>Which of my hiked trails have 3D visualizations?</strong></p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/trails?hiked=true&amp;viz_3d=true&quot; | python3 -m json.tool
+</code></pre>
+<p>From there, pick any trail with a <code>viz_3d_slug</code> and open its 3D visualization in your browser.</p>
+<blockquote>
+<p><strong>Tip:</strong> You can also use Python's <code>requests</code> library, the Swagger UI at <code>/docs</code>, or any HTTP client to query these endpoints.</p>
+</blockquote>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.instant", "navigation.top", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
