@@ -4,7 +4,7 @@
 
 A Python project for collecting, validating, and analyzing hiking trail data from U.S. National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API.
 
-> **Tip**: See [https://seanangio.github.io/nps-hikes/](https://seanangio.github.io/nps-hikes/) for the full documentation.
+> **Tip**: See [https://seanangio.github.io/nps-hikes/](https://seanangio.github.io/nps-hikes/) for the full documentation, including live demo details.
 
 ## Project overview
 

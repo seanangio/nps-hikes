@@ -2,6 +2,12 @@
 
 A Python project for collecting, validating, and analyzing hiking trail data from U.S. National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API.
 
+## Live demo
+
+You can find a live instance of the API at [seanangio-nps-hikes.onrender.com](https://seanangio-nps-hikes.onrender.com/docs). There you can browse the interactive Swagger UI and query park and trail data without any local setup.
+
+> **Note:** The live demo runs on a free tier and may take 30-60 seconds to respond on the first request while the server wakes up. Visualization endpoints (maps, elevation charts, 3D trails) are only available with a [local deployment](getting-started.md).
+
 ## Project overview
 
 - Collect park metadata and boundaries from the NPS API.

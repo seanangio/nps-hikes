@@ -1,6 +1,8 @@
 # Getting Started
 
-This guide walks through setting up this NPS hiking project from scratch. By the end, you'll have a PostGIS database with all 63 U.S. national parks and hundreds of hiking trails, queryable through an interactive API.
+This guide walks through locally setting up this NPS hiking project from scratch. By the end, you'll have a PostGIS database with all 63 US national parks and hundreds of hiking trails, queryable through an interactive API.
+
+> **Tip:** Instead of a local setup, you can also explore a live demo of the Swagger UI docs at [seanangio-nps-hikes.onrender.com/docs](https://seanangio-nps-hikes.onrender.com/docs). To query the visualization endpoints however, continue with the local setup instructions here.
 
 ## Step 0: Prerequisites
 

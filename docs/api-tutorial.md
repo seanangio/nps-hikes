@@ -4,7 +4,9 @@ This tutorial walks through the API's capabilities, starting with a broad overvi
 
 The tutorial assumes you've completed the [Getting Started](getting-started.md) guide, run the full data collection pipeline, and have both Docker services running.
 
-> **Tip:** The examples below use `curl` with `python3 -m json.tool` for pretty-printed output. You can also paste the URLs directly into your browser, which is especially useful for the visualization endpoints that return images and interactive HTML.
+The examples below use `curl` with `python3 -m json.tool` for pretty-printed output. You can also paste the URLs directly into your browser, which is especially useful for the visualization endpoints that return images and interactive HTML.
+
+> **Tip:** Don't want to set up locally? You can try the data query endpoints on the [live demo](https://seanangio-nps-hikes.onrender.com/docs). In the examples below, replace `http://localhost:8000` with `https://seanangio-nps-hikes.onrender.com`. Note that visualization endpoints (maps, elevation charts, etc.) are only available locally.
 
 ## Orient yourself
 
