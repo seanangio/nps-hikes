@@ -6,11 +6,9 @@ This module provides profiling capabilities for USGS elevation data,
 including elevation statistics, grade analysis, and data quality metrics.
 """
 
-import os
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
-from sqlalchemy import text
 
 from ..utils import (
     ProfilingLogger,
@@ -27,7 +25,7 @@ class USGSElevationProfiler:
         self.logger = ProfilingLogger("usgs_elevation")
         self.engine = get_db_connection()
 
-    def run_trail_elevation_stats(self) -> Dict[str, Any]:
+    def run_trail_elevation_stats(self) -> dict[str, Any]:
         """Run trail-level elevation statistics analysis."""
         self.logger.info("Running trail elevation statistics analysis")
 
@@ -43,7 +41,7 @@ class USGSElevationProfiler:
 
         return {"trail_count": len(df)}
 
-    def run_park_elevation_summary(self) -> Dict[str, Any]:
+    def run_park_elevation_summary(self) -> dict[str, Any]:
         """Run park-level elevation summary analysis."""
         self.logger.info("Running park elevation summary analysis")
 
@@ -59,7 +57,7 @@ class USGSElevationProfiler:
 
         return {"park_count": len(df)}
 
-    def run_trail_grades(self) -> Dict[str, Any]:
+    def run_trail_grades(self) -> dict[str, Any]:
         """Run trail grade analysis."""
         self.logger.info("Running trail grade analysis")
 
@@ -75,7 +73,7 @@ class USGSElevationProfiler:
 
         return {"trail_count": len(df)}
 
-    def run_steepest_segments(self) -> Dict[str, Any]:
+    def run_steepest_segments(self) -> dict[str, Any]:
         """Run steepest segments analysis."""
         self.logger.info("Running steepest segments analysis")
 
@@ -91,7 +89,7 @@ class USGSElevationProfiler:
 
         return {"segment_count": len(df)}
 
-    def run_data_quality(self) -> Dict[str, Any]:
+    def run_data_quality(self) -> dict[str, Any]:
         """Run data quality analysis."""
         self.logger.info("Running data quality analysis")
 
@@ -107,7 +105,7 @@ class USGSElevationProfiler:
 
         return {"park_count": len(df)}
 
-    def run_all(self) -> Dict[str, Any]:
+    def run_all(self) -> dict[str, Any]:
         """Run all USGS elevation profiling analyses."""
         self.logger.info("Starting USGS elevation profiling")
 

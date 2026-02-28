@@ -291,7 +291,7 @@ class TestDataValidation:
         try:
             OSMProcessedTrailsSchema.validate(gdf, lazy=True)
             # If validation passes, the test should fail
-            assert False, "Expected schema validation to fail for out-of-range lengths"
+            pytest.fail("Expected schema validation to fail for out-of-range lengths")
         except (SchemaError, SchemaErrors):
             # Expected - schema correctly rejects out-of-range values
             pass

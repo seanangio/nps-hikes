@@ -3,13 +3,12 @@ pip-tools
 Pillow
 pytest
 pytest-cov
-black
 pre-commit
 mypy
 types-requests
-isort
 pip-audit
 bandit
 jupyter
 nbconvert>=7.17.0  # Fix for CVE-2025-53000
 mkdocs-material
+ruff

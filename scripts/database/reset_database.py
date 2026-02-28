@@ -15,7 +15,6 @@ This will:
 3. Log the entire process for verification
 """
 
-import logging
 import os
 import sys
 

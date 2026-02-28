@@ -18,11 +18,11 @@ from __future__ import annotations
 import os
 import sys
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import pandas as pd
 from dotenv import load_dotenv
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine
 
 # Load environment variables
 load_dotenv(
@@ -33,7 +33,6 @@ load_dotenv(
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, project_root)
 
-from config.settings import config
 from scripts.database.db_writer import get_postgres_engine
 
 
@@ -71,7 +70,7 @@ class DataFreshnessMonitor:
             "parks_staleness.sql",
         )
 
-        with open(query_path, "r") as f:
+        with open(query_path) as f:
             query = f.read()
 
         return pd.read_sql(query, self.engine)
@@ -91,7 +90,7 @@ class DataFreshnessMonitor:
             "boundaries_staleness.sql",
         )
 
-        with open(query_path, "r") as f:
+        with open(query_path) as f:
             query = f.read()
 
         return pd.read_sql(query, self.engine)
@@ -112,7 +111,7 @@ class DataFreshnessMonitor:
                 "osm_staleness.sql",
             )
 
-            with open(query_path, "r") as f:
+            with open(query_path) as f:
                 query = f.read()
 
             return pd.read_sql(query, self.engine)
@@ -136,7 +135,7 @@ class DataFreshnessMonitor:
                 "tnm_staleness.sql",
             )
 
-            with open(query_path, "r") as f:
+            with open(query_path) as f:
                 query = f.read()
 
             return pd.read_sql(query, self.engine)
@@ -144,7 +143,7 @@ class DataFreshnessMonitor:
             print(f"Warning: Could not query TNM hikes table: {e}")
             return pd.DataFrame()
 
-    def get_freshness_summary(self) -> Dict[str, Dict]:
+    def get_freshness_summary(self) -> dict[str, dict]:
         """
         Get comprehensive freshness summary for all tables.
 
@@ -328,7 +327,7 @@ class DataFreshnessMonitor:
         print("\n" + "=" * 80)
 
 
-def run_data_freshness() -> Dict[str, Any]:
+def run_data_freshness() -> dict[str, Any]:
     """
     Run comprehensive data freshness monitoring.
 

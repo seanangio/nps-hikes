@@ -31,8 +31,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-from datetime import datetime, timezone
-from typing import List, Set
+from datetime import UTC, datetime
 
 import geopandas as gpd
 import osmnx as ox
@@ -113,13 +112,13 @@ class OSMHikesCollector:
         self.write_db: bool = write_db
         # Always create engine for reading from DB, but only write if write_db is True
         self.engine: Engine = get_postgres_engine()
-        self.timestamp: str = datetime.now(timezone.utc).isoformat()
+        self.timestamp: str = datetime.now(UTC).isoformat()
         # Initialize database writer for write operations
         self.db_writer: DatabaseWriter | None = (
             DatabaseWriter(self.engine, self.logger) if write_db else None
         )
         # Track completed parks for resumability - enables restarting interrupted collections
-        self.completed_parks: Set[str] = (
+        self.completed_parks: set[str] = (
             self.get_completed_parks() if write_db else set()
         )
 
@@ -151,7 +150,7 @@ class OSMHikesCollector:
         self.logger.info(f"Loaded {len(gdf)} park boundaries.")
         return gdf
 
-    def get_completed_parks(self) -> Set[str]:
+    def get_completed_parks(self) -> set[str]:
         """
         Get set of park codes that have already been processed.
 
@@ -505,7 +504,7 @@ class OSMHikesCollector:
             clipped_trails = []
             total_clipped_length = 0.0
 
-            for idx, trail in trails_gdf.iterrows():
+            for _idx, trail in trails_gdf.iterrows():
                 if trail.geometry.intersects(boundary_geom):
                     # Clip the trail to the boundary
                     clipped_geom = trail.geometry.intersection(boundary_geom)

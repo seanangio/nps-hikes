@@ -6,12 +6,9 @@ This module provides analysis and profiling capabilities for USGS elevation data
 including elevation profile charts and quality metrics.
 """
 
-import json
 import os
-from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from sqlalchemy import text
 
@@ -55,8 +52,8 @@ class USGSTrailElevationProfiler:
             return (6, 6)  # 6x6 grid = 36 subplots (max)
 
     def create_elevation_profile_chart(
-        self, trail_name: str, elevation_data: List[Dict], ax=None
-    ) -> Dict | None:
+        self, trail_name: str, elevation_data: list[dict], ax=None
+    ) -> dict | None:
         """Create elevation profile chart for a single trail."""
         if not elevation_data:
             return None
@@ -66,7 +63,7 @@ class USGSTrailElevationProfiler:
 
         # Plot
         if ax is None:
-            fig, ax = plt.subplots(figsize=(8, 4))
+            _fig, ax = plt.subplots(figsize=(8, 4))
 
         ax.plot(distances, elevations, "b-", linewidth=1.5)
         ax.fill_between(distances, elevations, alpha=0.3, color="lightblue")
@@ -79,7 +76,7 @@ class USGSTrailElevationProfiler:
 
         # Convert x-axis to km
         ax.set_xticks(ax.get_xticks())
-        ax.set_xticklabels([f"{x/1000:.1f}" for x in ax.get_xticks()], fontsize=7)
+        ax.set_xticklabels([f"{x / 1000:.1f}" for x in ax.get_xticks()], fontsize=7)
         ax.tick_params(axis="y", labelsize=7)
 
         # Calculate stats
@@ -146,7 +143,7 @@ class USGSTrailElevationProfiler:
                 # elevation_points_data is already a Python list from JSONB
                 elevation_data = elevation_points_data
 
-                self.logger.info(f"Processing trail {i+1}/{num_trails}: {trail_name}")
+                self.logger.info(f"Processing trail {i + 1}/{num_trails}: {trail_name}")
 
                 # Create chart
                 stats = self.create_elevation_profile_chart(
@@ -336,14 +333,14 @@ class USGSTrailElevationProfiler:
                     failed += 1
 
             except Exception as e:
-                self.logger.error(f"❌ Failed to process {park_code}: {str(e)}")
+                self.logger.error(f"❌ Failed to process {park_code}: {e!s}")
                 failed += 1
 
-        self.logger.success(f"🎉 Processing complete!")
+        self.logger.success("🎉 Processing complete!")
         self.logger.info(f"✅ Successful: {successful}")
         self.logger.info(f"❌ Failed: {failed}")
         self.logger.info(
-            f"📁 Elevation matrices saved to: profiling_results/visualizations/elevation_changes/"
+            "📁 Elevation matrices saved to: profiling_results/visualizations/elevation_changes/"
         )
 
         return {"successful": successful, "failed": failed, "total": len(parks)}
@@ -385,7 +382,7 @@ if __name__ == "__main__":
         if result:
             print(f"Elevation matrix created: {result['matrix_path']}")
             if result["summary_data"] is not None:
-                print(f"Summary data:")
+                print("Summary data:")
                 print(result["summary_data"].to_string(index=False))
         else:
             print("No elevation data found for this park")

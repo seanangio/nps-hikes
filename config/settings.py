@@ -108,9 +108,7 @@ class Config:
     OSM_MAX_TRAIL_LENGTH_MILES: float = 200.0  # Increased for aggregated trail segments
 
     # TNM Collection Settings
-    TNM_API_BASE_URL: str = (
-        "https://cartowfs.nationalmap.gov/arcgis/rest/services/transportation/MapServer/8"
-    )
+    TNM_API_BASE_URL: str = "https://cartowfs.nationalmap.gov/arcgis/rest/services/transportation/MapServer/8"
     TNM_DEFAULT_OUTPUT_GPKG: str = "artifacts/tnm_hikes.gpkg"
     TNM_DEFAULT_RATE_LIMIT: float = 1.0
     TNM_TRAIL_AGGREGATION_DISTANCE: float = 50.0  # meters for trail continuity

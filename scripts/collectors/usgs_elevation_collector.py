@@ -48,14 +48,12 @@ import os
 import re
 import sys
 import time
-from typing import Dict, List, Tuple
 
 import geopandas as gpd
 import numpy as np
-import pandas as pd
 import requests
 from pydantic import ValidationError
-from shapely.geometry import LineString, Point
+from shapely.geometry import LineString
 from sqlalchemy import text
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -128,7 +126,7 @@ class USGSElevationCollector:
         """Load elevation cache from disk."""
         try:
             if os.path.exists(self.cache_file):
-                with open(self.cache_file, "r") as f:
+                with open(self.cache_file) as f:
                     self.elevation_cache = json.load(f)
                 self.logger.info(
                     f"Loaded {len(self.elevation_cache)} cached elevation points"
@@ -199,7 +197,7 @@ class USGSElevationCollector:
 
     def sample_trail_elevation(
         self, trail_geometry: LineString
-    ) -> Tuple[List[Dict], str]:
+    ) -> tuple[list[dict], str]:
         """
         Sample elevation along trail at regular intervals.
 
@@ -283,7 +281,7 @@ class USGSElevationCollector:
 
     def collect_park_elevation_data(
         self, park_code: str, force_refresh: bool = False
-    ) -> Dict:
+    ) -> dict:
         """
         Collect elevation data for all matched trails in a park.
 
@@ -395,7 +393,7 @@ class USGSElevationCollector:
 
             # Validate complete profile before database storage
             try:
-                profile = USGSTrailElevationProfile(
+                _profile = USGSTrailElevationProfile(
                     gmaps_location_id=trail_id,
                     trail_name=trail_name,
                     park_code=park_code,
@@ -488,7 +486,7 @@ class USGSElevationCollector:
         self,
         test_limit: int | None = None,
         force_refresh: bool = False,
-    ) -> Dict:
+    ) -> dict:
         """
         Collect elevation data for all parks with matched trails.
 

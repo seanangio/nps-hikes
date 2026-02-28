@@ -131,9 +131,9 @@ def is_valid_geometry(series) -> bool:
     """
     try:
         return series.apply(
-            lambda geom: geom is not None
-            and isinstance(geom, BaseGeometry)
-            and geom.is_valid
+            lambda geom: (
+                geom is not None and isinstance(geom, BaseGeometry) and geom.is_valid
+            )
         ).all()
     except Exception:
         return False
@@ -150,8 +150,9 @@ def is_linestring_type(series) -> bool:
     """
     try:
         return series.apply(
-            lambda geom: geom is not None
-            and isinstance(geom, (LineString, MultiLineString))
+            lambda geom: (
+                geom is not None and isinstance(geom, (LineString, MultiLineString))
+            )
         ).all()
     except Exception:
         return False

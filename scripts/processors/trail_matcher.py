@@ -21,13 +21,11 @@ import math
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple, TypedDict
+from typing import TypedDict
 
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
-from shapely.ops import nearest_points
-from sqlalchemy import text
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -186,7 +184,7 @@ class TrailMatcher:
                 distance_deg = point.distance(trail_geometry)
                 distance_m = distance_deg * 111000
                 return distance_m
-            except:
+            except Exception:
                 return float("inf")
 
     def calculate_confidence_score(
@@ -212,7 +210,7 @@ class TrailMatcher:
 
         return min(1.0, confidence)
 
-    def find_tnm_matches(self, gmaps_point: Dict) -> List[Dict]:
+    def find_tnm_matches(self, gmaps_point: dict) -> list[dict]:
         """
         Find potential TNM trail matches for a GMaps point.
 
@@ -270,7 +268,7 @@ class TrailMatcher:
 
         return matches
 
-    def find_osm_matches(self, gmaps_point: Dict) -> List[Dict]:
+    def find_osm_matches(self, gmaps_point: dict) -> list[dict]:
         """
         Find potential OSM trail matches for a GMaps point.
 
@@ -328,7 +326,7 @@ class TrailMatcher:
 
         return matches
 
-    def match_gmaps_point(self, gmaps_point: Dict) -> Dict:
+    def match_gmaps_point(self, gmaps_point: dict) -> dict:
         """
         Find the best match for a single GMaps point.
 
@@ -398,7 +396,7 @@ class TrailMatcher:
             "matched_trail_geometry": None,
         }
 
-    def create_matched_table(self, matched_data: List[Dict]) -> None:
+    def create_matched_table(self, matched_data: list[dict]) -> None:
         """
         Create the gmaps_hiking_locations_matched table using DatabaseWriter.
 

@@ -28,7 +28,7 @@ from sqlalchemy import text
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from api.database import get_db_engine
-from api.models import Park, ParksResponse, TrailsResponse
+from api.models import ParksResponse, TrailsResponse
 from api.queries import fetch_all_parks, fetch_trails
 
 # Create FastAPI app with metadata for OpenAPI documentation
@@ -137,8 +137,8 @@ async def get_all_parks(
         # Catch any errors and return 500
         raise HTTPException(
             status_code=500,
-            detail=f"Error retrieving parks: {str(e)}",
-        )
+            detail=f"Error retrieving parks: {e!s}",
+        ) from e
 
 
 @app.get(
@@ -243,8 +243,8 @@ async def get_trails(
         # Catch any errors and return 500
         raise HTTPException(
             status_code=500,
-            detail=f"Error retrieving trails: {str(e)}",
-        )
+            detail=f"Error retrieving trails: {e!s}",
+        ) from e
 
 
 @app.get(
@@ -602,8 +602,8 @@ async def get_trail_3d_visualization(
         # Catch any other errors and return 500
         raise HTTPException(
             status_code=500,
-            detail=f"Error retrieving 3D visualization: {str(e)}",
-        )
+            detail=f"Error retrieving 3D visualization: {e!s}",
+        ) from e
 
 
 @app.get("/health", tags=["Health"])

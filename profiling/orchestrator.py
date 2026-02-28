@@ -40,7 +40,7 @@ Examples:
 
 import argparse
 import sys
-from typing import Any, Dict, List, cast
+from typing import Any, cast
 
 from dotenv import load_dotenv
 
@@ -48,7 +48,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
-import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
@@ -61,13 +60,13 @@ class ProfilingOrchestrator:
 
     def __init__(self) -> None:
         self.logger = ProfilingLogger("orchestrator")
-        self.results: Dict[str, Any] = {}
-        self.failed_modules: List[str] = []
+        self.results: dict[str, Any] = {}
+        self.failed_modules: list[str] = []
 
     def _check_dependencies(self, module_name: str) -> bool:
         """Check if module dependencies are satisfied."""
         module_config = PROFILING_MODULES[module_name]
-        dependencies: List[str] = cast(List[str], module_config.get("dependencies", []))
+        dependencies: list[str] = cast(list[str], module_config.get("dependencies", []))
 
         for dep in dependencies:
             if dep not in self.results:
@@ -137,7 +136,7 @@ class ProfilingOrchestrator:
 
             return False
 
-    def run_all_modules(self) -> Dict[str, Any]:
+    def run_all_modules(self) -> dict[str, Any]:
         """Run all enabled profiling modules in dependency order."""
         self.logger.info("Starting profiling orchestration...")
         self.logger.info(f"Output directory: {PROFILING_SETTINGS['output_directory']}")
@@ -155,7 +154,7 @@ class ProfilingOrchestrator:
 
         # Summary
         successful_count = len(self.results)
-        failed_count = len(self.failed_modules)
+        _failed_count = len(self.failed_modules)
         total_count = len(enabled_modules)
 
         self.logger.info(
@@ -167,7 +166,7 @@ class ProfilingOrchestrator:
 
         return self.results
 
-    def run_specific_modules(self, module_names: List[str]) -> Dict[str, Any]:
+    def run_specific_modules(self, module_names: list[str]) -> dict[str, Any]:
         """Run specific modules by name, including their dependencies."""
         # Build execution order with dependencies
         modules_to_run = []
@@ -195,14 +194,14 @@ class ProfilingOrchestrator:
 
         return self.results
 
-    def _get_all_dependencies(self, module_name: str) -> List[str]:
+    def _get_all_dependencies(self, module_name: str) -> list[str]:
         """Get all dependencies for a module recursively."""
         if module_name not in PROFILING_MODULES:
             return []
 
-        all_deps: List[str] = []
+        all_deps: list[str] = []
         module_config = PROFILING_MODULES[module_name]
-        direct_deps: List[str] = cast(List[str], module_config.get("dependencies", []))
+        direct_deps: list[str] = cast(list[str], module_config.get("dependencies", []))
 
         for dep in direct_deps:
             # Get dependencies of dependencies (recursive)
@@ -233,7 +232,7 @@ def run_all_profiling():
     return orchestrator.run_all_modules()
 
 
-def run_specific_profiling(module_names: List[str]):
+def run_specific_profiling(module_names: list[str]):
     """Run specific profiling modules."""
     orchestrator = ProfilingOrchestrator()
     return orchestrator.run_specific_modules(module_names)

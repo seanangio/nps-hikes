@@ -6,10 +6,6 @@ This module provides analysis and profiling capabilities for trail matching resu
 including match performance, confidence distributions, and quality metrics.
 """
 
-from typing import Any, Dict, Optional
-
-import pandas as pd
-
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
     ProfilingLogger,

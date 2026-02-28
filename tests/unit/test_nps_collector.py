@@ -7,7 +7,6 @@ from shapely.geometry import Point
 
 
 class TestNPSDataCollector:
-
     def test_validate_coordinates_valid_input(self, collector):
         """Test coordinate validation with valid inputs."""
         lat, lon = collector._validate_coordinates("36.1085", "-115.1777", "Test Park")
@@ -281,7 +280,7 @@ class TestNPSDataCollector:
         with patch("pandas.read_csv", return_value=df):
             try:
                 collector.load_parks_from_csv("dummy.csv")
-                assert False, "Should have raised ValueError for missing columns"
+                pytest.fail("Should have raised ValueError for missing columns")
             except ValueError as e:
                 assert "CSV missing required columns" in str(e)
 

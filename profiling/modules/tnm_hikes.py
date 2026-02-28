@@ -19,15 +19,12 @@ programmatic and command-line interfaces for analysis.
 
 from __future__ import annotations
 
-import logging
 import os
 import sys
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
-import geopandas as gpd
 import pandas as pd
-from sqlalchemy import Engine, text
 
 # Add project root to path for imports
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -40,7 +37,6 @@ load_dotenv(
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
 )
 
-from config.settings import config
 from scripts.database.db_writer import get_postgres_engine
 from utils.logging import setup_tnm_collector_logging
 
@@ -68,7 +64,7 @@ class TNMHikesProfiler:
 
     def get_trail_statistics(
         self, park_codes: list[str] | None = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get comprehensive trail statistics for specified parks or all parks.
 
@@ -134,7 +130,7 @@ class TNMHikesProfiler:
 
     def get_trail_type_breakdown(
         self, park_codes: list[str] | None = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get breakdown of trails by type and designation.
 
@@ -212,7 +208,7 @@ class TNMHikesProfiler:
 
     def get_data_quality_metrics(
         self, park_codes: list[str] | None = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Assess data quality and completeness for TNM trail data.
 
@@ -322,7 +318,7 @@ class TNMHikesProfiler:
 
     def get_spatial_analysis(
         self, park_codes: list[str] | None = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Perform spatial analysis on trail data.
 
@@ -391,7 +387,7 @@ class TNMHikesProfiler:
 
     def compare_with_osm_data(
         self, park_codes: list[str] | None = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Compare TNM data with OSM data for the same parks.
 
@@ -481,7 +477,7 @@ class TNMHikesProfiler:
         self,
         output_dir: str = "profiling_results",
         park_codes: list[str] | None = None,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Export comprehensive analysis results to files.
 
@@ -497,7 +493,7 @@ class TNMHikesProfiler:
 
         # Create output directory
         os.makedirs(output_dir, exist_ok=True)
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
         exported_files = {}
 
@@ -586,7 +582,7 @@ class TNMHikesProfiler:
 
     def generate_comprehensive_report(
         self, park_codes: list[str] | None = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate a comprehensive analysis report combining all metrics.
 
@@ -601,7 +597,7 @@ class TNMHikesProfiler:
 
         report = {
             "metadata": {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "park_codes_analyzed": park_codes,
                 "analysis_type": "TNM Hikes Comprehensive Report",
             },
@@ -665,7 +661,7 @@ def main():
 
     if report["data_quality_metrics"]:
         quality = report["data_quality_metrics"]["overall_quality"]
-        print(f"\nData Quality:")
+        print("\nData Quality:")
         print(f"  Name Completeness: {quality['name_completeness']}%")
         print(f"  Length Completeness: {quality['length_completeness']}%")
         print(f"  Geometry Completeness: {quality['geometry_completeness']}%")
@@ -682,7 +678,7 @@ def main():
 
     if report["osm_comparison"]:
         comparison = report["osm_comparison"]["summary"]
-        print(f"\nComparison with OSM:")
+        print("\nComparison with OSM:")
         print(f"  TNM Trails: {comparison['total_tnm_trails']}")
         print(f"  OSM Trails: {comparison['total_osm_trails']}")
         print(f"  Parks with Both: {comparison['parks_with_both']}")

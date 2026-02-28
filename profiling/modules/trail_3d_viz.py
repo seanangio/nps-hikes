@@ -30,15 +30,11 @@ from __future__ import annotations
 import argparse
 import os
 import re
-import sys
 import webbrowser
-from typing import Dict, List, Tuple
 
 import geopandas as gpd
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from shapely.geometry import LineString
 from sqlalchemy import text
 
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
@@ -166,7 +162,7 @@ class Trail3DVisualizer:
             self.logger.error(f"Failed to fetch trails for {park_code}: {e}")
             return pd.DataFrame()
 
-    def fetch_trail_data(self, park_code: str, trail_name: str) -> Dict | None:
+    def fetch_trail_data(self, park_code: str, trail_name: str) -> dict | None:
         """
         Fetch trail elevation and geometry data from database.
 
@@ -220,7 +216,7 @@ class Trail3DVisualizer:
             self.logger.error(f"Failed to fetch trail data: {e}")
             return None
 
-    def calculate_trail_stats(self, elevation_points: List[Dict]) -> Dict:
+    def calculate_trail_stats(self, elevation_points: list[dict]) -> dict:
         """
         Calculate trail statistics from elevation data.
 
@@ -297,7 +293,7 @@ class Trail3DVisualizer:
         stats = self.calculate_trail_stats(elevation_points)
 
         # Display stats
-        self.logger.info(f"Trail Statistics:")
+        self.logger.info("Trail Statistics:")
         self.logger.info(
             f"  Distance: {stats['total_distance_mi']:.2f} mi ({stats['total_distance_km']:.2f} km)"
         )
@@ -334,7 +330,7 @@ class Trail3DVisualizer:
         # Convert to GeoDataFrame and project to UTM
         from shapely.geometry import Point
 
-        geometry = [Point(lon, lat) for lon, lat in zip(lons, lats)]
+        geometry = [Point(lon, lat) for lon, lat in zip(lons, lats, strict=True)]
         gdf = gpd.GeoDataFrame(
             {"elevation": elevations}, geometry=geometry, crs="EPSG:4326"
         )
@@ -356,9 +352,9 @@ class Trail3DVisualizer:
         elev_range = elev_max - elev_min
 
         if elev_range > 0:
-            normalized_elevations = [(e - elev_min) / elev_range for e in elevations]
+            _normalized_elevations = [(e - elev_min) / elev_range for e in elevations]
         else:
-            normalized_elevations = [0.5] * len(elevations)
+            _normalized_elevations = [0.5] * len(elevations)
 
         # Create 3D line plot
         fig = go.Figure()
@@ -393,7 +389,7 @@ class Trail3DVisualizer:
                     "<extra></extra>"
                 ),
                 text=[
-                    f"{point['distance_m']/1000:.2f} km" for point in elevation_points
+                    f"{point['distance_m'] / 1000:.2f} km" for point in elevation_points
                 ],
             )
         )
@@ -637,5 +633,5 @@ if __name__ == "__main__":
     # Open in browser if successful
     if result and "output_path" in result and not args.no_open:
         output_path = result["output_path"]
-        print(f"\nOpening visualization in browser...")
+        print("\nOpening visualization in browser...")
         webbrowser.open(f"file://{os.path.abspath(output_path)}")

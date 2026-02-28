@@ -40,20 +40,20 @@ import argparse
 import os
 import sys
 import time
-from typing import Callable, Dict, List, Tuple, cast
+from collections.abc import Callable
+from typing import cast
 
 import geopandas as gpd
 import pandas as pd
 import requests
 from dotenv import load_dotenv
 from pydantic import ValidationError
-from shapely.geometry import Point, shape
+from shapely.geometry import shape
 
 # Load .env before local imports that need env vars
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 import os
-import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -150,7 +150,7 @@ class NPSDataCollector:
             logger.error(f"Could not find CSV file: {csv_path}")
             raise
         except Exception as e:
-            logger.error(f"Error loading CSV file: {str(e)}")
+            logger.error(f"Error loading CSV file: {e!s}")
             raise
 
     def query_park_api(
@@ -180,7 +180,7 @@ class NPSDataCollector:
         # Build the API endpoint URL and parameters once
         endpoint = f"{self.base_url}/parks"
         search_query = f"{park_name} National Park"
-        params: Dict[str, str | int] = {
+        params: dict[str, str | int] = {
             "q": search_query,
             "limit": config.API_RESULT_LIMIT,  # Get multiple results to find the best match
             "sort": "-relevanceScore",
@@ -259,7 +259,7 @@ class NPSDataCollector:
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code >= 500:  # Server errors - retry
                     logger.warning(
-                        f"Server error {e.response.status_code} for park '{park_name}' (attempt {attempt + 1}): {str(e)}"
+                        f"Server error {e.response.status_code} for park '{park_name}' (attempt {attempt + 1}): {e!s}"
                     )
                     if attempt == max_retries:
                         logger.error(
@@ -268,26 +268,26 @@ class NPSDataCollector:
                         return None
                 else:  # Client errors (4xx) - don't retry
                     logger.error(
-                        f"Client error {e.response.status_code} for park '{park_name}': {str(e)}"
+                        f"Client error {e.response.status_code} for park '{park_name}': {e!s}"
                     )
                     return None
 
             except requests.exceptions.RequestException as e:
                 logger.error(
-                    f"Network error for park '{park_name}' (attempt {attempt + 1}): {str(e)}"
+                    f"Network error for park '{park_name}' (attempt {attempt + 1}): {e!s}"
                 )
                 if attempt == max_retries:
                     return None
 
             except Exception as e:
-                logger.error(f"Unexpected error querying park '{park_name}': {str(e)}")
+                logger.error(f"Unexpected error querying park '{park_name}': {e!s}")
                 return None
 
         return None
 
     def extract_park_data(
-        self, park_api_data: Dict, visit_data: pd.Series | Dict | None = None
-    ) -> Dict:
+        self, park_api_data: dict, visit_data: pd.Series | dict | None = None
+    ) -> dict:
         """
         Extract the specific fields needed from the API response.
 
@@ -343,7 +343,7 @@ class NPSDataCollector:
     def fetch_all_national_parks(
         self,
         delay_seconds: float | None = None,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Fetch all National Parks from the NPS API using paginated bulk fetch.
 
@@ -406,7 +406,7 @@ class NPSDataCollector:
                 time.sleep(delay_seconds)
 
             except requests.exceptions.RequestException as e:
-                logger.error(f"Error fetching NPS sites (start={start}): {str(e)}")
+                logger.error(f"Error fetching NPS sites (start={start}): {e!s}")
                 break
 
         logger.info(f"Fetched {len(all_parks)} total NPS sites")
@@ -437,9 +437,9 @@ class NPSDataCollector:
 
     def merge_visit_dates(
         self,
-        api_parks: List[Dict],
+        api_parks: list[dict],
         csv_path: str,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Merge visit dates from the visit log CSV into API-fetched park data.
 
@@ -458,7 +458,7 @@ class NPSDataCollector:
         logger.info(f"Loaded {len(visit_df)} visit records from {csv_path}")
 
         # Build a lookup of API parks by fullName (lowered) for matching
-        parks_by_name: Dict[str, int] = {}
+        parks_by_name: dict[str, int] = {}
         for idx, park in enumerate(api_parks):
             full_name_lower = park.get("fullName", "").lower()
             parks_by_name[full_name_lower] = idx
@@ -618,7 +618,7 @@ class NPSDataCollector:
                 f"Dataset contains {len(df)} parks with {len(df.columns)} columns"
             )
         except Exception as e:
-            logger.error(f"Failed to save results: {str(e)}")
+            logger.error(f"Failed to save results: {e!s}")
             raise
 
     # ==================================
@@ -695,12 +695,14 @@ class NPSDataCollector:
                         validated_boundary = NPSBoundaryResponse(**data)
 
                         # Check if FeatureCollection has any features
-                        if validated_boundary.type == "FeatureCollection":
-                            if not validated_boundary.features:
-                                logger.warning(
-                                    f"No boundary features found for park code: {park_code}"
-                                )
-                                return None
+                        if (
+                            validated_boundary.type == "FeatureCollection"
+                            and not validated_boundary.features
+                        ):
+                            logger.warning(
+                                f"No boundary features found for park code: {park_code}"
+                            )
+                            return None
 
                         logger.info(
                             f"Successfully retrieved boundary data for {park_code}"
@@ -728,7 +730,7 @@ class NPSDataCollector:
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code >= 500:  # Server errors - retry
                     logger.warning(
-                        f"Server error {e.response.status_code} for park '{park_code}' (attempt {attempt + 1}): {str(e)}"
+                        f"Server error {e.response.status_code} for park '{park_code}' (attempt {attempt + 1}): {e!s}"
                     )
                     if attempt == max_retries:
                         logger.error(
@@ -737,26 +739,26 @@ class NPSDataCollector:
                         return None
                 else:  # Client errors (4xx) - don't retry
                     logger.error(
-                        f"Client error {e.response.status_code} for park '{park_code}': {str(e)}"
+                        f"Client error {e.response.status_code} for park '{park_code}': {e!s}"
                     )
                     return None
 
             except requests.exceptions.RequestException as e:
                 logger.error(
-                    f"Network error for park '{park_code}' (attempt {attempt + 1}): {str(e)}"
+                    f"Network error for park '{park_code}' (attempt {attempt + 1}): {e!s}"
                 )
                 if attempt == max_retries:
                     return None
 
             except Exception as e:
                 logger.error(
-                    f"Unexpected error querying boundaries for park '{park_code}': {str(e)}"
+                    f"Unexpected error querying boundaries for park '{park_code}': {e!s}"
                 )
                 return None
 
         return None
 
-    def transform_boundary_data(self, boundary_api_data: Dict, park_code: str) -> Dict:
+    def transform_boundary_data(self, boundary_api_data: dict, park_code: str) -> dict:
         """
         Transform the specific boundary fields needed from the API response.
 
@@ -838,11 +840,11 @@ class NPSDataCollector:
                 logger.warning(f"Unrecognized boundary data structure for {park_code}")
 
         except Exception as e:
-            logger.error(f"Error extracting boundary data for {park_code}: {str(e)}")
+            logger.error(f"Error extracting boundary data for {park_code}: {e!s}")
 
         return extracted_data
 
-    def calculate_bounding_box(self, geometry: Dict) -> str | None:
+    def calculate_bounding_box(self, geometry: dict) -> str | None:
         """
         Calculate bounding box from park geometry and return as string.
 
@@ -896,7 +898,7 @@ class NPSDataCollector:
 
     def process_park_boundaries(
         self,
-        park_codes: List[str],
+        park_codes: list[str],
         delay_seconds: float | None = None,
         limit_for_testing: int | None = None,
         force_refresh: bool = False,
@@ -1099,7 +1101,7 @@ class NPSDataCollector:
             logger.info(f"Boundary results saved to: {output_path}")
             logger.info(f"GeoDataFrame contains {len(gdf)} parks with CRS: {gdf.crs}")
         except Exception as e:
-            logger.error(f"Failed to save boundary results: {str(e)}")
+            logger.error(f"Failed to save boundary results: {e!s}")
             raise
 
     # ===============
@@ -1107,7 +1109,7 @@ class NPSDataCollector:
     # ===============
 
     def _find_best_park_match(
-        self, park_results: List[Dict], search_query: str, original_park_name: str
+        self, park_results: list[dict], search_query: str, original_park_name: str
     ) -> dict | None:
         """
         Find the best matching park from API results using a tiered approach.
@@ -1157,7 +1159,7 @@ class NPSDataCollector:
 
         return best_park
 
-    def _extract_valid_park_codes(self, park_data: pd.DataFrame) -> List[str]:
+    def _extract_valid_park_codes(self, park_data: pd.DataFrame) -> list[str]:
         """
         Extract valid, unique park codes from park data for boundary collection.
 
@@ -1233,7 +1235,7 @@ class NPSDataCollector:
         except (ValueError, TypeError) as e:
             # This should rarely happen since Pydantic validated the data first
             logger.warning(
-                f"Unexpected coordinate conversion error for {park_name}: lat='{lat_value}', lon='{lon_value}' - {str(e)}"
+                f"Unexpected coordinate conversion error for {park_name}: lat='{lat_value}', lon='{lon_value}' - {e!s}"
             )
             return None, None
 
@@ -1275,7 +1277,7 @@ class NPSDataCollector:
             return " / ".join(unique_values)
 
         # Type annotation: pandas agg accepts both callable functions and strings
-        agg_dict: Dict[str, Callable | str] = {}
+        agg_dict: dict[str, Callable | str] = {}
         for col in df.columns:
             if col in ["park_code"]:
                 continue
@@ -1311,18 +1313,18 @@ class NPSDataCollector:
         print("=" * 60)
 
         # Park data summary
-        print(f"Basic park data:")
+        print("Basic park data:")
         print(f"  Parks processed: {len(park_data)}")
         print(f"  Output saved to: {park_output_csv}")
 
         # Boundary data summary
         if not boundary_data.empty:
-            print(f"Boundary data:")
+            print("Boundary data:")
             print(f"  Boundaries processed: {len(boundary_data)}")
             print(f"  Output saved to: {boundary_output_gpkg}")
             print(f"  CRS: {boundary_data.crs}")
         else:
-            print(f"Boundary data: No boundaries collected")
+            print("Boundary data: No boundaries collected")
 
         # Also log the summary for audit trail
         logger.info("=" * 60)
@@ -1578,8 +1580,8 @@ Examples:
                 run_all_profiling()
                 logger.info("Data profiling complete.")
             except Exception as e:
-                logger.error(f"Data profiling failed: {str(e)}")
-                print(f"WARNING: Data profiling failed - {str(e)}")
+                logger.error(f"Data profiling failed: {e!s}")
+                print(f"WARNING: Data profiling failed - {e!s}")
                 print(
                     "Profiling requires database connection and data to be written to DB."
                 )
@@ -1587,8 +1589,8 @@ Examples:
         logger.info("NPS data collection pipeline completed successfully")
 
     except Exception as e:
-        logger.error(f"Pipeline execution failed: {str(e)}")
-        print(f"\nERROR: {str(e)}")
+        logger.error(f"Pipeline execution failed: {e!s}")
+        print(f"\nERROR: {e!s}")
         print(
             "Check the log file 'logs/nps_collector.log' for detailed error information."
         )

@@ -45,8 +45,10 @@ class NPSParkResponse(BaseModel):
         try:
             float(v)
             return v
-        except ValueError:
-            raise ValueError(f"Coordinate value '{v}' cannot be converted to float")
+        except ValueError as e:
+            raise ValueError(
+                f"Coordinate value '{v}' cannot be converted to float"
+            ) from e
 
     @model_validator(mode="after")
     def validate_coordinate_ranges(self):
@@ -171,10 +173,8 @@ class NPSBoundaryResponse(BaseModel):
     @model_validator(mode="after")
     def validate_structure(self):
         """Ensure the response has the appropriate fields for its type."""
-        if self.type == "FeatureCollection":
-            if self.features is None:
-                raise ValueError("FeatureCollection must have 'features' array")
-        elif self.type == "Feature":
-            if self.geometry is None:
-                raise ValueError("Feature must have 'geometry' object")
+        if self.type == "FeatureCollection" and self.features is None:
+            raise ValueError("FeatureCollection must have 'features' array")
+        elif self.type == "Feature" and self.geometry is None:
+            raise ValueError("Feature must have 'geometry' object")
         return self

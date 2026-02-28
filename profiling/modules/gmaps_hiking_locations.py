@@ -6,9 +6,7 @@ This module provides analysis and profiling capabilities for Google Maps hiking
 location data, including summary statistics and park-level analysis.
 """
 
-from typing import Any, Dict, Optional
-
-import pandas as pd
+from typing import Any
 
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
@@ -27,7 +25,7 @@ class GMapsHikingLocationsProfiler:
     def __init__(self):
         self.config = PROFILING_MODULES.get("gmaps_hiking_locations", {})
         self.logger = ProfilingLogger("gmaps_hiking_locations")
-        self.results: Dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
 
     def run_basic_summary(self):
         """Run basic summary analysis."""
@@ -117,7 +115,7 @@ class GMapsHikingLocationsProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_all(self) -> Dict[str, Any]:
+    def run_all(self) -> dict[str, Any]:
         """Run all profiling methods."""
         try:
             self.logger.info("Starting Google Maps hiking locations profiling...")
@@ -143,7 +141,7 @@ class GMapsHikingLocationsProfiler:
             return {}
 
 
-def run_gmaps_hiking_locations() -> Dict[str, Any]:
+def run_gmaps_hiking_locations() -> dict[str, Any]:
     """Top-level function to run Google Maps hiking locations profiling."""
     profiler = GMapsHikingLocationsProfiler()
     return profiler.run_all()

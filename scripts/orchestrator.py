@@ -39,12 +39,10 @@ Features:
 from __future__ import annotations
 
 import argparse
-import logging
 import os
 import subprocess
 import sys
 import time
-from typing import List, Tuple
 
 # Add project root to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -168,7 +166,7 @@ class DataCollectionOrchestrator:
                     conn.execute(text("SELECT 1"))
                 self.logger.info("✅ Database connectivity verified")
             except Exception as e:
-                self.logger.error(f"❌ Database connectivity check failed: {str(e)}")
+                self.logger.error(f"❌ Database connectivity check failed: {e!s}")
                 self.logger.error(
                     "Please verify database configuration and connectivity"
                 )
@@ -267,7 +265,7 @@ class DataCollectionOrchestrator:
             self.logger.error(f"❌ {step_name} timed out after {timeout_used} seconds")
             return False
         except Exception as e:
-            self.logger.error(f"❌ {step_name} failed with exception: {str(e)}")
+            self.logger.error(f"❌ {step_name} failed with exception: {e!s}")
             return False
 
     def _log_success_summary(self, total_steps: int) -> None:
@@ -275,7 +273,7 @@ class DataCollectionOrchestrator:
         elapsed = time.time() - self.start_time
         elapsed_str = f"{elapsed:.1f} seconds"
         if elapsed > 60:
-            elapsed_str = f"{elapsed/60:.1f} minutes"
+            elapsed_str = f"{elapsed / 60:.1f} minutes"
 
         self.logger.info("🎉 Pipeline completed successfully!")
         self.logger.info(f"📊 Summary: {total_steps}/{total_steps} steps completed")
@@ -289,7 +287,7 @@ class DataCollectionOrchestrator:
         elapsed = time.time() - self.start_time
         elapsed_str = f"{elapsed:.1f} seconds"
         if elapsed > 60:
-            elapsed_str = f"{elapsed/60:.1f} minutes"
+            elapsed_str = f"{elapsed / 60:.1f} minutes"
 
         self.logger.error("💥 Pipeline failed!")
         self.logger.error(f"❌ Failed at step {failed_at}/{total_steps}: {failed_step}")
@@ -375,7 +373,7 @@ Notes:
         print("\n🛑 Pipeline interrupted by user")
         return 1
     except Exception as e:
-        print(f"💥 Orchestrator failed with unexpected error: {str(e)}")
+        print(f"💥 Orchestrator failed with unexpected error: {e!s}")
         return 1
 
 

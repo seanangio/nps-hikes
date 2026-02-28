@@ -44,7 +44,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any
 
 import geopandas as gpd
 import pandas as pd
@@ -65,7 +65,6 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import SQLAlchemyError
 
 if TYPE_CHECKING:
     from config.settings import Config
@@ -261,7 +260,7 @@ class DatabaseWriter:
             if not os.path.exists(sql_path):
                 raise FileNotFoundError(f"SQL schema file not found: {sql_path}")
 
-            with open(sql_path, "r") as f:
+            with open(sql_path) as f:
                 sql_content = f.read().strip()
 
             if not sql_content:
@@ -624,7 +623,7 @@ class DatabaseWriter:
         else:
             raise ValueError(f"Unknown table name: {table_name}")
 
-    def get_completed_records(self, table_name: str, key_column: str) -> Set[str]:
+    def get_completed_records(self, table_name: str, key_column: str) -> set[str]:
         """
         Get set of keys for records that already exist in the specified table.
 
@@ -1087,7 +1086,7 @@ class DatabaseWriter:
             self.logger.error(f"Failed to replace spatial data in {table_name}: {e}")
             raise
 
-    def truncate_tables(self, table_names: List[str]) -> None:
+    def truncate_tables(self, table_names: list[str]) -> None:
         """
         Truncate (delete all rows from) the specified tables.
 
@@ -1112,7 +1111,7 @@ class DatabaseWriter:
                 except Exception as e:
                     self.logger.error(f"Failed to truncate table '{table}': {e}")
 
-    def get_table_info(self, table_name: str) -> Dict[str, Any]:
+    def get_table_info(self, table_name: str) -> dict[str, Any]:
         """
         Get information about a table including row count and schema.
 

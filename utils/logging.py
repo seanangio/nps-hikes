@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from config.settings import Config
@@ -97,10 +97,7 @@ def setup_logging(
     )
 
     # Get logger (root logger if no name specified)
-    if logger_name:
-        logger = logging.getLogger(logger_name)
-    else:
-        logger = logging.getLogger()
+    logger = logging.getLogger(logger_name) if logger_name else logging.getLogger()
 
     # Set level
     logger.setLevel(getattr(logging, log_level.upper()))

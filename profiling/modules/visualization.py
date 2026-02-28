@@ -13,18 +13,14 @@ from dotenv import load_dotenv
 # Load environment variables before importing config-dependent modules
 load_dotenv()
 
-import os
-import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 import geopandas as gpd
-import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import pandas as pd
 from shapely import wkb
 from shapely.geometry import Point, box
-from sqlalchemy import text
 
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import ProfilingLogger, get_db_connection
@@ -112,7 +108,7 @@ class VisualizationProfiler:
         gmaps_locations = pd.read_sql(gmaps_query, engine)
 
         # Create the map with better color scheme
-        fig, ax = plt.subplots(1, 1, figsize=(12, 10))
+        _fig, ax = plt.subplots(1, 1, figsize=(12, 10))
 
         # Set background color to light gray for better contrast
         ax.set_facecolor("#f8f9fa")
@@ -261,7 +257,7 @@ class VisualizationProfiler:
         # Track used positions to avoid overlaps
         used_positions = []
 
-        for idx, location in gmaps_locations.iterrows():
+        for _idx, location in gmaps_locations.iterrows():
             name = location["name"] or "Unnamed"
             lon = location["lon"]
             lat = location["lat"]

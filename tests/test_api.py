@@ -55,9 +55,7 @@ class TestParksEndpoint:
         mock_result.fetchall.return_value = sample_parks_response[
             "rows_without_description"
         ]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request
         response = client.get("/parks")
@@ -91,9 +89,7 @@ class TestParksEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = sample_parks_response["rows"]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request with include_description=true
         response = client.get("/parks?include_description=true")
@@ -117,9 +113,7 @@ class TestParksEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = []
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request
         response = client.get("/parks")
@@ -141,9 +135,7 @@ class TestParksEndpoint:
         mock_result.fetchall.return_value = sample_parks_response[
             "rows_without_description"
         ]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         response = client.get("/parks?visited=true")
 
@@ -158,9 +150,7 @@ class TestParksEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = []
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         response = client.get("/parks?visited=false")
 
@@ -358,9 +348,7 @@ class TestVisualizationEndpoints:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchone.return_value = None
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request
         response = client.get("/parks/yose/trails/nonexistent_trail/viz/3d")
@@ -446,9 +434,7 @@ class TestTrailsEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = sample_trails_response["rows"]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request
         response = client.get("/trails")
@@ -469,9 +455,7 @@ class TestTrailsEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = [sample_trails_response["rows"][0]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request
         response = client.get("/trails?min_length=10&max_length=20")
@@ -492,9 +476,7 @@ class TestTrailsEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = sample_trails_response["rows"]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request
         response = client.get("/trails?park_code=yose")
@@ -513,9 +495,7 @@ class TestTrailsEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = sample_trails_response["rows"]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request
         response = client.get("/trails?state=CA")
@@ -534,9 +514,7 @@ class TestTrailsEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = [sample_trails_response["rows"][0]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request
         response = client.get("/trails?source=TNM")
@@ -555,9 +533,7 @@ class TestTrailsEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = [sample_trails_response["rows"][0]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request
         response = client.get("/trails?hiked=true")
@@ -576,9 +552,7 @@ class TestTrailsEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = [sample_trails_response["rows"][1]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request
         response = client.get("/trails?hiked=false")
@@ -597,9 +571,7 @@ class TestTrailsEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = [sample_trails_response["rows"][0]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Make request with multiple filters
         response = client.get("/trails?state=CA&source=TNM&min_length=10&hiked=true")
@@ -716,9 +688,7 @@ class TestQueryFunctions:
         mock_result.fetchall.return_value = sample_parks_response[
             "rows_without_description"
         ]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Call function
         result = fetch_all_parks(include_description=False)
@@ -739,9 +709,7 @@ class TestQueryFunctions:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = sample_parks_response["rows"]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Call function
         result = fetch_all_parks(include_description=True)
@@ -760,9 +728,7 @@ class TestQueryFunctions:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = []
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Call function
         result = fetch_all_parks()
@@ -781,9 +747,7 @@ class TestQueryFunctions:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = sample_trails_response["rows"]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Call function
         result = fetch_trails()
@@ -802,9 +766,7 @@ class TestQueryFunctions:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = [sample_trails_response["rows"][0]]
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Call function with filters
         result = fetch_trails(
@@ -830,9 +792,7 @@ class TestQueryFunctions:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchall.return_value = []
-        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = (
-            mock_result
-        )
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Call function
         result = fetch_trails()

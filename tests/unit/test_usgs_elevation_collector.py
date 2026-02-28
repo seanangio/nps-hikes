@@ -183,7 +183,7 @@ class TestUSGSElevationPointValidation:
         # Create a trail with coordinates that would fail validation
         invalid_geometry = LineString([(-68.2733, 91.0), (-68.2740, 44.3390)])
 
-        elevation_data, status = collector.sample_trail_elevation(invalid_geometry)
+        _elevation_data, _status = collector.sample_trail_elevation(invalid_geometry)
 
         # First point should fail validation due to latitude > 90
         # Validation error should be logged
@@ -282,7 +282,7 @@ class TestUSGSTrailElevationProfileValidation:
 
             # Manually test validation failure by creating invalid profile
             try:
-                profile = USGSTrailElevationProfile(
+                _profile = USGSTrailElevationProfile(
                     gmaps_location_id="ChIJtest123",
                     trail_name="Precipice Trail",
                     park_code="ACAD",  # Uppercase - should fail

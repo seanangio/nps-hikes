@@ -128,7 +128,7 @@ class TestUSGSElevationPoint:
             "longitude": -68.2733,
             "elevation_m": 470.5,
         }
-        with pytest.raises(ValidationError, match="Latitude .* outside valid range"):
+        with pytest.raises(ValidationError, match=r"Latitude .* outside valid range"):
             USGSElevationPoint(**point)
 
     def test_latitude_above_maximum_fails(self):
@@ -140,7 +140,7 @@ class TestUSGSElevationPoint:
             "longitude": -68.2733,
             "elevation_m": 470.5,
         }
-        with pytest.raises(ValidationError, match="Latitude .* outside valid range"):
+        with pytest.raises(ValidationError, match=r"Latitude .* outside valid range"):
             USGSElevationPoint(**point)
 
     def test_longitude_below_minimum_fails(self):
@@ -152,7 +152,7 @@ class TestUSGSElevationPoint:
             "longitude": -181.0,
             "elevation_m": 470.5,
         }
-        with pytest.raises(ValidationError, match="Longitude .* outside valid range"):
+        with pytest.raises(ValidationError, match=r"Longitude .* outside valid range"):
             USGSElevationPoint(**point)
 
     def test_longitude_above_maximum_fails(self):
@@ -164,7 +164,7 @@ class TestUSGSElevationPoint:
             "longitude": 181.0,
             "elevation_m": 470.5,
         }
-        with pytest.raises(ValidationError, match="Longitude .* outside valid range"):
+        with pytest.raises(ValidationError, match=r"Longitude .* outside valid range"):
             USGSElevationPoint(**point)
 
     def test_elevation_below_minimum_fails(self):
@@ -176,7 +176,7 @@ class TestUSGSElevationPoint:
             "longitude": -68.2733,
             "elevation_m": -600.0,
         }
-        with pytest.raises(ValidationError, match="Elevation .* outside valid range"):
+        with pytest.raises(ValidationError, match=r"Elevation .* outside valid range"):
             USGSElevationPoint(**point)
 
     def test_elevation_above_maximum_fails(self):
@@ -188,7 +188,7 @@ class TestUSGSElevationPoint:
             "longitude": -68.2733,
             "elevation_m": 10000.0,
         }
-        with pytest.raises(ValidationError, match="Elevation .* outside valid range"):
+        with pytest.raises(ValidationError, match=r"Elevation .* outside valid range"):
             USGSElevationPoint(**point)
 
     def test_missing_required_field_fails(self):
@@ -458,7 +458,7 @@ class TestUSGSTrailElevationProfile:
             "failed_points_count": 1,  # Has failures but status is COMPLETE
             "total_points_count": 4,
         }
-        with pytest.raises(ValidationError, match="COMPLETE.*but.*points failed"):
+        with pytest.raises(ValidationError, match=r"COMPLETE.*but.*points failed"):
             USGSTrailElevationProfile(**profile)
 
     def test_failed_status_with_low_failure_rate_fails(self, valid_elevation_points):
@@ -473,7 +473,7 @@ class TestUSGSTrailElevationProfile:
             "failed_points_count": 1,  # Only 25% failure rate
             "total_points_count": 4,
         }
-        with pytest.raises(ValidationError, match="FAILED.*but failure rate"):
+        with pytest.raises(ValidationError, match=r"FAILED.*but failure rate"):
             USGSTrailElevationProfile(**profile)
 
     def test_empty_elevation_points_with_failed_status(self):

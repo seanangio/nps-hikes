@@ -31,7 +31,6 @@ import pandas as pd
 import plotly.graph_objects as go
 from adjustText import adjust_text
 from shapely.geometry import Point
-from sqlalchemy import text
 
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import ProfilingLogger, get_db_connection
@@ -259,7 +258,7 @@ class USParkMapProfiler:
             xs = parks_proj.geometry.x.tolist()
             ys = parks_proj.geometry.y.tolist()
             texts = []
-            for (_, park), x, y in zip(parks_proj.iterrows(), xs, ys):
+            for (_, park), x, y in zip(parks_proj.iterrows(), xs, ys, strict=True):
                 color = VISITED_COLOR if park["visited"] else UNVISITED_COLOR
                 t = ax.text(
                     x,
@@ -290,7 +289,7 @@ class USParkMapProfiler:
             data_range = xlim[1] - xlim[0]
             min_arrow_dist = data_range * 0.025  # ~2.5% of map width
 
-            for t, orig_x, orig_y in zip(texts, xs, ys):
+            for t, orig_x, orig_y in zip(texts, xs, ys, strict=True):
                 txt_x, txt_y = t.get_position()
                 dist = ((txt_x - orig_x) ** 2 + (txt_y - orig_y) ** 2) ** 0.5
                 if dist > min_arrow_dist:
@@ -463,8 +462,7 @@ class USParkMapProfiler:
         """Run both static and interactive map generation."""
         parks_df = self._fetch_parks()
         self.logger.info(
-            f"Found {len(parks_df)} parks "
-            f"({int(parks_df['visited'].sum())} visited)"
+            f"Found {len(parks_df)} parks ({int(parks_df['visited'].sum())} visited)"
         )
         self.run_static_map(parks_df)
         self.run_interactive_map(parks_df)

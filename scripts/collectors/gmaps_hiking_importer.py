@@ -24,7 +24,7 @@ import logging
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Tuple, TypedDict
+from typing import TypedDict
 
 import defusedxml.ElementTree as ET
 import pandas as pd
@@ -91,7 +91,7 @@ class GMapsHikingImporter:
             "missing_park_codes": [],
         }
 
-    def _discover_kml_files(self) -> List[str]:
+    def _discover_kml_files(self) -> list[str]:
         """
         Discover all KML files in the configured directory.
 
@@ -113,7 +113,7 @@ class GMapsHikingImporter:
 
         return kml_files
 
-    def parse_kml_directory(self) -> Dict[str, List[Dict]]:
+    def parse_kml_directory(self) -> dict[str, list[dict]]:
         """
         Parse all KML files in the configured directory and extract hiking locations.
 
@@ -126,7 +126,7 @@ class GMapsHikingImporter:
             logger.warning("No KML files found to process")
             return {}
 
-        all_parks_data: Dict[str, List[Dict]] = {}
+        all_parks_data: dict[str, list[dict]] = {}
 
         for kml_file_path in kml_files:
             logger.info(f"Processing KML file: {os.path.basename(kml_file_path)}")
@@ -175,7 +175,7 @@ class GMapsHikingImporter:
                             try:
                                 coords_text = coords_elem.text.strip()
                                 # Parse coordinates: "longitude,latitude,altitude"
-                                lon_str, lat_str, alt_str = coords_text.split(",")
+                                lon_str, lat_str, _alt_str = coords_text.split(",")
                                 lat = float(lat_str)
                                 lon = float(lon_str)
                             except (ValueError, IndexError) as e:
@@ -224,8 +224,8 @@ class GMapsHikingImporter:
         return all_parks_data
 
     def _remove_duplicates(
-        self, parks_data: Dict[str, List[Dict]]
-    ) -> Dict[str, List[Dict]]:
+        self, parks_data: dict[str, list[dict]]
+    ) -> dict[str, list[dict]]:
         """
         Remove duplicate locations based on park_code + location_name.
 
@@ -263,7 +263,7 @@ class GMapsHikingImporter:
         return deduplicated_data
 
     def validate_location(
-        self, location: Dict
+        self, location: dict
     ) -> tuple[bool, float | None, float | None]:
         """
         Validate a location's data.
@@ -339,7 +339,7 @@ class GMapsHikingImporter:
             return lat, lon
 
         except (ValueError, TypeError) as e:
-            logger.warning(f"Could not parse coordinates for {context}: {str(e)}")
+            logger.warning(f"Could not parse coordinates for {context}: {e!s}")
             return None, None
 
     def _get_all_valid_park_codes(self) -> set:
@@ -370,7 +370,7 @@ class GMapsHikingImporter:
             return False
 
     def import_park_locations(
-        self, park_code: str, locations: List[Dict], force_refresh: bool = False
+        self, park_code: str, locations: list[dict], force_refresh: bool = False
     ) -> pd.DataFrame | None:
         """
         Import locations for a specific park.
@@ -448,7 +448,7 @@ class GMapsHikingImporter:
         self.stats["total_locations"] += len(valid_locations)
         return None
 
-    def create_csv_artifact(self, all_locations: List[Dict]) -> None:
+    def create_csv_artifact(self, all_locations: list[dict]) -> None:
         """Create CSV artifact from all locations."""
         if not all_locations:
             logger.warning("No locations to write to CSV")

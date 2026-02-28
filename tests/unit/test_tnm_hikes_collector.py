@@ -178,7 +178,6 @@ def mock_collector():
         patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine"),
         patch("scripts.collectors.tnm_hikes_collector.DatabaseWriter"),
     ):
-
         collector = TNMHikesCollector(
             output_gpkg="test_output.gpkg",
             rate_limit=0.1,
@@ -203,7 +202,6 @@ class TestTNMHikesCollector:
             patch("scripts.collectors.tnm_hikes_collector.get_postgres_engine"),
             patch("scripts.collectors.tnm_hikes_collector.DatabaseWriter"),
         ):
-
             collector = TNMHikesCollector(
                 output_gpkg="test.gpkg",
                 rate_limit=1.0,
@@ -424,7 +422,6 @@ class TestTNMHikesCollector:
             ) as mock_length_filter,
             patch.object(mock_collector, "add_metadata") as mock_metadata,
         ):
-
             # Mock responses
             mock_query.return_value = {
                 "features": [
@@ -463,7 +460,7 @@ class TestTNMHikesCollector:
                 crs="EPSG:4326",
             )
 
-            result = mock_collector.process_trails("acad", sample_park_boundary)
+            _result = mock_collector.process_trails("acad", sample_park_boundary)
 
             # Verify all methods were called
             mock_query.assert_called_once()

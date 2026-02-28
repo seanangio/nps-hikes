@@ -55,7 +55,7 @@ def load_sql_query(module_name, query_filename):
     if not os.path.exists(query_path):
         raise FileNotFoundError(f"SQL query not found: {query_path}")
 
-    with open(query_path, "r") as f:
+    with open(query_path) as f:
         return f.read().strip()
 
 
@@ -99,7 +99,6 @@ class ProfilingLogger:
     def __init__(self, module_name):
         self.module_name = module_name
         # Set up proper logging alongside console output
-        import logging
 
         from utils.logging import setup_logging
 

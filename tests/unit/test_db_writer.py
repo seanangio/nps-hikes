@@ -306,7 +306,6 @@ class TestParksOperations:
             patch.object(writer, "_check_primary_key") as mock_check_pk,
             patch.object(writer, "_upsert_parks") as mock_upsert,
         ):
-
             writer.write_parks(df, mode="upsert")
 
             mock_ensure.assert_called_once_with("parks")
@@ -324,7 +323,6 @@ class TestParksOperations:
             patch.object(writer, "ensure_table_exists") as mock_ensure,
             patch.object(writer, "_append_dataframe") as mock_append,
         ):
-
             writer.write_parks(df, mode="append")
 
             mock_ensure.assert_called_once_with("parks")
@@ -485,7 +483,6 @@ class TestHikesOperations:
             patch.object(writer, "ensure_table_exists") as mock_ensure,
             patch.object(writer, "_append_geodataframe") as mock_append,
         ):
-
             writer.write_osm_hikes(gdf, mode="append")
 
             mock_ensure.assert_called_once_with("osm_hikes")
@@ -500,11 +497,11 @@ class TestHikesOperations:
             {"osm_id": [123], "park_code": ["test"], "geometry": [Point(0, 0)]}
         )
 
-        with patch.object(writer, "ensure_table_exists"):
-            with pytest.raises(
-                NotImplementedError, match="Upsert mode not implemented"
-            ):
-                writer.write_osm_hikes(gdf, mode="upsert")
+        with (
+            patch.object(writer, "ensure_table_exists"),
+            pytest.raises(NotImplementedError, match="Upsert mode not implemented"),
+        ):
+            writer.write_osm_hikes(gdf, mode="upsert")
 
 
 class TestDataFrameOperations:

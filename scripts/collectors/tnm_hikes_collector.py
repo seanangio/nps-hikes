@@ -30,12 +30,11 @@ Data Processing Pipeline:
 from __future__ import annotations
 
 import argparse
-import logging
 import os
 import sys
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Set
+from datetime import UTC, datetime
+from typing import Any
 
 import geopandas as gpd
 import pandas as pd
@@ -43,15 +42,12 @@ import requests
 from dotenv import load_dotenv
 from pandera.errors import SchemaError, SchemaErrors
 from pydantic import ValidationError
-from shapely.geometry import LineString, MultiLineString, MultiPolygon, Polygon
 from shapely.ops import linemerge
-from sqlalchemy import Engine
 
 # Load .env before local imports that need env vars
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 import os
-import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -110,7 +106,7 @@ class TNMHikesCollector:
         self.db_writer = DatabaseWriter(self.engine, self.logger) if write_db else None
 
         # Track completion state
-        self.timestamp = datetime.now(timezone.utc).isoformat()
+        self.timestamp = datetime.now(UTC).isoformat()
 
         self.logger.info(
             f"TNM Hikes Collector initialized - Output: {output_gpkg}, "
@@ -145,7 +141,7 @@ class TNMHikesCollector:
         self.logger.info(f"Loaded {len(gdf)} park boundaries with bbox data.")
         return gdf
 
-    def get_completed_parks(self) -> Set[str]:
+    def get_completed_parks(self) -> set[str]:
         """
         Get set of park codes that have already been processed.
 
@@ -223,7 +219,7 @@ class TNMHikesCollector:
             return None
 
     def load_trails_to_geodataframe(
-        self, response: Dict[str, Any], park_code: str
+        self, response: dict[str, Any], park_code: str
     ) -> gpd.GeoDataFrame:
         """
         Load TNM API response into a GeoDataFrame.
@@ -297,7 +293,7 @@ class TNMHikesCollector:
         }
 
         # Rename columns that exist in the dataframe
-        existing_columns = [col for col in column_mapping.keys() if col in gdf.columns]
+        existing_columns = [col for col in column_mapping if col in gdf.columns]
         if existing_columns:
             rename_dict = {col: column_mapping[col] for col in existing_columns}
             gdf = gdf.rename(columns=rename_dict)
@@ -413,7 +409,7 @@ class TNMHikesCollector:
             clipped_trails = []
             total_clipped_length = 0.0
 
-            for idx, trail in trails_gdf.iterrows():
+            for _idx, trail in trails_gdf.iterrows():
                 if trail.geometry.intersects(boundary_geom):
                     # Clip the trail to the boundary
                     clipped_geom = trail.geometry.intersection(boundary_geom)
@@ -429,7 +425,7 @@ class TNMHikesCollector:
                             continue
 
                         # Create a trail record for each clipped segment
-                        for i, geom in enumerate(clipped_geometries):
+                        for _i, geom in enumerate(clipped_geometries):
                             trail_copy = trail.copy()
                             trail_copy.geometry = geom
 

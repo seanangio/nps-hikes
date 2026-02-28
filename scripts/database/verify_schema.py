@@ -16,15 +16,12 @@ This will:
 5. Report any issues found
 """
 
-import logging
 import os
 import sys
-from typing import Any, Dict, List
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from sqlalchemy import inspect, text
-from sqlalchemy.exc import SQLAlchemyError
 
 from scripts.database.db_writer import get_postgres_engine
 
@@ -70,7 +67,7 @@ def verify_coordinate_precision(engine, logger) -> bool:
 
                     row = result.fetchone()
                     if row:
-                        data_type, precision, scale = row
+                        _data_type, precision, scale = row
                         if col_name == "latitude":
                             expected_precision, expected_scale = 10, 8
                         else:  # longitude
@@ -124,7 +121,7 @@ def verify_trail_length_precision(engine, logger) -> bool:
 
                 row = result.fetchone()
                 if row:
-                    data_type, precision, scale = row
+                    _data_type, precision, scale = row
                     expected_precision, expected_scale = 8, 3
 
                     if precision == expected_precision and scale == expected_scale:
