@@ -48,6 +48,7 @@ import os
 import re
 import sys
 import time
+from typing import Literal, cast
 
 import geopandas as gpd
 import numpy as np
@@ -71,7 +72,9 @@ from utils.logging import setup_logging
 class USGSElevationCollector:
     """Collect elevation data for matched trails using USGS API."""
 
-    def __init__(self, write_db: bool = True, logger=None):
+    def __init__(
+        self, write_db: bool = True, logger: logging.Logger | None = None
+    ) -> None:
         """
         Initialize the collector.
 
@@ -122,7 +125,7 @@ class USGSElevationCollector:
         name = name.strip("_")
         return name
 
-    def _load_cache(self):
+    def _load_cache(self) -> None:
         """Load elevation cache from disk."""
         try:
             if os.path.exists(self.cache_file):
@@ -135,7 +138,7 @@ class USGSElevationCollector:
             self.logger.error(f"Failed to load elevation cache: {e}")
             self.elevation_cache = {}
 
-    def _save_cache(self):
+    def _save_cache(self) -> None:
         """Save elevation cache to disk."""
         try:
             os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
@@ -398,8 +401,10 @@ class USGSElevationCollector:
                     trail_name=trail_name,
                     park_code=park_code,
                     source=source,
-                    elevation_points=elevation_data,
-                    collection_status=collection_status,
+                    elevation_points=cast(list[USGSElevationPoint], elevation_data),
+                    collection_status=cast(
+                        Literal["COMPLETE", "PARTIAL", "FAILED"], collection_status
+                    ),
                     failed_points_count=failed_points,
                     total_points_count=total_points,
                 )
@@ -592,7 +597,7 @@ class USGSElevationCollector:
         return final_results
 
 
-def main():
+def main() -> None:
     """Main function for elevation data collection."""
     parser = argparse.ArgumentParser(
         description="Collect USGS elevation data for trails",

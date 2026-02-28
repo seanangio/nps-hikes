@@ -6,6 +6,8 @@ the parks, park_boundaries, and osm_hikes tables. It focuses on referential
 integrity, consistency, and duplicate detection that spans multiple tables.
 """
 
+from typing import Any
+
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
     ProfilingLogger,
@@ -20,12 +22,12 @@ from ..utils import (
 class DataQualityProfiler:
     """Data quality profiling module."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = PROFILING_MODULES["data_quality"]
         self.logger = ProfilingLogger("data_quality")
-        self.results = {}
+        self.results: dict[str, Any] = {}
 
-    def run_referential_integrity(self):
+    def run_referential_integrity(self) -> None:
         """Run referential integrity checks."""
         try:
             query = load_sql_query("data_quality", "referential_integrity.sql")
@@ -51,7 +53,7 @@ class DataQualityProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_data_consistency(self):
+    def run_data_consistency(self) -> None:
         """Run data consistency checks."""
         try:
             query = load_sql_query("data_quality", "data_consistency.sql")
@@ -77,7 +79,7 @@ class DataQualityProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_missing_data_summary(self):
+    def run_missing_data_summary(self) -> None:
         """Run missing data summary analysis."""
         try:
             query = load_sql_query("data_quality", "missing_data_summary.sql")
@@ -103,7 +105,7 @@ class DataQualityProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_duplicate_detection(self):
+    def run_duplicate_detection(self) -> None:
         """Run duplicate detection analysis."""
         try:
             query = load_sql_query("data_quality", "duplicate_detection.sql")
@@ -129,7 +131,7 @@ class DataQualityProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_all(self):
+    def run_all(self) -> dict[str, Any]:
         """Run all data quality checks."""
         # Run each query defined in config
         for query_file in self.config["queries"]:
@@ -145,7 +147,7 @@ class DataQualityProfiler:
 
 
 # Convenience function for external use
-def run_data_quality():
+def run_data_quality() -> dict[str, Any]:
     """Convenience function to run data quality profiling."""
     profiler = DataQualityProfiler()
     return profiler.run_all()

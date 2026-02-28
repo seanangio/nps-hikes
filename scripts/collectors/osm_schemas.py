@@ -9,9 +9,13 @@ Two schemas are provided:
 2. OSMProcessedTrailsSchema - validates data before saving to file/database
 """
 
+from __future__ import annotations
+
 import os
 import sys
+from typing import Any
 
+import pandas as pd
 import pandera.pandas as pa
 from pandera.pandas import Check, Column, DataFrameSchema
 from shapely.geometry import LineString, MultiLineString
@@ -22,7 +26,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from config.settings import config
 
 
-def is_valid_geometry(series) -> bool:
+def is_valid_geometry(series: pd.Series[Any]) -> bool:
     """Check if all geometries in series are valid using Shapely.
 
     Args:
@@ -32,16 +36,20 @@ def is_valid_geometry(series) -> bool:
         bool: True if all geometries are valid, False otherwise
     """
     try:
-        return series.apply(
-            lambda geom: (
-                geom is not None and isinstance(geom, BaseGeometry) and geom.is_valid
-            )
-        ).all()
+        return bool(
+            series.apply(
+                lambda geom: (
+                    geom is not None
+                    and isinstance(geom, BaseGeometry)
+                    and geom.is_valid
+                )
+            ).all()
+        )
     except Exception:
         return False
 
 
-def is_linestring_type(series) -> bool:
+def is_linestring_type(series: pd.Series[Any]) -> bool:
     """Check if all geometries in series are LineString or MultiLineString.
 
     Args:
@@ -51,16 +59,18 @@ def is_linestring_type(series) -> bool:
         bool: True if all geometries are LineString or MultiLineString
     """
     try:
-        return series.apply(
-            lambda geom: (
-                geom is not None and isinstance(geom, (LineString, MultiLineString))
-            )
-        ).all()
+        return bool(
+            series.apply(
+                lambda geom: (
+                    geom is not None and isinstance(geom, (LineString, MultiLineString))
+                )
+            ).all()
+        )
     except Exception:
         return False
 
 
-def is_positive_integer(series) -> bool:
+def is_positive_integer(series: pd.Series[Any]) -> bool:
     """Check if all values in series are positive integers.
 
     Args:
@@ -70,7 +80,7 @@ def is_positive_integer(series) -> bool:
         bool: True if all values are positive integers
     """
     try:
-        return (series > 0).all()
+        return bool((series > 0).all())
     except (ValueError, TypeError):
         return False
 

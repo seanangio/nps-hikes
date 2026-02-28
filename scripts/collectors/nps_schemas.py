@@ -1,5 +1,7 @@
 """Pydantic schemas for validating NPS API responses."""
 
+from typing import Self
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -51,7 +53,7 @@ class NPSParkResponse(BaseModel):
             ) from e
 
     @model_validator(mode="after")
-    def validate_coordinate_ranges(self):
+    def validate_coordinate_ranges(self) -> Self:
         """Validate that coordinates are within valid geographic ranges.
 
         Checks that latitude is in [-90, 90] and longitude is in [-180, 180].
@@ -171,7 +173,7 @@ class NPSBoundaryResponse(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_structure(self):
+    def validate_structure(self) -> Self:
         """Ensure the response has the appropriate fields for its type."""
         if self.type == "FeatureCollection" and self.features is None:
             raise ValueError("FeatureCollection must have 'features' array")

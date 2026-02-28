@@ -11,7 +11,7 @@ Three validation stages:
 3. USGSTrailElevationProfile - Validates complete profile before database storage
 """
 
-from typing import Literal
+from typing import Literal, Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -207,7 +207,7 @@ class USGSTrailElevationProfile(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_point_counts(self):
+    def validate_point_counts(self) -> Self:
         """Validate that failed_points_count doesn't exceed total_points_count.
 
         Also validates that collection_status is consistent with point counts

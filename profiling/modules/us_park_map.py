@@ -24,12 +24,15 @@ load_dotenv()
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
+from typing import Any
+
 import cartopy.io.shapereader as shpreader
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.graph_objects as go
 from adjustText import adjust_text
+from matplotlib.axes import Axes
 from shapely.geometry import Point
 
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
@@ -50,17 +53,17 @@ HI_CRS = "+proj=aea +lat_1=19 +lat_2=22 +lat_0=20.5 +lon_0=-157 +datum=NAD83"
 class USParkMapProfiler:
     """US overview map showing visited and unvisited national parks."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = PROFILING_MODULES["us_park_map"]
         self.logger = ProfilingLogger("us_park_map")
-        self.results = {}
+        self.results: dict[str, Any] = {}
 
         self.output_dir = (
             f"{PROFILING_SETTINGS['output_directory']}/visualizations/us_park_map"
         )
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def _fetch_parks(self):
+    def _fetch_parks(self) -> pd.DataFrame:
         """Fetch all parks with coordinates and visit status."""
         engine = get_db_connection()
         query = """
@@ -74,7 +77,7 @@ class USParkMapProfiler:
         df["visited"] = df["visit_year"].notna()
         return df
 
-    def _fetch_boundaries(self):
+    def _fetch_boundaries(self) -> gpd.GeoDataFrame:
         """Fetch park boundary geometries for the interactive map."""
         engine = get_db_connection()
         query = """
@@ -85,7 +88,7 @@ class USParkMapProfiler:
         """
         return gpd.read_postgis(query, engine, geom_col="geometry")
 
-    def _load_us_states_gdf(self):
+    def _load_us_states_gdf(self) -> gpd.GeoDataFrame:
         """Load US state geometries as a GeoDataFrame in WGS84."""
         shpfilename = shpreader.natural_earth(
             resolution="50m",
@@ -96,7 +99,7 @@ class USParkMapProfiler:
         us = all_states[all_states["admin"] == "United States of America"].copy()
         return us
 
-    def _parks_to_gdf(self, parks_df):
+    def _parks_to_gdf(self, parks_df: pd.DataFrame) -> gpd.GeoDataFrame:
         """Convert parks DataFrame to a GeoDataFrame in WGS84."""
         geometry = [
             Point(row["longitude"], row["latitude"]) for _, row in parks_df.iterrows()
@@ -107,7 +110,7 @@ class USParkMapProfiler:
     #  Static map (geopandas + matplotlib)
     # ------------------------------------------------------------------ #
 
-    def run_static_map(self, parks_df):
+    def run_static_map(self, parks_df: pd.DataFrame) -> None:
         """Create a static US map with AK/HI insets using geopandas."""
         try:
             self.logger.info("Creating static US park map...")
@@ -151,16 +154,16 @@ class USParkMapProfiler:
             )
 
             # --- CONUS (main axes) ---
-            ax_main = fig.add_axes([0.0, 0.0, 1.0, 0.95])
+            ax_main = fig.add_axes((0.0, 0.0, 1.0, 0.95))
             self._plot_panel(ax_main, conus_states_proj, conus_parks_proj)
 
             # --- Alaska inset (overlaps bottom-left of CONUS) ---
-            ax_ak = fig.add_axes([0.0, 0.0, 0.24, 0.24])
+            ax_ak = fig.add_axes((0.0, 0.0, 0.24, 0.24))
             self._plot_panel(ax_ak, ak_states_proj, ak_parks_proj)
             self._add_inset_border(ax_ak)
 
             # --- Hawaii inset (right of Alaska, tight fit) ---
-            ax_hi = fig.add_axes([0.23, 0.0, 0.12, 0.15])
+            ax_hi = fig.add_axes((0.23, 0.0, 0.12, 0.15))
             self._plot_panel(ax_hi, hi_states_proj, hi_parks_proj)
             self._add_inset_border(ax_hi)
             # Tighten Hawaii xlim to remove left-side padding
@@ -213,14 +216,16 @@ class USParkMapProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def _add_inset_border(self, ax):
+    def _add_inset_border(self, ax: Axes) -> None:
         """Draw a thin border around an inset axes to separate from CONUS."""
         for spine in ax.spines.values():
             spine.set_visible(True)
             spine.set_edgecolor("#cccccc")
             spine.set_linewidth(0.8)
 
-    def _plot_panel(self, ax, states_proj, parks_proj):
+    def _plot_panel(
+        self, ax: Axes, states_proj: gpd.GeoDataFrame, parks_proj: gpd.GeoDataFrame
+    ) -> None:
         """Plot states and parks on a plain matplotlib axes."""
         # Draw states
         states_proj.plot(
@@ -311,7 +316,7 @@ class USParkMapProfiler:
     #  Interactive map (Plotly)
     # ------------------------------------------------------------------ #
 
-    def run_interactive_map(self, parks_df):
+    def run_interactive_map(self, parks_df: pd.DataFrame) -> None:
         """Create an interactive Plotly map with park boundaries."""
         try:
             self.logger.info("Creating interactive US park map...")
@@ -428,7 +433,9 @@ class USParkMapProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def _add_boundaries_to_fig(self, fig, boundaries_gdf, visited_codes):
+    def _add_boundaries_to_fig(
+        self, fig: go.Figure, boundaries_gdf: gpd.GeoDataFrame, visited_codes: set[str]
+    ) -> None:
         """Add park boundary polygons as outlines to the Plotly figure."""
         for _, row in boundaries_gdf.iterrows():
             park_code = row["park_code"]
@@ -458,7 +465,7 @@ class USParkMapProfiler:
     #  Entry points
     # ------------------------------------------------------------------ #
 
-    def run_all(self):
+    def run_all(self) -> dict[str, Any]:
         """Run both static and interactive map generation."""
         parks_df = self._fetch_parks()
         self.logger.info(
@@ -469,7 +476,7 @@ class USParkMapProfiler:
         return self.results
 
 
-def run_us_park_map():
+def run_us_park_map() -> dict[str, Any]:
     """Convenience function for orchestrator."""
     profiler = USParkMapProfiler()
     return profiler.run_all()

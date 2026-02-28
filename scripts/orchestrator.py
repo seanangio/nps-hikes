@@ -55,7 +55,7 @@ from utils.logging import setup_logging
 class DataCollectionOrchestrator:
     """Orchestrate the complete data collection pipeline."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the orchestrator with logging and configuration."""
         self.logger = setup_logging(
             log_level=config.LOG_LEVEL,

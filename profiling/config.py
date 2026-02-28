@@ -8,7 +8,26 @@ This centralizes all profiling configuration, making it easy to:
 - Manage dependencies between modules
 """
 
-PROFILING_MODULES = {
+from typing import TypedDict
+
+
+class ModuleConfig(TypedDict):
+    enabled: bool
+    description: str
+    queries: list[str]
+    dependencies: list[str]
+    output_prefix: str
+
+
+class ProfilingSettingsConfig(TypedDict):
+    output_directory: str
+    save_csv: bool
+    print_summaries: bool
+    continue_on_error: bool
+    parallel_execution: bool
+
+
+PROFILING_MODULES: dict[str, ModuleConfig] = {
     "nps_parks": {
         "enabled": True,
         "description": "NPS park statistics and data analysis",
@@ -137,7 +156,7 @@ PROFILING_MODULES = {
 }
 
 # Global profiling settings
-PROFILING_SETTINGS = {
+PROFILING_SETTINGS: ProfilingSettingsConfig = {
     "output_directory": "profiling_results",
     "save_csv": True,
     "print_summaries": False,  # Don't print data to terminal

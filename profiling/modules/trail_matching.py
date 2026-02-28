@@ -6,6 +6,8 @@ This module provides analysis and profiling capabilities for trail matching resu
 including match performance, confidence distributions, and quality metrics.
 """
 
+from typing import Any
+
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
     ProfilingLogger,
@@ -20,12 +22,12 @@ from ..utils import (
 class TrailMatchingProfiler:
     """Trail matching profiling module."""
 
-    def __init__(self):
-        self.config = PROFILING_MODULES.get("trail_matching", {})
+    def __init__(self) -> None:
+        self.config = PROFILING_MODULES["trail_matching"]
         self.logger = ProfilingLogger("trail_matching")
-        self.results = {}
+        self.results: dict[str, Any] = {}
 
-    def run_match_summary(self):
+    def run_match_summary(self) -> None:
         """Run trail matching summary analysis."""
         try:
             self.logger.info("Running trail matching summary analysis...")
@@ -45,7 +47,7 @@ class TrailMatchingProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_confidence_distribution(self):
+    def run_confidence_distribution(self) -> None:
         """Run confidence score distribution analysis."""
         try:
             self.logger.info("Running confidence distribution analysis...")
@@ -65,7 +67,7 @@ class TrailMatchingProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_park_analysis(self):
+    def run_park_analysis(self) -> None:
         """Run park-level trail matching analysis."""
         try:
             self.logger.info("Running park-level trail matching analysis...")
@@ -85,7 +87,7 @@ class TrailMatchingProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_distance_analysis(self):
+    def run_distance_analysis(self) -> None:
         """Run distance analysis for trail matching."""
         try:
             self.logger.info("Running distance analysis...")
@@ -105,7 +107,7 @@ class TrailMatchingProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_unmatched_analysis(self):
+    def run_unmatched_analysis(self) -> None:
         """Run analysis of unmatched points."""
         try:
             self.logger.info("Running unmatched points analysis...")
@@ -125,7 +127,7 @@ class TrailMatchingProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_source_comparison(self):
+    def run_source_comparison(self) -> None:
         """Run TNM vs OSM source comparison analysis."""
         try:
             self.logger.info("Running source comparison analysis...")
@@ -145,7 +147,7 @@ class TrailMatchingProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_all(self):
+    def run_all(self) -> dict[str, Any]:
         """Run all trail matching profiling analyses."""
         self.run_match_summary()
         self.run_confidence_distribution()
@@ -157,13 +159,13 @@ class TrailMatchingProfiler:
 
 
 # Convenience function
-def run_trail_matching_profiling():
+def run_trail_matching_profiling() -> dict[str, Any]:
     """Convenience function to run trail matching profiling."""
     profiler = TrailMatchingProfiler()
     return profiler.run_all()
 
 
-def run_trail_matching():
+def run_trail_matching() -> dict[str, Any]:
     """Top-level function to run trail matching profiling."""
     profiler = TrailMatchingProfiler()
     return profiler.run_all()

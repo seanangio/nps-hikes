@@ -13,7 +13,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 from config.settings import config
 
 
-def test_config():
+def test_config() -> None:
     """Test that configuration is loaded correctly."""
     print("=== Configuration Test ===")
 

@@ -40,6 +40,7 @@ Examples:
 
 import argparse
 import sys
+from collections.abc import Callable
 from typing import Any, cast
 
 from dotenv import load_dotenv
@@ -76,7 +77,7 @@ class ProfilingOrchestrator:
                 return False
         return True
 
-    def _load_module(self, module_name: str):
+    def _load_module(self, module_name: str) -> Callable[..., Any] | None:
         """Dynamically load a profiling module."""
         try:
             # Import the module dynamically
@@ -84,9 +85,9 @@ class ProfilingOrchestrator:
 
             # Look for the main run function
             if hasattr(module, f"run_{module_name}"):
-                return getattr(module, f"run_{module_name}")
+                return cast(Callable[..., Any], getattr(module, f"run_{module_name}"))
             elif hasattr(module, "run_all"):
-                return module.run_all
+                return cast(Callable[..., Any], module.run_all)
             else:
                 self.logger.error(f"No run function found in module {module_name}")
                 return None
@@ -218,7 +219,7 @@ class ProfilingOrchestrator:
 
 
 # Convenience functions for external use
-def run_all_profiling():
+def run_all_profiling() -> dict[str, Any]:
     """
     Run all enabled profiling modules.
 
@@ -232,13 +233,13 @@ def run_all_profiling():
     return orchestrator.run_all_modules()
 
 
-def run_specific_profiling(module_names: list[str]):
+def run_specific_profiling(module_names: list[str]) -> dict[str, Any]:
     """Run specific profiling modules."""
     orchestrator = ProfilingOrchestrator()
     return orchestrator.run_specific_modules(module_names)
 
 
-def list_available_modules():
+def list_available_modules() -> None:
     """List all available profiling modules with their status and description."""
     print("Available Profiling Modules:")
     print("=" * 50)
@@ -252,7 +253,7 @@ def list_available_modules():
         print()
 
 
-def create_argument_parser():
+def create_argument_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser for CLI."""
     parser = argparse.ArgumentParser(
         description="Profiling system orchestrator for NPS hikes data analysis",

@@ -7,9 +7,11 @@ including elevation profile charts and quality metrics.
 """
 
 import os
+from typing import Any
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.axes import Axes
 from sqlalchemy import text
 
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
@@ -23,13 +25,13 @@ from ..utils import (
 class USGSTrailElevationProfiler:
     """USGS trail elevation profiling module."""
 
-    def __init__(self):
-        self.config = PROFILING_MODULES.get("usgs_trail_elevation", {})
+    def __init__(self) -> None:
+        self.config = PROFILING_MODULES["usgs_elevation_viz"]
         self.logger = ProfilingLogger("usgs_trail_elevation")
-        self.results = {}
+        self.results: dict[str, Any] = {}
         self.engine = get_db_connection()
 
-    def calculate_grid_size(self, num_trails: int) -> tuple:
+    def calculate_grid_size(self, num_trails: int) -> tuple[int, int]:
         """Calculate optimal grid size for number of trails."""
         if num_trails <= 4:
             return (2, 2)  # 2x2 grid = 4 subplots
@@ -52,8 +54,11 @@ class USGSTrailElevationProfiler:
             return (6, 6)  # 6x6 grid = 36 subplots (max)
 
     def create_elevation_profile_chart(
-        self, trail_name: str, elevation_data: list[dict], ax=None
-    ) -> dict | None:
+        self,
+        trail_name: str,
+        elevation_data: list[dict[str, Any]],
+        ax: Axes | None = None,
+    ) -> dict[str, float] | None:
         """Create elevation profile chart for a single trail."""
         if not elevation_data:
             return None
@@ -199,7 +204,7 @@ class USGSTrailElevationProfiler:
 
         return output_path
 
-    def run_elevation_summary(self, park_code: str):
+    def run_elevation_summary(self, park_code: str) -> pd.DataFrame | None:
         """Run elevation data summary analysis."""
         try:
             self.logger.info(f"Running elevation summary for park: {park_code}")
@@ -259,7 +264,7 @@ class USGSTrailElevationProfiler:
                 raise
             return None
 
-    def run_park_elevation_profiling(self, park_code: str):
+    def run_park_elevation_profiling(self, park_code: str) -> dict[str, Any] | None:
         """Run complete elevation profiling for a park."""
         self.logger.info(f"Running elevation profiling for park: {park_code}")
 
@@ -283,7 +288,7 @@ class USGSTrailElevationProfiler:
                 raise
             return None
 
-    def get_parks_with_elevation_data(self):
+    def get_parks_with_elevation_data(self) -> list[str]:
         """Get list of all parks that have elevation data."""
         query = """
             SELECT DISTINCT park_code
@@ -298,7 +303,7 @@ class USGSTrailElevationProfiler:
 
         return parks
 
-    def run_all_parks_elevation_profiling(self):
+    def run_all_parks_elevation_profiling(self) -> dict[str, int]:
         """Generate elevation matrices for all parks with elevation data."""
         self.logger.info("🔍 Finding parks with elevation data...")
 
@@ -345,7 +350,7 @@ class USGSTrailElevationProfiler:
 
         return {"successful": successful, "failed": failed, "total": len(parks)}
 
-    def run_all(self, park_code: str | None = None):
+    def run_all(self, park_code: str | None = None) -> dict[str, Any] | None:
         """Run all elevation profiling analyses."""
         if park_code:
             return self.run_park_elevation_profiling(park_code)
@@ -355,7 +360,7 @@ class USGSTrailElevationProfiler:
 
 
 # Convenience function
-def run_usgs_elevation_viz():
+def run_usgs_elevation_viz() -> dict[str, Any] | None:
     """Convenience function to run USGS elevation visualization profiling."""
     profiler = USGSTrailElevationProfiler()
     return profiler.run_all()

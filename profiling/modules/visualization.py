@@ -16,11 +16,15 @@ load_dotenv()
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
+from typing import Any
+
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.axes import Axes
 from shapely import wkb
 from shapely.geometry import Point, box
+from sqlalchemy.engine import Engine
 
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import ProfilingLogger, get_db_connection
@@ -29,10 +33,10 @@ from ..utils import ProfilingLogger, get_db_connection
 class VisualizationProfiler:
     """Enhanced visualization profiling module."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = PROFILING_MODULES["visualization"]
         self.logger = ProfilingLogger("visualization")
-        self.results = {}
+        self.results: dict[str, Any] = {}
 
         # Create output directories
         self.static_dir = (
@@ -40,7 +44,7 @@ class VisualizationProfiler:
         )
         os.makedirs(self.static_dir, exist_ok=True)
 
-    def run_individual_park_maps(self):
+    def run_individual_park_maps(self) -> None:
         """Create static maps for each individual park."""
         try:
             self.logger.info("Creating individual park maps...")
@@ -78,7 +82,9 @@ class VisualizationProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def _create_individual_park_map(self, engine, park):
+    def _create_individual_park_map(
+        self, engine: Engine, park: "pd.Series[Any]"
+    ) -> None:
         """Create a static map for a single park."""
         park_code = park["park_code"]
         park_name = park["park_name"]
@@ -213,7 +219,9 @@ class VisualizationProfiler:
 
         self.logger.info(f"Created map for {park_code}: {output_path}")
 
-    def _plot_gmaps_locations(self, ax, gmaps_locations, park_boundary):
+    def _plot_gmaps_locations(
+        self, ax: Axes, gmaps_locations: pd.DataFrame, park_boundary: Any
+    ) -> int:
         """Plot GMaps locations with smart label positioning."""
         if gmaps_locations.empty:
             return 0
@@ -232,7 +240,9 @@ class VisualizationProfiler:
 
         return len(gmaps_locations)
 
-    def _add_smart_labels(self, ax, gmaps_locations, park_boundary):
+    def _add_smart_labels(
+        self, ax: Axes, gmaps_locations: pd.DataFrame, park_boundary: Any
+    ) -> None:
         """Add smart labels to GMaps locations to avoid overlaps."""
         if gmaps_locations.empty:
             return
@@ -255,7 +265,7 @@ class VisualizationProfiler:
         label_offset = max(park_width, park_height) * 0.02
 
         # Track used positions to avoid overlaps
-        used_positions = []
+        used_positions: list[tuple[float, float]] = []
 
         for _idx, location in gmaps_locations.iterrows():
             name = location["name"] or "Unnamed"
@@ -315,7 +325,12 @@ class VisualizationProfiler:
                 ),
             )
 
-    def _position_overlaps(self, pos, used_positions, min_distance):
+    def _position_overlaps(
+        self,
+        pos: tuple[float, float],
+        used_positions: list[tuple[float, float]],
+        min_distance: float,
+    ) -> bool:
         """Check if a position overlaps with existing positions."""
         for used_pos in used_positions:
             distance = (
@@ -325,14 +340,14 @@ class VisualizationProfiler:
                 return True
         return False
 
-    def run_all(self):
+    def run_all(self) -> dict[str, Any]:
         """Run all visualization methods."""
         self.run_individual_park_maps()
         return self.results
 
 
 # Convenience function
-def run_visualization():
+def run_visualization() -> dict[str, Any]:
     """Convenience function to run visualization profiling."""
     profiler = VisualizationProfiler()
     return profiler.run_all()

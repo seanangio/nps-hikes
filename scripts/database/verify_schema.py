@@ -16,17 +16,18 @@ This will:
 5. Report any issues found
 """
 
+import logging
 import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from sqlalchemy import inspect, text
+from sqlalchemy import Engine, inspect, text
 
 from scripts.database.db_writer import get_postgres_engine
 
 
-def setup_logging():
+def setup_logging() -> logging.Logger:
     """Set up logging for the verification process."""
     from utils.logging import setup_logging as setup_centralized_logging
 
@@ -37,7 +38,7 @@ def setup_logging():
     )
 
 
-def verify_coordinate_precision(engine, logger) -> bool:
+def verify_coordinate_precision(engine: Engine, logger: logging.Logger) -> bool:
     """Verify that coordinate columns have standardized precision."""
     logger.info("🔍 Verifying coordinate precision...")
 
@@ -93,7 +94,7 @@ def verify_coordinate_precision(engine, logger) -> bool:
     return all_correct
 
 
-def verify_trail_length_precision(engine, logger) -> bool:
+def verify_trail_length_precision(engine: Engine, logger: logging.Logger) -> bool:
     """Verify that trail length columns have standardized precision."""
     logger.info("🔍 Verifying trail length precision...")
 
@@ -144,7 +145,7 @@ def verify_trail_length_precision(engine, logger) -> bool:
     return all_correct
 
 
-def verify_constraints(engine, logger) -> bool:
+def verify_constraints(engine: Engine, logger: logging.Logger) -> bool:
     """Verify that validation constraints are properly applied."""
     logger.info("🔍 Verifying validation constraints...")
 
@@ -190,7 +191,7 @@ def verify_constraints(engine, logger) -> bool:
     return all_correct
 
 
-def verify_indexes(engine, logger) -> bool:
+def verify_indexes(engine: Engine, logger: logging.Logger) -> bool:
     """Verify that indexes are properly created."""
     logger.info("🔍 Verifying indexes...")
 
@@ -228,7 +229,7 @@ def verify_indexes(engine, logger) -> bool:
     return all_correct
 
 
-def verify_table_structure(engine, logger) -> bool:
+def verify_table_structure(engine: Engine, logger: logging.Logger) -> bool:
     """Verify that all expected tables exist."""
     logger.info("🔍 Verifying table structure...")
 
@@ -272,7 +273,7 @@ def verify_table_structure(engine, logger) -> bool:
     return all_correct
 
 
-def main():
+def main() -> None:
     """Main function to verify the schema."""
     logger = setup_logging()
 

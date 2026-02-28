@@ -355,7 +355,9 @@ class TNMHikesProfiler:
             df = pd.read_sql(sql, self.engine)
 
             # Parse centroid coordinates
-            def parse_centroid(centroid_text):
+            def parse_centroid(
+                centroid_text: str | None,
+            ) -> tuple[float | None, float | None]:
                 if centroid_text and centroid_text.startswith("POINT("):
                     coords = (
                         centroid_text.replace("POINT(", "").replace(")", "").split()
@@ -612,7 +614,7 @@ class TNMHikesProfiler:
         return report
 
 
-def main():
+def main() -> None:
     """Main function for command-line usage."""
     import argparse
 

@@ -373,7 +373,7 @@ class NPSDataCollector:
         while True:
             try:
                 endpoint = f"{self.base_url}/parks"
-                params = {
+                params: dict[str, str | int] = {
                     "limit": limit,
                     "start": start,
                     "fields": fields,
@@ -1263,7 +1263,7 @@ class NPSDataCollector:
         # Drop rows with missing or empty park_code
         df = df[df["park_code"].notna() & (df["park_code"] != "")]
 
-        def join_unique(series):
+        def join_unique(series: pd.Series[str]) -> str:
             # Split any already-combined values and flatten the list
             all_values = []
             for x in series:
@@ -1341,7 +1341,7 @@ class NPSDataCollector:
         logger.info("=" * 60)
 
 
-def main():
+def main() -> int | None:
     """
     Main function demonstrating the complete NPS data collection pipeline.
 

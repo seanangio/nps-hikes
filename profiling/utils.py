@@ -2,12 +2,15 @@
 Enhanced utilities for the profiling system.
 """
 
+import logging
 import os
 import sys
+from typing import Any
 
 import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import text
+from sqlalchemy.engine import Engine
 
 # Add project root to path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
@@ -20,7 +23,7 @@ from scripts.database.db_writer import get_postgres_engine
 load_dotenv()
 
 
-def get_db_connection():
+def get_db_connection() -> Engine:
     """Get database connection for profiling operations."""
     try:
         # Validate database requirements (profiling only reads from database)
@@ -37,7 +40,7 @@ def get_db_connection():
         raise
 
 
-def load_sql_query(module_name, query_filename):
+def load_sql_query(module_name: str, query_filename: str) -> str:
     """
     Load SQL query from the appropriate module directory.
 
@@ -59,7 +62,9 @@ def load_sql_query(module_name, query_filename):
         return f.read().strip()
 
 
-def run_query(engine, query, params=None):
+def run_query(
+    engine: Engine, query: str, params: dict[str, Any] | None = None
+) -> pd.DataFrame:
     """Execute a query and return results as DataFrame."""
     try:
         with engine.connect() as conn:
@@ -70,7 +75,12 @@ def run_query(engine, query, params=None):
         return pd.DataFrame()
 
 
-def save_results(df, filename, output_dir="profiling_results", prefix=""):
+def save_results(
+    df: pd.DataFrame,
+    filename: str,
+    output_dir: str = "profiling_results",
+    prefix: str = "",
+) -> None:
     """Save profiling results to CSV with optional prefix."""
     os.makedirs(output_dir, exist_ok=True)
 
@@ -82,7 +92,7 @@ def save_results(df, filename, output_dir="profiling_results", prefix=""):
     # Removed verbose file save message - files are saved silently
 
 
-def print_results_summary(df, title):
+def print_results_summary(df: pd.DataFrame, title: str) -> None:
     """Print a formatted summary of query results."""
     print(f"\n=== {title} ===")
     if df.empty:
@@ -96,30 +106,40 @@ def print_results_summary(df, title):
 class ProfilingLogger:
     """Hybrid logging for profiling operations - console output + proper logging."""
 
-    def __init__(self, module_name):
+    def __init__(self, module_name: str) -> None:
         self.module_name = module_name
         # Set up proper logging alongside console output
 
         from utils.logging import setup_logging
 
-        self.logger = setup_logging(
+        self.logger: logging.Logger = setup_logging(
             log_file=f"logs/profiling_{module_name}.log",
             logger_name=f"profiling_{module_name}",
         )
 
-    def info(self, message):
+    def info(self, message: str) -> None:
         # Console output for user visibility
         print(f"[{self.module_name}] {message}")
         # Proper logging for audit trail
         self.logger.info(f"[{self.module_name}] {message}")
 
-    def error(self, message):
+    def error(self, message: str) -> None:
         # Console output for user visibility
         print(f"[{self.module_name}] ERROR: {message}")
         # Proper logging for audit trail
         self.logger.error(f"[{self.module_name}] ERROR: {message}")
 
-    def success(self, message):
+    def debug(self, message: str) -> None:
+        # Debug messages go to log only (not console)
+        self.logger.debug(f"[{self.module_name}] {message}")
+
+    def warning(self, message: str) -> None:
+        # Console output for user visibility
+        print(f"[{self.module_name}] WARNING: {message}")
+        # Proper logging for audit trail
+        self.logger.warning(f"[{self.module_name}] WARNING: {message}")
+
+    def success(self, message: str) -> None:
         # Console output for user visibility
         print(f"[{self.module_name}] ✓ {message}")
         # Proper logging for audit trail

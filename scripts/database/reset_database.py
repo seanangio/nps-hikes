@@ -15,6 +15,7 @@ This will:
 3. Log the entire process for verification
 """
 
+import logging
 import os
 import sys
 
@@ -25,7 +26,7 @@ from sqlalchemy import text
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
 
 
-def setup_logging():
+def setup_logging() -> logging.Logger:
     """Set up logging for the reset process."""
     from utils.logging import setup_logging as setup_centralized_logging
 
@@ -36,7 +37,7 @@ def setup_logging():
     )
 
 
-def main():
+def main() -> None:
     """Main function to reset the database."""
     logger = setup_logging()
 

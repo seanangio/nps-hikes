@@ -152,12 +152,12 @@ class Config:
     LOG_MAX_BYTES: int = 5 * 1024 * 1024  # 5MB
     LOG_BACKUP_COUNT: int = 3
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize configuration by loading from environment variables."""
         self._load_from_env()
         # Removed global validation - now done contextually
 
-    def _load_from_env(self):
+    def _load_from_env(self) -> None:
         """Load configuration values from environment variables."""
         # API settings
         api_key = os.getenv("NPS_API_KEY")
@@ -210,7 +210,7 @@ class Config:
         if log_level:
             self.LOG_LEVEL = log_level
 
-    def validate_for_api_operations(self):
+    def validate_for_api_operations(self) -> None:
         """
         Validate requirements for API-only operations (CSV output).
 
@@ -223,7 +223,7 @@ class Config:
                 "Please set it in your .env file or environment."
             )
 
-    def validate_for_database_operations(self):
+    def validate_for_database_operations(self) -> None:
         """
         Validate requirements for database operations (profiling, OSM collection, etc).
 
@@ -236,7 +236,7 @@ class Config:
                 "Please set it in your .env file or environment."
             )
 
-    def validate_for_api_and_database_operations(self):
+    def validate_for_api_and_database_operations(self) -> None:
         """
         Validate requirements for API collection with database storage (--write-db flag).
 

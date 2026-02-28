@@ -482,7 +482,7 @@ class OSMHikesCollector:
     def clip_trails_to_boundary(
         self,
         trails_gdf: gpd.GeoDataFrame,
-        boundary_geom,
+        boundary_geom: Polygon | MultiPolygon,
         park_code: str,
     ) -> gpd.GeoDataFrame:
         """

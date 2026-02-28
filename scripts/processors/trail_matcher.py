@@ -26,6 +26,7 @@ from typing import TypedDict
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
+from shapely.geometry.base import BaseGeometry
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -149,7 +150,9 @@ class TrailMatcher:
 
         return similarity
 
-    def calculate_distance_to_trail(self, point: Point, trail_geometry) -> float:
+    def calculate_distance_to_trail(
+        self, point: Point, trail_geometry: BaseGeometry
+    ) -> float:
         """
         Calculate minimum distance from point to trail geometry.
 
@@ -565,7 +568,7 @@ class TrailMatcher:
         self.logger.info("=" * 60)
 
 
-def main():
+def main() -> None:
     """Main function."""
     parser = argparse.ArgumentParser(
         description="Match GMaps hiking locations to trail linestrings",

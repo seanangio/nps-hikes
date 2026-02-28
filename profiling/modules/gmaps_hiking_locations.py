@@ -22,12 +22,12 @@ from ..utils import (
 class GMapsHikingLocationsProfiler:
     """Google Maps hiking locations profiling module."""
 
-    def __init__(self):
-        self.config = PROFILING_MODULES.get("gmaps_hiking_locations", {})
+    def __init__(self) -> None:
+        self.config = PROFILING_MODULES["gmaps_hiking_locations"]
         self.logger = ProfilingLogger("gmaps_hiking_locations")
         self.results: dict[str, Any] = {}
 
-    def run_basic_summary(self):
+    def run_basic_summary(self) -> None:
         """Run basic summary analysis."""
         try:
             self.logger.info("Running basic summary analysis...")
@@ -57,7 +57,7 @@ class GMapsHikingLocationsProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_park_analysis(self):
+    def run_park_analysis(self) -> None:
         """Run park-level analysis."""
         try:
             self.logger.info("Running park-level analysis...")
@@ -86,7 +86,7 @@ class GMapsHikingLocationsProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_park_coverage(self):
+    def run_park_coverage(self) -> None:
         """Run park coverage analysis."""
         try:
             self.logger.info("Running park coverage analysis...")

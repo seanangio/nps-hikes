@@ -5,6 +5,8 @@ This module analyzes data from the parks and park_boundaries tables populated by
 It provides insights into park counts, collection status, and data completeness from NPS API sources.
 """
 
+from typing import Any
+
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
     ProfilingLogger,
@@ -19,12 +21,12 @@ from ..utils import (
 class NPSParksProfiler:
     """NPS parks profiling module."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = PROFILING_MODULES["nps_parks"]
         self.logger = ProfilingLogger("nps_parks")
-        self.results = {}
+        self.results: dict[str, Any] = {}
 
-    def run_park_counts_by_state(self):
+    def run_park_counts_by_state(self) -> None:
         """Run park counts by state query."""
         try:
             query = load_sql_query("nps_parks", "park_counts_by_state.sql")
@@ -50,7 +52,7 @@ class NPSParksProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_collection_status_summary(self):
+    def run_collection_status_summary(self) -> None:
         """Run collection status summary query."""
         try:
             query = load_sql_query("nps_parks", "collection_status_summary.sql")
@@ -76,7 +78,7 @@ class NPSParksProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_data_completeness_summary(self):
+    def run_data_completeness_summary(self) -> None:
         """Run data completeness summary query."""
         try:
             query = load_sql_query("nps_parks", "data_completeness_summary.sql")
@@ -102,7 +104,7 @@ class NPSParksProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_all(self):
+    def run_all(self) -> dict[str, Any]:
         """Run all basic statistics queries."""
         # Run each query defined in config
         for query_file in self.config["queries"]:
@@ -118,7 +120,7 @@ class NPSParksProfiler:
 
 
 # Convenience function for external use
-def run_nps_parks():
+def run_nps_parks() -> dict[str, Any]:
     """Convenience function to run NPS parks profiling."""
     profiler = NPSParksProfiler()
     return profiler.run_all()

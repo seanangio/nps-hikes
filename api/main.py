@@ -19,6 +19,7 @@ Usage:
 
 import os
 import sys
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Path, Query
 from fastapi.responses import FileResponse
@@ -51,7 +52,7 @@ app = FastAPI(
 
 
 @app.get("/", tags=["Root"])
-async def root():
+async def root() -> dict[str, Any]:
     """
     Root endpoint returning API information and available endpoints.
 
@@ -102,7 +103,7 @@ async def get_all_parks(
         default=None,
         description="Filter by visit status: true=visited only, false=not yet visited, omit=all parks",
     ),
-):
+) -> dict[str, Any]:
     """
     Get all parks with metadata.
 
@@ -198,7 +199,7 @@ async def get_trails(
         default=None,
         description="Filter by 3D visualization availability. Use true to show only trails with 3D viz, false to show only trails without 3D viz, or omit to show all trails",
     ),
-):
+) -> dict[str, Any]:
     """
     Get trails with optional filters.
 
@@ -264,7 +265,7 @@ async def get_trails(
         404: {"description": "Visualization not available"},
     },
 )
-async def get_us_static_park_map():
+async def get_us_static_park_map() -> FileResponse:
     """
     Get static US park map showing visited and unvisited parks.
 
@@ -310,7 +311,7 @@ async def get_us_static_park_map():
         404: {"description": "Visualization not available"},
     },
 )
-async def get_us_interactive_park_map():
+async def get_us_interactive_park_map() -> FileResponse:
     """
     Get interactive US park map with boundaries and hover tooltips.
 
@@ -366,7 +367,7 @@ async def get_static_map(
         pattern="^[a-z]{4}$",
         examples=["yose", "grca", "zion"],
     ),
-):
+) -> FileResponse:
     """
     Get static trail map visualization for a park.
 
@@ -432,7 +433,7 @@ async def get_elevation_matrix(
         pattern="^[a-z]{4}$",
         examples=["yose", "grca", "zion"],
     ),
-):
+) -> FileResponse:
     """
     Get elevation change matrix visualization for a park.
 
@@ -512,7 +513,7 @@ async def get_trail_3d_visualization(
         ge=1.0,
         le=20.0,
     ),
-):
+) -> FileResponse:
     """
     Get interactive 3D visualization for a specific trail.
 
@@ -607,7 +608,7 @@ async def get_trail_3d_visualization(
 
 
 @app.get("/health", tags=["Health"])
-async def health_check():
+async def health_check() -> dict[str, Any]:
     """
     Health check endpoint to verify API and database connectivity.
 

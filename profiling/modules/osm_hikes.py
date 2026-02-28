@@ -5,6 +5,8 @@ This module analyzes data from the osm_hikes table populated by osm_hikes_collec
 It provides insights into trail counts, lengths, types, and data quality from OSM sources.
 """
 
+from typing import Any
+
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
     ProfilingLogger,
@@ -19,12 +21,12 @@ from ..utils import (
 class OSMHikesProfiler:
     """OSM hiking trails profiling module."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = PROFILING_MODULES["osm_hikes"]
         self.logger = ProfilingLogger("osm_hikes")
-        self.results = {}
+        self.results: dict[str, Any] = {}
 
-    def run_trails_summary_by_park(self):
+    def run_trails_summary_by_park(self) -> None:
         """Run trails summary by park query."""
         try:
             query = load_sql_query("osm_hikes", "trails_summary_by_park.sql")
@@ -50,7 +52,7 @@ class OSMHikesProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_trail_type_analysis(self):
+    def run_trail_type_analysis(self) -> None:
         """Run trail type analysis query."""
         try:
             query = load_sql_query("osm_hikes", "trail_type_analysis.sql")
@@ -76,7 +78,7 @@ class OSMHikesProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_trail_length_distribution(self):
+    def run_trail_length_distribution(self) -> None:
         """Run trail length distribution query."""
         try:
             query = load_sql_query("osm_hikes", "trail_length_distribution.sql")
@@ -102,7 +104,7 @@ class OSMHikesProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_trail_data_quality(self):
+    def run_trail_data_quality(self) -> None:
         """Run trail data quality checks."""
         try:
             query = load_sql_query("osm_hikes", "trail_data_quality.sql")
@@ -128,7 +130,7 @@ class OSMHikesProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_all(self):
+    def run_all(self) -> dict[str, Any]:
         """Run all OSM hikes profiling queries."""
         # Run each query defined in config
         for query_file in self.config["queries"]:
@@ -144,7 +146,7 @@ class OSMHikesProfiler:
 
 
 # Convenience function for external use
-def run_osm_hikes():
+def run_osm_hikes() -> dict[str, Any]:
     """Convenience function to run OSM hikes profiling."""
     profiler = OSMHikesProfiler()
     return profiler.run_all()

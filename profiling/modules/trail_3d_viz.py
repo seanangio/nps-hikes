@@ -31,6 +31,7 @@ import argparse
 import os
 import re
 import webbrowser
+from typing import Any
 
 import geopandas as gpd
 import pandas as pd
@@ -47,10 +48,10 @@ from ..utils import (
 class Trail3DVisualizer:
     """Trail 3D visualization profiling module."""
 
-    def __init__(self):
-        self.config = PROFILING_MODULES.get("trail_3d_viz", {})
+    def __init__(self) -> None:
+        self.config = PROFILING_MODULES["trail_3d_viz"]
         self.logger = ProfilingLogger("trail_3d_viz")
-        self.results = {}
+        self.results: dict[str, Any] = {}
         self.engine = get_db_connection()
 
         # Create output directory
@@ -216,7 +217,9 @@ class Trail3DVisualizer:
             self.logger.error(f"Failed to fetch trail data: {e}")
             return None
 
-    def calculate_trail_stats(self, elevation_points: list[dict]) -> dict:
+    def calculate_trail_stats(
+        self, elevation_points: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """
         Calculate trail statistics from elevation data.
 
@@ -552,7 +555,7 @@ class Trail3DVisualizer:
         park_code: str | None = None,
         trail_name: str | None = None,
         z_exaggeration: float = 5.0,
-    ):
+    ) -> dict[str, Any]:
         """
         Run 3D visualization profiling.
 
@@ -585,7 +588,7 @@ def run_trail_3d_viz(
     park_code: str | None = None,
     trail_name: str | None = None,
     z_exaggeration: float = 5.0,
-):
+) -> dict[str, Any]:
     """Convenience function to run trail 3D visualization profiling."""
     visualizer = Trail3DVisualizer()
     return visualizer.run_all(park_code, trail_name, z_exaggeration)

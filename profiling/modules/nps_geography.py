@@ -6,6 +6,8 @@ populated by nps_collector.py. It provides insights into regional distributions,
 quality, and boundary coverage from NPS API sources.
 """
 
+from typing import Any
+
 from ..config import PROFILING_MODULES, PROFILING_SETTINGS
 from ..utils import (
     ProfilingLogger,
@@ -20,12 +22,12 @@ from ..utils import (
 class NPSGeographyProfiler:
     """NPS geography profiling module."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = PROFILING_MODULES["nps_geography"]
         self.logger = ProfilingLogger("nps_geography")
-        self.results = {}
+        self.results: dict[str, Any] = {}
 
-    def run_regional_breakdown(self):
+    def run_regional_breakdown(self) -> None:
         """Run regional breakdown query."""
         try:
             query = load_sql_query("nps_geography", "regional_breakdown.sql")
@@ -51,7 +53,7 @@ class NPSGeographyProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_coordinate_quality(self):
+    def run_coordinate_quality(self) -> None:
         """Run coordinate quality query."""
         try:
             query = load_sql_query("nps_geography", "coordinate_quality.sql")
@@ -77,7 +79,7 @@ class NPSGeographyProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_boundary_coverage(self):
+    def run_boundary_coverage(self) -> None:
         """Run boundary coverage query."""
         try:
             query = load_sql_query("nps_geography", "boundary_coverage.sql")
@@ -103,7 +105,7 @@ class NPSGeographyProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_all(self):
+    def run_all(self) -> dict[str, Any]:
         """Run all geographic analysis queries."""
         # Run each query defined in config
         for query_file in self.config["queries"]:
@@ -119,7 +121,7 @@ class NPSGeographyProfiler:
 
 
 # Convenience function for external use
-def run_nps_geography():
+def run_nps_geography() -> dict[str, Any]:
     """Convenience function to run NPS geography profiling."""
     profiler = NPSGeographyProfiler()
     return profiler.run_all()

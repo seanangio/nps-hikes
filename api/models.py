@@ -253,7 +253,6 @@ class Park(BaseModel):
                 }
             ]
         },
-        "exclude_none": True,  # Exclude None values from serialization
     }
 
 

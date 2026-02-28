@@ -16,7 +16,7 @@ addopts = "-v --tb=short"
 python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false  # Start permissive, tighten later
+disallow_untyped_defs = true
 ignore_missing_imports = true  # Ignore libraries without type stubs
 plugins = ["pydantic.mypy"]
 

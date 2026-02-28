@@ -583,7 +583,7 @@ class GMapsHikingImporter:
         logger.info("=" * 50)
 
 
-def main():
+def main() -> None:
     """Main function."""
     parser = argparse.ArgumentParser(
         description="Import Google Maps hiking locations from KML files in configured directory"

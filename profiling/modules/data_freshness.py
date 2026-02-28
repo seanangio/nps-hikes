@@ -44,7 +44,7 @@ class DataFreshnessMonitor:
     and categorize it based on staleness thresholds.
     """
 
-    def __init__(self, engine: Engine | None = None):
+    def __init__(self, engine: Engine | None = None) -> None:
         """
         Initialize the data freshness monitor.
 

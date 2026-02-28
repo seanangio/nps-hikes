@@ -9,10 +9,13 @@ The dual validation approach catches:
 - Data quality issues after processing (Pandera)
 """
 
+from __future__ import annotations
+
 import os
 import sys
-from typing import Literal
+from typing import Any, Literal
 
+import pandas as pd
 import pandera.pandas as pa
 from pandera.pandas import Check, Column, DataFrameSchema
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -120,7 +123,7 @@ class TNMFeatureCollection(BaseModel):
 # =============================================================================
 
 
-def is_valid_geometry(series) -> bool:
+def is_valid_geometry(series: pd.Series[Any]) -> bool:
     """Check if all geometries in series are valid using Shapely.
 
     Args:
@@ -130,16 +133,20 @@ def is_valid_geometry(series) -> bool:
         bool: True if all geometries are valid, False otherwise
     """
     try:
-        return series.apply(
-            lambda geom: (
-                geom is not None and isinstance(geom, BaseGeometry) and geom.is_valid
-            )
-        ).all()
+        return bool(
+            series.apply(
+                lambda geom: (
+                    geom is not None
+                    and isinstance(geom, BaseGeometry)
+                    and geom.is_valid
+                )
+            ).all()
+        )
     except Exception:
         return False
 
 
-def is_linestring_type(series) -> bool:
+def is_linestring_type(series: pd.Series[Any]) -> bool:
     """Check if all geometries in series are LineString or MultiLineString.
 
     Args:
@@ -149,11 +156,13 @@ def is_linestring_type(series) -> bool:
         bool: True if all geometries are LineString or MultiLineString
     """
     try:
-        return series.apply(
-            lambda geom: (
-                geom is not None and isinstance(geom, (LineString, MultiLineString))
-            )
-        ).all()
+        return bool(
+            series.apply(
+                lambda geom: (
+                    geom is not None and isinstance(geom, (LineString, MultiLineString))
+                )
+            ).all()
+        )
     except Exception:
         return False
 

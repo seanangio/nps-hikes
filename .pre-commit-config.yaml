@@ -37,6 +37,14 @@ repos:
         types: [markdown]
         pass_filenames: true
 
+      - id: mypy
+        name: mypy
+        entry: mypy scripts/ api/ profiling/ config/
+        language: system
+        types: [python]
+        args: [--config-file=pyproject.toml]
+        pass_filenames: false
+
       - id: check-png-optimization
         name: Check PNG optimization
         entry: python scripts/hooks/check_png_optimization.py

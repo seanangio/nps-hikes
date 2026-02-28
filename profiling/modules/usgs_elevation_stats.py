@@ -21,7 +21,7 @@ from ..utils import (
 class USGSElevationProfiler:
     """USGS elevation profiling module."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = ProfilingLogger("usgs_elevation")
         self.engine = get_db_connection()
 
@@ -128,7 +128,7 @@ class USGSElevationProfiler:
         return all_results
 
 
-def run_usgs_elevation_stats():
+def run_usgs_elevation_stats() -> dict[str, Any]:
     """Top-level function for USGS elevation profiling."""
     profiler = USGSElevationProfiler()
     return profiler.run_all()
