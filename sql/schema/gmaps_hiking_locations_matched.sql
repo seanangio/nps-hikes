@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS gmaps_hiking_locations_matched (
     matched_trail_geometry geometry(GEOMETRY, 4326),
 
     CONSTRAINT fk_gmaps_hiking_locations_matched_gmaps_location_id_gmaps_hiking_locations
-        FOREIGN KEY (gmaps_location_id) REFERENCES gmaps_hiking_locations(id),
+        FOREIGN KEY (gmaps_location_id) REFERENCES gmaps_hiking_locations(id) ON DELETE CASCADE,
     CONSTRAINT fk_gmaps_hiking_locations_matched_park_code_parks
         FOREIGN KEY (park_code) REFERENCES parks(park_code),
 

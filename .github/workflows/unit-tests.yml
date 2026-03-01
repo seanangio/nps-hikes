@@ -35,12 +35,12 @@ jobs:
           NPS_API_KEY: ${{ secrets.NPS_API_KEY || 'test_api_key_12345' }}
           POSTGRES_PASSWORD: test_password
         run: |
-          pytest tests/ -v --tb=short
+          pytest tests/ -v --tb=short -m "not integration"
 
       - name: Generate coverage report (optional)
         if: always()  # Run even if tests fail
         run: |
-          pytest tests/ --cov=. --cov-report=term-missing --cov-report=html
+          pytest tests/ --cov=. --cov-report=term-missing --cov-report=html -m "not integration"
         continue-on-error: true  # Don't fail the build if coverage fails
 
       - name: Upload coverage reports

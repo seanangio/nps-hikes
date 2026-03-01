@@ -982,11 +982,33 @@ class DatabaseWriter:
         """
         Delete all records for a specific park from gmaps_hiking_locations table.
 
+        Also deletes related records from gmaps_hiking_locations_matched table first
+        to avoid foreign key constraint violations.
+
         Args:
             park_code (str): Park code whose records should be deleted
         """
         try:
             with self.engine.begin() as conn:
+                # First delete from child table (matched locations)
+                matched_result = conn.execute(
+                    text(
+                        """
+                        DELETE FROM gmaps_hiking_locations_matched
+                        WHERE gmaps_location_id IN (
+                            SELECT id FROM gmaps_hiking_locations WHERE park_code = :park_code
+                        )
+                        """
+                    ),
+                    {"park_code": park_code},
+                )
+                matched_count = matched_result.rowcount
+                if matched_count > 0:
+                    self.logger.info(
+                        f"Deleted {matched_count} matched records for park {park_code}"
+                    )
+
+                # Then delete from parent table (locations)
                 result = conn.execute(
                     text(
                         "DELETE FROM gmaps_hiking_locations WHERE park_code = :park_code"
@@ -995,7 +1017,7 @@ class DatabaseWriter:
                 )
                 deleted_count = result.rowcount
                 self.logger.info(
-                    f"Deleted {deleted_count} records for park {park_code}"
+                    f"Deleted {deleted_count} location records for park {park_code}"
                 )
         except Exception as e:
             self.logger.error(f"Failed to delete records for park {park_code}: {e}")

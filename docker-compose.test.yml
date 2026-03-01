@@ -1,0 +1,32 @@
+# docker-compose.test.yml
+#
+# Test environment configuration for integration tests.
+# Provides an isolated PostGIS database for running integration tests.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up -d     # Start test database
+#   pytest tests/integration -v                         # Run integration tests
+#   docker compose -f docker-compose.test.yml down -v   # Stop and clean up
+
+services:
+  test-db:
+    image: imresamu/postgis:16-3.4-bookworm
+    container_name: nps-hikes-test-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_TEST_DB:-nps_hikes_test}
+      POSTGRES_USER: ${POSTGRES_TEST_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD:-test_password}
+    ports:
+      - "5434:5432"   # Use port 5434 to avoid conflicts with dev database (5433)
+    volumes:
+      # Mount init script to set up PostGIS extensions
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_TEST_USER:-postgres} -d ${POSTGRES_TEST_DB:-nps_hikes_test}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    tmpfs:
+      # Use tmpfs for faster test database operations (data is not persisted)
+      - /var/lib/postgresql/data
