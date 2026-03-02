@@ -83,6 +83,12 @@ class TestOSMCollectorDatabaseIntegration:
             write_db=True,
         )
 
+        # Override engine and db_writer to use test database (not production)
+        osm_collector.engine = test_db_writer.engine
+        osm_collector.db_writer = test_db_writer
+        # Refresh completed parks list from test database (not production)
+        osm_collector.completed_parks = osm_collector.get_completed_parks()
+
         trails_gdf = osm_collector.collect_all_trails()
 
         # Assert - Verify trails in database
@@ -201,6 +207,12 @@ class TestTNMCollectorDatabaseIntegration:
             log_level="INFO",
             write_db=True,
         )
+
+        # Override engine and db_writer to use test database (not production)
+        tnm_collector.engine = test_db_writer.engine
+        tnm_collector.db_writer = test_db_writer
+        # Refresh completed parks list from test database (not production)
+        tnm_collector.completed_parks = tnm_collector.get_completed_parks()
 
         trails_gdf = tnm_collector.collect_all_trails()
 
