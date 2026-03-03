@@ -31,6 +31,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from api.database import get_db_engine
 from api.models import ParksResponse, TrailsResponse
 from api.queries import fetch_all_parks, fetch_trails
+from utils.exceptions import DatabaseError, NpsHikesError
 
 # Create FastAPI app with metadata for OpenAPI documentation
 app = FastAPI(
@@ -134,8 +135,17 @@ async def get_all_parks(
         )
         return result
 
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable: {e!s}",
+        ) from e
+    except NpsHikesError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving parks: {e!s}",
+        ) from e
     except Exception as e:
-        # Catch any errors and return 500
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving parks: {e!s}",
@@ -240,8 +250,17 @@ async def get_trails(
 
         return result
 
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable: {e!s}",
+        ) from e
+    except NpsHikesError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving trails: {e!s}",
+        ) from e
     except Exception as e:
-        # Catch any errors and return 500
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving trails: {e!s}",
@@ -599,8 +618,17 @@ async def get_trail_3d_visualization(
     except HTTPException:
         # Re-raise HTTP exceptions (like 404)
         raise
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable: {e!s}",
+        ) from e
+    except NpsHikesError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving 3D visualization: {e!s}",
+        ) from e
     except Exception as e:
-        # Catch any other errors and return 500
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving 3D visualization: {e!s}",
@@ -624,6 +652,12 @@ async def health_check() -> dict[str, Any]:
         return {
             "status": "healthy",
             "database": "connected",
+        }
+    except DatabaseError as e:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e),
         }
     except Exception as e:
         return {

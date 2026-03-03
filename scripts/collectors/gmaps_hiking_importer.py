@@ -36,6 +36,7 @@ from sqlalchemy import Engine, text
 
 from config.settings import config
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
+from utils.exceptions import NpsHikesError
 
 # Configure logging using centralized utility
 from utils.logging import setup_logging
@@ -544,6 +545,8 @@ class GMapsHikingImporter:
             # Print summary
             self._print_summary()
 
+        except NpsHikesError:
+            raise
         except Exception as e:
             logger.error(f"Import failed: {e}")
             raise
@@ -621,8 +624,13 @@ def main() -> None:
 
         logger.info("Import completed successfully")
 
-    except Exception as e:
+    except NpsHikesError as e:
         logger.error(f"Import failed: {e}")
+        if e.context:
+            logger.error(f"Context: {e.context}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Import failed with unexpected error: {e}")
         sys.exit(1)
 
 

@@ -32,6 +32,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config.settings import config
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
+from utils.exceptions import DatabaseError, NpsHikesError
 from utils.logging import setup_logging
 
 
@@ -236,6 +237,8 @@ class TrailMatcher:
 
         try:
             tnm_trails = gpd.read_postgis(query, self.engine, geom_col="geometry")
+        except DatabaseError:
+            raise
         except Exception as e:
             self.logger.error(f"Error querying TNM trails for {park_code}: {e}")
             return []
@@ -294,6 +297,8 @@ class TrailMatcher:
 
         try:
             osm_trails = gpd.read_postgis(query, self.engine, geom_col="geometry")
+        except DatabaseError:
+            raise
         except Exception as e:
             self.logger.error(f"Error querying OSM trails for {park_code}: {e}")
             return []
@@ -538,6 +543,8 @@ class TrailMatcher:
             # Print summary
             self._print_summary()
 
+        except NpsHikesError:
+            raise
         except Exception as e:
             self.logger.error(f"Matching process failed: {e}")
             raise
@@ -620,8 +627,13 @@ Examples:
 
         logger.info("Trail matching completed successfully")
 
-    except Exception as e:
+    except NpsHikesError as e:
         logger.error(f"Trail matching failed: {e}")
+        if e.context:
+            logger.error(f"Context: {e.context}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Trail matching failed with unexpected error: {e}")
         sys.exit(1)
 
 

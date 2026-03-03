@@ -69,6 +69,13 @@ from sqlalchemy.dialects.postgresql import insert
 if TYPE_CHECKING:
     from config.settings import Config
 
+from utils.exceptions import (
+    ConfigurationError,
+    DatabaseConnectionError,
+    DatabaseError,
+    DatabaseWriteError,
+)
+
 # Type annotation allows config to be Config or None
 config: Config | None = None
 CONFIG_AVAILABLE = False
@@ -102,13 +109,25 @@ def get_postgres_engine() -> Engine:
         SQLAlchemyError: If database connection cannot be established
     """
     if not CONFIG_AVAILABLE or config is None:
-        raise ValueError("Configuration not available. Cannot create database engine.")
+        raise ConfigurationError(
+            "Configuration not available. Cannot create database engine."
+        )
 
-    # Validate database requirements
+    # Validate database requirements (raises ConfigurationError if missing)
     config.validate_for_database_operations()
 
-    conn_str = config.get_database_url()
-    return create_engine(conn_str)
+    try:
+        conn_str = config.get_database_url()
+        return create_engine(conn_str)
+    except Exception as e:
+        raise DatabaseConnectionError(
+            f"Failed to create database engine: {e}",
+            context={
+                "host": config.DB_HOST,
+                "port": config.DB_PORT,
+                "db": config.DB_NAME,
+            },
+        ) from e
 
 
 class DatabaseWriter:
@@ -258,25 +277,29 @@ class DatabaseWriter:
 
         try:
             if not os.path.exists(sql_path):
-                raise FileNotFoundError(f"SQL schema file not found: {sql_path}")
+                raise DatabaseError(
+                    f"SQL schema file not found: {sql_path}",
+                    context={"table_name": table_name, "sql_path": sql_path},
+                )
 
             with open(sql_path) as f:
                 sql_content = f.read().strip()
 
             if not sql_content:
-                raise ValueError(f"SQL schema file is empty: {sql_path}")
+                raise DatabaseError(
+                    f"SQL schema file is empty: {sql_path}",
+                    context={"table_name": table_name, "sql_path": sql_path},
+                )
 
             return sql_content
 
-        except FileNotFoundError as e:
-            self.logger.error(f"Schema file missing: {e}")
-            raise
-        except ValueError as e:
-            self.logger.error(f"Invalid schema file: {e}")
+        except DatabaseError:
             raise
         except Exception as e:
-            self.logger.error(f"Failed to read schema file {sql_path}: {e}")
-            raise
+            raise DatabaseError(
+                f"Failed to read schema file {sql_path}: {e}",
+                context={"table_name": table_name, "sql_path": sql_path},
+            ) from e
 
     def _create_table_from_sql(self, table_name: str) -> None:
         """
@@ -296,9 +319,13 @@ class DatabaseWriter:
 
             self.logger.info(f"Successfully created table: {table_name}")
 
-        except Exception as e:
-            self.logger.error(f"Failed to create table {table_name}: {e}")
+        except DatabaseError:
             raise
+        except Exception as e:
+            raise DatabaseWriteError(
+                f"Failed to create table {table_name}: {e}",
+                context={"table_name": table_name},
+            ) from e
 
     def _create_all_tables(self) -> None:
         """
@@ -322,13 +349,9 @@ class DatabaseWriter:
 
                 # Check if all dependencies are met
                 if all(dep in created_tables for dep in dependencies):
-                    try:
-                        self._create_table_from_sql(table_name)
-                        created_tables.add(table_name)
-                        progress_made = True
-                    except Exception as e:
-                        self.logger.error(f"Failed to create table {table_name}: {e}")
-                        raise
+                    self._create_table_from_sql(table_name)
+                    created_tables.add(table_name)
+                    progress_made = True
 
             if not progress_made:
                 remaining = set(self.table_dependencies.keys()) - created_tables
@@ -406,8 +429,7 @@ class DatabaseWriter:
             self.logger.info("Successfully dropped all tables and sequences")
 
         except Exception as e:
-            self.logger.error(f"Error dropping tables: {e}")
-            raise
+            raise DatabaseWriteError(f"Error dropping tables: {e}") from e
 
     def reset_database(self) -> None:
         """
@@ -438,9 +460,10 @@ class DatabaseWriter:
                 "All tables have been recreated with the new standardized schema."
             )
 
-        except Exception as e:
-            self.logger.error(f"❌ Database reset failed: {e}")
+        except DatabaseError:
             raise
+        except Exception as e:
+            raise DatabaseWriteError(f"Database reset failed: {e}") from e
 
     def _create_osm_hikes_table(self) -> None:
         """
@@ -879,8 +902,10 @@ class DatabaseWriter:
             df.to_sql(table_name, self.engine, if_exists="append", index=False)
             self.logger.info(f"Appended {len(df)} records to {table_name}")
         except Exception as e:
-            self.logger.error(f"Failed to append data to {table_name}: {e}")
-            raise
+            raise DatabaseWriteError(
+                f"Failed to append data to {table_name}: {e}",
+                context={"table_name": table_name, "row_count": len(df)},
+            ) from e
 
     def _append_geodataframe(self, gdf: gpd.GeoDataFrame, table_name: str) -> None:
         """
@@ -894,8 +919,10 @@ class DatabaseWriter:
             gdf.to_postgis(table_name, self.engine, if_exists="append", index=False)
             self.logger.info(f"Appended {len(gdf)} spatial records to {table_name}")
         except Exception as e:
-            self.logger.error(f"Failed to append spatial data to {table_name}: {e}")
-            raise
+            raise DatabaseWriteError(
+                f"Failed to append spatial data to {table_name}: {e}",
+                context={"table_name": table_name, "row_count": len(gdf)},
+            ) from e
 
     def write_gmaps_hiking_locations(
         self,
@@ -951,8 +978,10 @@ class DatabaseWriter:
             )
             self.logger.info(f"Upserted {len(df)} records to {table_name}")
         except Exception as e:
-            self.logger.error(f"Failed to upsert data to {table_name}: {e}")
-            raise
+            raise DatabaseWriteError(
+                f"Failed to upsert data to {table_name}: {e}",
+                context={"table_name": table_name, "row_count": len(df)},
+            ) from e
 
     def park_exists_in_gmaps_table(self, park_code: str) -> bool:
         """
@@ -1020,8 +1049,10 @@ class DatabaseWriter:
                     f"Deleted {deleted_count} location records for park {park_code}"
                 )
         except Exception as e:
-            self.logger.error(f"Failed to delete records for park {park_code}: {e}")
-            raise
+            raise DatabaseWriteError(
+                f"Failed to delete records for park {park_code}: {e}",
+                context={"park_code": park_code},
+            ) from e
 
     def write_gmaps_hiking_locations_matched(
         self,
@@ -1105,8 +1136,10 @@ class DatabaseWriter:
                 f"Replaced all data in {table_name} with {len(gdf)} spatial records"
             )
         except Exception as e:
-            self.logger.error(f"Failed to replace spatial data in {table_name}: {e}")
-            raise
+            raise DatabaseWriteError(
+                f"Failed to replace spatial data in {table_name}: {e}",
+                context={"table_name": table_name, "row_count": len(gdf)},
+            ) from e
 
     def truncate_tables(self, table_names: list[str]) -> None:
         """
@@ -1131,7 +1164,10 @@ class DatabaseWriter:
                     )
                     self.logger.info(f"Table '{table}' truncated")
                 except Exception as e:
-                    self.logger.error(f"Failed to truncate table '{table}': {e}")
+                    raise DatabaseWriteError(
+                        f"Failed to truncate table '{table}': {e}",
+                        context={"table_name": table},
+                    ) from e
 
     def get_table_info(self, table_name: str) -> dict[str, Any]:
         """

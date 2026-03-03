@@ -16,6 +16,7 @@ from sqlalchemy import Engine, Table
 from sqlalchemy.exc import SQLAlchemyError
 
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
+from utils.exceptions import ConfigurationError, DatabaseWriteError
 
 
 class TestGetPostgresEngine:
@@ -45,19 +46,19 @@ class TestGetPostgresEngine:
     @patch("scripts.database.db_writer.CONFIG_AVAILABLE", False)
     @patch("scripts.database.db_writer.config", None)
     def test_engine_creation_config_unavailable(self):
-        """Test ValueError when configuration is unavailable."""
-        with pytest.raises(ValueError, match="Configuration not available"):
+        """Test ConfigurationError when configuration is unavailable."""
+        with pytest.raises(ConfigurationError, match="Configuration not available"):
             get_postgres_engine()
 
     @patch("scripts.database.db_writer.CONFIG_AVAILABLE", True)
     @patch("scripts.database.db_writer.config")
     def test_engine_creation_invalid_config(self, mock_config):
         """Test when config validation fails."""
-        mock_config.validate_for_database_operations.side_effect = ValueError(
+        mock_config.validate_for_database_operations.side_effect = ConfigurationError(
             "Invalid config"
         )
 
-        with pytest.raises(ValueError, match="Invalid config"):
+        with pytest.raises(ConfigurationError, match="Invalid config"):
             get_postgres_engine()
 
 
@@ -524,7 +525,7 @@ class TestDataFrameOperations:
             mock_logger.info.assert_called_once_with("Appended 2 records to test_table")
 
     def test_append_dataframe_error(self):
-        """Test DataFrame append error handling."""
+        """Test DataFrame append error handling raises DatabaseWriteError."""
         mock_engine = Mock(spec=Engine)
         mock_logger = Mock(spec=logging.Logger)
         writer = DatabaseWriter(mock_engine, mock_logger)
@@ -534,10 +535,8 @@ class TestDataFrameOperations:
         with patch.object(df, "to_sql") as mock_to_sql:
             mock_to_sql.side_effect = Exception("Database error")
 
-            with pytest.raises(Exception, match="Database error"):
+            with pytest.raises(DatabaseWriteError, match="Failed to append"):
                 writer._append_dataframe(df, "test_table")
-
-            mock_logger.error.assert_called_once()
 
     def test_append_geodataframe_success(self):
         """Test successful GeoDataFrame append."""
@@ -558,7 +557,7 @@ class TestDataFrameOperations:
             )
 
     def test_append_geodataframe_error(self):
-        """Test GeoDataFrame append error handling."""
+        """Test GeoDataFrame append error handling raises DatabaseWriteError."""
         mock_engine = Mock(spec=Engine)
         mock_logger = Mock(spec=logging.Logger)
         writer = DatabaseWriter(mock_engine, mock_logger)
@@ -568,10 +567,8 @@ class TestDataFrameOperations:
         with patch.object(gdf, "to_postgis") as mock_to_postgis:
             mock_to_postgis.side_effect = Exception("PostGIS error")
 
-            with pytest.raises(Exception, match="PostGIS error"):
+            with pytest.raises(DatabaseWriteError, match="Failed to append"):
                 writer._append_geodataframe(gdf, "test_table")
-
-            mock_logger.error.assert_called_once()
 
 
 class TestUtilityMethods:
@@ -641,7 +638,7 @@ class TestUtilityMethods:
         assert mock_logger.info.call_count == 4  # 2 "Truncating..." + 2 "truncated"
 
     def test_truncate_tables_error(self):
-        """Test table truncation error handling."""
+        """Test table truncation raises DatabaseWriteError."""
         mock_engine = Mock(spec=Engine)
         mock_connection = Mock()
         mock_connection.execute.side_effect = Exception("Truncate failed")
@@ -653,9 +650,8 @@ class TestUtilityMethods:
 
         writer = DatabaseWriter(mock_engine, mock_logger)
 
-        writer.truncate_tables(["table1"])
-
-        mock_logger.error.assert_called_once()
+        with pytest.raises(DatabaseWriteError, match="Failed to truncate"):
+            writer.truncate_tables(["table1"])
 
     @patch("scripts.database.db_writer.inspect")
     def test_get_table_info_existing_table(self, mock_inspect):
@@ -709,13 +705,13 @@ class TestErrorHandling:
     """Test cases for error handling scenarios."""
 
     def test_database_error_propagation(self):
-        """Test that SQLAlchemy errors are properly propagated."""
+        """Test that SQLAlchemy errors are wrapped in DatabaseWriteError."""
         mock_engine = Mock(spec=Engine)
         mock_engine.begin.side_effect = SQLAlchemyError("Connection failed")
 
         writer = DatabaseWriter(mock_engine)
 
-        with pytest.raises(SQLAlchemyError):
+        with pytest.raises(DatabaseWriteError):
             writer.ensure_table_exists("osm_hikes")
 
     # TODO: Move to integration tests - complex SQLAlchemy mocking

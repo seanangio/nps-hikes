@@ -52,6 +52,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from config.settings import config
 from scripts.collectors.osm_schemas import OSMProcessedTrailsSchema, OSMRawTrailsSchema
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
+from utils.exceptions import (
+    CollectorError,
+    SchemaValidationError,
+)
 from utils.logging import setup_osm_collector_logging
 
 
@@ -257,6 +261,8 @@ class OSMHikesCollector:
                 return gpd.GeoDataFrame()
 
             return trails
+        except SchemaValidationError:
+            raise
         except Exception as e:
             self.logger.error(f"OSM query failed: {e}")
             return gpd.GeoDataFrame()
@@ -391,11 +397,13 @@ class OSMHikesCollector:
                     f"Processed trails for {park_code} passed final schema validation"
                 )
             except (SchemaError, SchemaErrors) as e:
-                self.logger.error(
-                    f"Processed trails for {park_code} failed final schema validation: {e}"
-                )
-                # Return empty GeoDataFrame to skip this park (fail fast approach)
-                return gpd.GeoDataFrame(columns=config.OSM_ALL_COLUMNS)
+                raise SchemaValidationError(
+                    f"Processed trails for {park_code} failed final schema validation: {e}",
+                    context={
+                        "park_code": park_code,
+                        "schema": "OSMProcessedTrailsSchema",
+                    },
+                ) from e
 
         return trails
 
@@ -629,7 +637,11 @@ class OSMHikesCollector:
             polygon = row["geometry"]
             self.logger.info(f"Processing park {park_code}...")
 
-            trails = self.process_trails(park_code, polygon)
+            try:
+                trails = self.process_trails(park_code, polygon)
+            except CollectorError as e:
+                self.logger.error(f"Collection failed for {park_code}: {e}")
+                trails = gpd.GeoDataFrame(columns=config.OSM_ALL_COLUMNS)
 
             if not trails.empty:
                 # Save immediately to both GPKG and DB

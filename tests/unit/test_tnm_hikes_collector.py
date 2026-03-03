@@ -421,6 +421,9 @@ class TestTNMHikesCollector:
                 mock_collector, "filter_by_minimum_length"
             ) as mock_length_filter,
             patch.object(mock_collector, "add_metadata") as mock_metadata,
+            patch(
+                "scripts.collectors.tnm_hikes_collector.TNMProcessedTrailsSchema.validate"
+            ),
         ):
             # Mock responses
             mock_query.return_value = {

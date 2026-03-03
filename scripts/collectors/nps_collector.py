@@ -63,6 +63,12 @@ from scripts.collectors.nps_schemas import (
     NPSParkResponse,
 )
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
+from utils.exceptions import (
+    ApiRequestError,
+    ConfigurationError,
+    DataProcessingError,
+    NpsHikesError,
+)
 from utils.logging import setup_nps_collector_logging
 
 logger = setup_nps_collector_logging()
@@ -86,7 +92,7 @@ class NPSDataCollector:
         """
         self.api_key = api_key or config.API_KEY
         if not self.api_key:
-            raise ValueError(
+            raise ConfigurationError(
                 "API key is required. Set NPS_API_KEY environment variable or pass api_key parameter."
             )
 
@@ -279,6 +285,8 @@ class NPSDataCollector:
                 if attempt == max_retries:
                     return None
 
+            except NpsHikesError:
+                raise
             except Exception as e:
                 logger.error(f"Unexpected error querying park '{park_name}': {e!s}")
                 return None
@@ -406,8 +414,10 @@ class NPSDataCollector:
                 time.sleep(delay_seconds)
 
             except requests.exceptions.RequestException as e:
-                logger.error(f"Error fetching NPS sites (start={start}): {e!s}")
-                break
+                raise ApiRequestError(
+                    f"Error fetching NPS sites (start={start}): {e!s}",
+                    context={"start": start, "limit": limit},
+                ) from e
 
         logger.info(f"Fetched {len(all_parks)} total NPS sites")
 
@@ -750,6 +760,8 @@ class NPSDataCollector:
                 if attempt == max_retries:
                     return None
 
+            except NpsHikesError:
+                raise
             except Exception as e:
                 logger.error(
                     f"Unexpected error querying boundaries for park '{park_code}': {e!s}"
@@ -840,7 +852,10 @@ class NPSDataCollector:
                 logger.warning(f"Unrecognized boundary data structure for {park_code}")
 
         except Exception as e:
-            logger.error(f"Error extracting boundary data for {park_code}: {e!s}")
+            raise DataProcessingError(
+                f"Error extracting boundary data for {park_code}: {e!s}",
+                context={"park_code": park_code},
+            ) from e
 
         return extracted_data
 
@@ -1588,8 +1603,17 @@ Examples:
 
         logger.info("NPS data collection pipeline completed successfully")
 
-    except Exception as e:
+    except NpsHikesError as e:
         logger.error(f"Pipeline execution failed: {e!s}")
+        if e.context:
+            logger.error(f"Error context: {e.context}")
+        print(f"\nERROR: {e!s}")
+        print(
+            "Check the log file 'logs/nps_collector.log' for detailed error information."
+        )
+        return 1
+    except Exception as e:
+        logger.error(f"Pipeline execution failed with unexpected error: {e!s}")
         print(f"\nERROR: {e!s}")
         print(
             "Check the log file 'logs/nps_collector.log' for detailed error information."

@@ -49,6 +49,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from config.settings import config
 from scripts.database.db_writer import get_postgres_engine
+from utils.exceptions import DatabaseConnectionError, NpsHikesError
 from utils.logging import setup_logging
 
 
@@ -165,6 +166,14 @@ class DataCollectionOrchestrator:
                 with engine.connect() as conn:
                     conn.execute(text("SELECT 1"))
                 self.logger.info("✅ Database connectivity verified")
+            except DatabaseConnectionError as e:
+                self.logger.error(f"❌ Database connectivity check failed: {e!s}")
+                if e.context:
+                    self.logger.error(f"Context: {e.context}")
+                self.logger.error(
+                    "Please verify database configuration and connectivity"
+                )
+                return False
             except Exception as e:
                 self.logger.error(f"❌ Database connectivity check failed: {e!s}")
                 self.logger.error(
@@ -371,6 +380,11 @@ Notes:
 
     except KeyboardInterrupt:
         print("\n🛑 Pipeline interrupted by user")
+        return 1
+    except NpsHikesError as e:
+        print(f"💥 Orchestrator failed: {e!s}")
+        if e.context:
+            print(f"Context: {e.context}")
         return 1
     except Exception as e:
         print(f"💥 Orchestrator failed with unexpected error: {e!s}")

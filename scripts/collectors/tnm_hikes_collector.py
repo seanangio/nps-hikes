@@ -58,6 +58,11 @@ from scripts.collectors.tnm_schemas import (
     TNMProcessedTrailsSchema,
 )
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
+from utils.exceptions import (
+    CollectorError,
+    NpsHikesError,
+    SchemaValidationError,
+)
 from utils.logging import setup_tnm_collector_logging
 
 
@@ -218,6 +223,8 @@ class TNMHikesCollector:
         except requests.exceptions.RequestException as e:
             self.logger.error(f"API request failed for {park_code}: {e}")
             return None
+        except NpsHikesError:
+            raise
         except Exception as e:
             self.logger.error(f"Unexpected error querying TNM API for {park_code}: {e}")
             return None
@@ -684,11 +691,13 @@ class TNMHikesCollector:
                     f"Processed trails for {park_code} passed schema validation"
                 )
             except (SchemaError, SchemaErrors) as e:
-                self.logger.error(
-                    f"Processed trails for {park_code} failed schema validation: {e}"
-                )
-                # Return empty GeoDataFrame to skip this park
-                return gpd.GeoDataFrame()
+                raise SchemaValidationError(
+                    f"Processed trails for {park_code} failed schema validation: {e}",
+                    context={
+                        "park_code": park_code,
+                        "schema": "TNMProcessedTrailsSchema",
+                    },
+                ) from e
 
         self.logger.info(
             f"Completed processing {park_code}: {len(trails_gdf)} final trails"
@@ -748,8 +757,11 @@ class TNMHikesCollector:
                             f"Saved {len(park_trails)} trails for {park_code} to database"
                         )
 
+            except CollectorError as e:
+                self.logger.error(f"Collection error for {park_code}: {e}")
+                continue
             except Exception as e:
-                self.logger.error(f"Error processing {park_code}: {e}")
+                self.logger.error(f"Unexpected error processing {park_code}: {e}")
                 continue
 
         # Combine all trails
@@ -819,9 +831,10 @@ class TNMHikesCollector:
             else:
                 self.logger.warning("No trails collected")
 
-        except Exception as e:
-            self.logger.error(f"Error in TNM collection: {e}")
+        except NpsHikesError:
             raise
+        except Exception as e:
+            raise CollectorError(f"Error in TNM collection: {e}") from e
 
 
 def main() -> None:

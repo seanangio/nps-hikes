@@ -18,6 +18,8 @@ import os
 
 from dotenv import load_dotenv
 
+from utils.exceptions import ConfigurationError
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -215,10 +217,10 @@ class Config:
         Validate requirements for API-only operations (CSV output).
 
         Raises:
-            ValueError: If required configuration for API operations is missing.
+            ConfigurationError: If required configuration for API operations is missing.
         """
         if not self.API_KEY:
-            raise ValueError(
+            raise ConfigurationError(
                 "NPS_API_KEY environment variable is required for API operations. "
                 "Please set it in your .env file or environment."
             )
@@ -228,10 +230,10 @@ class Config:
         Validate requirements for database operations (profiling, OSM collection, etc).
 
         Raises:
-            ValueError: If required configuration for database operations is missing.
+            ConfigurationError: If required configuration for database operations is missing.
         """
         if not self.DB_PASSWORD:
-            raise ValueError(
+            raise ConfigurationError(
                 "POSTGRES_PASSWORD environment variable is required for database operations. "
                 "Please set it in your .env file or environment."
             )

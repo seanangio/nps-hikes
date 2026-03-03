@@ -66,6 +66,7 @@ from scripts.collectors.usgs_schemas import (
     USGSTrailElevationProfile,
 )
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
+from utils.exceptions import DatabaseWriteError, NpsHikesError
 from utils.logging import setup_logging
 
 
@@ -462,6 +463,11 @@ class USGSElevationCollector:
                         f"Stored elevation data for: {trail_name} ({collection_status})"
                     )
 
+                except DatabaseWriteError as e:
+                    self.logger.error(
+                        f"Failed to store elevation data for {trail_name}: {e}"
+                    )
+                    failed_count += 1
                 except Exception as e:
                     self.logger.error(
                         f"Failed to store elevation data for {trail_name}: {e}"
@@ -674,8 +680,15 @@ Examples:
 
         logger.info("USGS elevation data collection completed successfully")
 
-    except Exception as e:
+    except NpsHikesError as e:
         logger.error(f"USGS elevation data collection failed: {e}")
+        if e.context:
+            logger.error(f"Error context: {e.context}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(
+            f"USGS elevation data collection failed with unexpected error: {e}"
+        )
         sys.exit(1)
 
 
