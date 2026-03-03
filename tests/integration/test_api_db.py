@@ -41,10 +41,11 @@ def api_client(test_db_writer):
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
     from api.main import app
 
-    # Patch get_db_engine to return test engine
+    # Patch get_db_engine everywhere it's imported
     with (
         patch("api.database.get_db_engine", return_value=test_db_writer.engine),
         patch("api.queries.get_db_engine", return_value=test_db_writer.engine),
+        patch("api.main.get_db_engine", return_value=test_db_writer.engine),
     ):
         client = TestClient(app)
         yield client
