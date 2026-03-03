@@ -32,7 +32,7 @@ import pandas as pd
 # Add project root to path for imports
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
-from sqlalchemy import text
+from sqlalchemy import Engine, text
 
 from config.settings import config
 from scripts.database.db_writer import DatabaseWriter, get_postgres_engine
@@ -64,18 +64,20 @@ class StatsDict(TypedDict):
 class GMapsHikingImporter:
     """Import Google Maps hiking locations from KML files."""
 
-    def __init__(self, write_db: bool = False):
+    def __init__(self, write_db: bool = False, engine: Engine | None = None):
         """
         Initialize the importer.
 
         Args:
             write_db (bool): Whether to write to database or just create CSV
+            engine (Engine | None): Optional SQLAlchemy engine. If None, creates one
+                from environment configuration via get_postgres_engine().
         """
         self.write_db = write_db
         self.kml_directory = config.GMAPS_INPUT_DIRECTORY
 
         if self.write_db:
-            self.engine = get_postgres_engine()
+            self.engine = engine or get_postgres_engine()
             self.db_writer = DatabaseWriter(self.engine, logger)
 
         # Statistics for summary report

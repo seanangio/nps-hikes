@@ -98,12 +98,10 @@ class TestGMapsImporterDatabaseIntegration:
 
             sys.path.insert(0, str(tmp_path))
 
-            # Import with write_db=True
-            importer = GMapsHikingImporter(write_db=True)
+            # Import with write_db=True, injecting test database engine
+            importer = GMapsHikingImporter(write_db=True, engine=test_db_writer.engine)
             # Override the KML directory
             importer.kml_directory = str(kml_dir)
-            # Override the database connection to use test database
-            importer.engine = test_db_writer.engine
             importer.db_writer = test_db_writer
 
             # Import the data
@@ -200,10 +198,8 @@ class TestGMapsImporterDatabaseIntegration:
         # Act - Try to import with invalid park code
         original_cwd = os.getcwd()
         try:
-            importer = GMapsHikingImporter(write_db=True)
+            importer = GMapsHikingImporter(write_db=True, engine=test_db_writer.engine)
             importer.kml_directory = str(kml_dir)
-            # Override the database connection to use test database
-            importer.engine = test_db_writer.engine
             importer.db_writer = test_db_writer
 
             # Import should handle invalid park gracefully (skip or log error)
@@ -345,10 +341,8 @@ class TestGMapsImporterDatabaseIntegration:
 
             sys.path.insert(0, str(tmp_path))
 
-            importer = GMapsHikingImporter(write_db=True)
+            importer = GMapsHikingImporter(write_db=True, engine=test_db_writer.engine)
             importer.kml_directory = str(kml_dir)
-            # Override the database connection to use test database
-            importer.engine = test_db_writer.engine
             importer.db_writer = test_db_writer
             importer.import_gmaps_hiking_data(force_refresh=True)
 

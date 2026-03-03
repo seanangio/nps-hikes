@@ -81,10 +81,10 @@ class TestOSMCollectorDatabaseIntegration:
             test_limit=1,  # Process only 1 park
             log_level="INFO",
             write_db=True,
+            engine=test_db_writer.engine,
         )
 
-        # Override engine and db_writer to use test database (not production)
-        osm_collector.engine = test_db_writer.engine
+        # Override db_writer to use test database writer
         osm_collector.db_writer = test_db_writer
         # Refresh completed parks list from test database (not production)
         osm_collector.completed_parks = osm_collector.get_completed_parks()
@@ -206,10 +206,10 @@ class TestTNMCollectorDatabaseIntegration:
             test_limit=1,  # Process only 1 park
             log_level="INFO",
             write_db=True,
+            engine=test_db_writer.engine,
         )
 
-        # Override engine and db_writer to use test database (not production)
-        tnm_collector.engine = test_db_writer.engine
+        # Override db_writer to use test database writer
         tnm_collector.db_writer = test_db_writer
         # Refresh completed parks list from test database (not production)
         tnm_collector.completed_parks = tnm_collector.get_completed_parks()

@@ -72,6 +72,7 @@ class OSMHikesCollector:
         test_limit: int | None,
         log_level: str,
         write_db: bool,
+        engine: Engine | None = None,
     ) -> None:
         """
         Initialize the OSM hikes collector with configuration parameters.
@@ -90,6 +91,8 @@ class OSMHikesCollector:
             log_level (str): Logging verbosity level (e.g., 'INFO', 'DEBUG', 'WARNING', 'ERROR')
             write_db (bool): Whether to write results to PostgreSQL database in addition to file output.
                            If False, only writes to the GeoPackage file.
+            engine (Engine | None): Optional SQLAlchemy engine. If None, creates one
+                from environment configuration via get_postgres_engine().
 
         Raises:
             SQLAlchemyError: If database connection cannot be established
@@ -111,7 +114,7 @@ class OSMHikesCollector:
         self.test_limit: int | None = test_limit
         self.write_db: bool = write_db
         # Always create engine for reading from DB, but only write if write_db is True
-        self.engine: Engine = get_postgres_engine()
+        self.engine: Engine = engine or get_postgres_engine()
         self.timestamp: str = datetime.now(UTC).isoformat()
         # Initialize database writer for write operations
         self.db_writer: DatabaseWriter | None = (

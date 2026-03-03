@@ -43,6 +43,7 @@ from dotenv import load_dotenv
 from pandera.errors import SchemaError, SchemaErrors
 from pydantic import ValidationError
 from shapely.ops import linemerge
+from sqlalchemy import Engine
 
 # Load .env before local imports that need env vars
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
@@ -77,6 +78,7 @@ class TNMHikesCollector:
         test_limit: int | None,
         log_level: str,
         write_db: bool,
+        engine: Engine | None = None,
     ) -> None:
         """
         Initialize the TNM hikes collector with configuration parameters.
@@ -93,6 +95,8 @@ class TNMHikesCollector:
             test_limit (int | None): Limit processing to first N parks for testing
             log_level (str): Logging level (DEBUG, INFO, WARNING, ERROR)
             write_db (bool): Whether to write results to the database
+            engine (Engine | None): Optional SQLAlchemy engine. If None, creates one
+                from environment configuration via get_postgres_engine().
         """
         self.logger = setup_tnm_collector_logging(log_level)
         self.output_gpkg = output_gpkg
@@ -102,7 +106,7 @@ class TNMHikesCollector:
         self.write_db = write_db
 
         # Database setup
-        self.engine = get_postgres_engine()
+        self.engine = engine or get_postgres_engine()
         self.db_writer = DatabaseWriter(self.engine, self.logger) if write_db else None
 
         # Track completion state
