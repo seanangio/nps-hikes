@@ -124,8 +124,14 @@ def test_db(test_db_engine: Engine) -> Engine:
     logger = setup_logging(logger_name="test_db", log_level="INFO")
     writer = DatabaseWriter(test_db_engine, logger)
 
-    # Setup: Create all tables
+    # Setup: Ensure required extensions exist (CI has no init script)
     logger.info("📦 Creating test database schema...")
+    with test_db_engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        conn.commit()
+
+    # Create all tables
     writer._create_all_tables()
     logger.info("✅ Test database schema created")
 
