@@ -493,6 +493,212 @@ class TestTrailsEndpoint:
         # Assert
         assert response.status_code == 422  # Validation error
 
+    def test_trails_default_pagination(self, test_db_writer, api_client):
+        """Test default pagination (no params = limit 50, offset 0)."""
+        # Arrange - Create park and 10 trails
+        import geopandas as gpd
+        import pandas as pd
+        from shapely.geometry import LineString
+
+        parks_data = {
+            "park_code": ["yose"],
+            "park_name": ["Yosemite National Park"],
+            "designation": ["National Park"],
+            "states": ["CA"],
+            "latitude": [37.8651],
+            "longitude": [-119.5383],
+            "url": ["https://www.nps.gov/yose/index.htm"],
+            "visit_month": ["July"],
+            "visit_year": [2023],
+            "description": ["Yosemite"],
+            "collection_status": ["success"],
+        }
+        parks_df = pd.DataFrame(parks_data)
+        test_db_writer.write_parks(parks_df, mode="upsert")
+
+        # Create 10 trails
+        osm_data = {
+            "osm_id": list(range(1, 11)),
+            "park_code": ["yose"] * 10,
+            "name": [f"Trail {i}" for i in range(1, 11)],
+            "highway": ["path"] * 10,
+            "source": ["OpenStreetMap"] * 10,
+            "length_miles": [float(i) for i in range(1, 11)],
+            "geometry_type": ["LineString"] * 10,
+            "geometry": [
+                LineString(
+                    [
+                        (-119.5 + i * 0.01, 37.8 + i * 0.01),
+                        (-119.51 + i * 0.01, 37.81 + i * 0.01),
+                    ]
+                )
+                for i in range(10)
+            ],
+        }
+        osm_gdf = gpd.GeoDataFrame(osm_data, crs="EPSG:4326")
+        test_db_writer.write_osm_hikes(osm_gdf, mode="append")
+
+        # Act - No pagination params
+        response = api_client.get("/trails")
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert "pagination" in data
+        assert data["pagination"]["limit"] == 50  # Default
+        assert data["pagination"]["offset"] == 0  # Default
+        assert data["pagination"]["total_count"] == 10
+        assert data["pagination"]["has_next"] is False
+        assert data["pagination"]["has_prev"] is False
+        assert data["trail_count"] == 10  # All trails fit in default page
+
+    def test_trails_pagination_with_limit_offset(self, test_db_writer, api_client):
+        """Test pagination with custom limit and offset."""
+        # Arrange - Create 30 trails
+        import geopandas as gpd
+        import pandas as pd
+        from shapely.geometry import LineString
+
+        parks_data = {
+            "park_code": ["yose"],
+            "park_name": ["Yosemite National Park"],
+            "designation": ["National Park"],
+            "states": ["CA"],
+            "latitude": [37.8651],
+            "longitude": [-119.5383],
+            "url": ["https://www.nps.gov/yose/index.htm"],
+            "visit_month": [None],
+            "visit_year": [None],
+            "description": ["Yosemite"],
+            "collection_status": ["success"],
+        }
+        parks_df = pd.DataFrame(parks_data)
+        test_db_writer.write_parks(parks_df, mode="upsert")
+
+        osm_data = {
+            "osm_id": list(range(1, 31)),
+            "park_code": ["yose"] * 30,
+            "name": [f"Trail {i}" for i in range(1, 31)],
+            "highway": ["path"] * 30,
+            "source": ["OpenStreetMap"] * 30,
+            "length_miles": [5.0] * 30,
+            "geometry_type": ["LineString"] * 30,
+            "geometry": [LineString([(-119.5, 37.8), (-119.51, 37.81)])] * 30,
+        }
+        osm_gdf = gpd.GeoDataFrame(osm_data, crs="EPSG:4326")
+        test_db_writer.write_osm_hikes(osm_gdf, mode="append")
+
+        # Act - Get second page (offset 10, limit 10)
+        response = api_client.get("/trails?limit=10&offset=10")
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["trail_count"] == 10
+        assert data["pagination"]["limit"] == 10
+        assert data["pagination"]["offset"] == 10
+        assert data["pagination"]["total_count"] == 30
+        assert data["pagination"]["has_next"] is True  # 10+10 < 30
+        assert data["pagination"]["has_prev"] is True  # 10 > 0
+
+    def test_trails_pagination_with_page_page_size(self, test_db_writer, api_client):
+        """Test page-based pagination."""
+        # Arrange - Create 75 trails
+        import geopandas as gpd
+        import pandas as pd
+        from shapely.geometry import LineString
+
+        parks_data = {
+            "park_code": ["yose"],
+            "park_name": ["Yosemite National Park"],
+            "designation": ["National Park"],
+            "states": ["CA"],
+            "latitude": [37.8651],
+            "longitude": [-119.5383],
+            "url": ["https://www.nps.gov/yose/index.htm"],
+            "visit_month": [None],
+            "visit_year": [None],
+            "description": ["Yosemite"],
+            "collection_status": ["success"],
+        }
+        parks_df = pd.DataFrame(parks_data)
+        test_db_writer.write_parks(parks_df, mode="upsert")
+
+        osm_data = {
+            "osm_id": list(range(1, 76)),
+            "park_code": ["yose"] * 75,
+            "name": [f"Trail {i}" for i in range(1, 76)],
+            "highway": ["path"] * 75,
+            "source": ["OpenStreetMap"] * 75,
+            "length_miles": [5.0] * 75,
+            "geometry_type": ["LineString"] * 75,
+            "geometry": [LineString([(-119.5, 37.8), (-119.51, 37.81)])] * 75,
+        }
+        osm_gdf = gpd.GeoDataFrame(osm_data, crs="EPSG:4326")
+        test_db_writer.write_osm_hikes(osm_gdf, mode="append")
+
+        # Act - Get page 2 with page_size 25
+        response = api_client.get("/trails?page=2&page_size=25")
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["trail_count"] == 25
+        assert data["pagination"]["offset"] == 25  # (2-1) * 25
+        assert data["pagination"]["limit"] == 25
+        assert data["pagination"]["total_count"] == 75
+        assert data["pagination"]["has_next"] is True
+        assert data["pagination"]["has_prev"] is True
+
+    def test_trails_pagination_last_page_partial(self, test_db_writer, api_client):
+        """Test last page with partial results."""
+        # Arrange - Create 77 trails (not evenly divisible by 25)
+        import geopandas as gpd
+        import pandas as pd
+        from shapely.geometry import LineString
+
+        parks_data = {
+            "park_code": ["yose"],
+            "park_name": ["Yosemite National Park"],
+            "designation": ["National Park"],
+            "states": ["CA"],
+            "latitude": [37.8651],
+            "longitude": [-119.5383],
+            "url": ["https://www.nps.gov/yose/index.htm"],
+            "visit_month": [None],
+            "visit_year": [None],
+            "description": ["Yosemite"],
+            "collection_status": ["success"],
+        }
+        parks_df = pd.DataFrame(parks_data)
+        test_db_writer.write_parks(parks_df, mode="upsert")
+
+        osm_data = {
+            "osm_id": list(range(1, 78)),
+            "park_code": ["yose"] * 77,
+            "name": [f"Trail {i}" for i in range(1, 78)],
+            "highway": ["path"] * 77,
+            "source": ["OpenStreetMap"] * 77,
+            "length_miles": [5.0] * 77,
+            "geometry_type": ["LineString"] * 77,
+            "geometry": [LineString([(-119.5, 37.8), (-119.51, 37.81)])] * 77,
+        }
+        osm_gdf = gpd.GeoDataFrame(osm_data, crs="EPSG:4326")
+        test_db_writer.write_osm_hikes(osm_gdf, mode="append")
+
+        # Act - Get page 4 with page_size 25 (should return 2 items)
+        response = api_client.get("/trails?page=4&page_size=25")
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["trail_count"] == 2  # Only 2 remaining (77 - 75)
+        assert data["pagination"]["offset"] == 75  # (4-1) * 25
+        assert data["pagination"]["limit"] == 25
+        assert data["pagination"]["total_count"] == 77
+        assert data["pagination"]["has_next"] is False  # Last page
+        assert data["pagination"]["has_prev"] is True
+
 
 class TestHealthEndpoint:
     """Integration tests for /health endpoint."""

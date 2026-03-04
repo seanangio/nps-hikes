@@ -188,7 +188,7 @@ class NPSDataCollector:
         search_query = f"{park_name} National Park"
         params: dict[str, str | int] = {
             "q": search_query,
-            "limit": config.API_RESULT_LIMIT,  # Get multiple results to find the best match
+            "limit": config.API_DEFAULT_PAGE_SIZE,  # Get multiple results to find the best match
             "sort": "-relevanceScore",
             "fields": "addresses,contacts,description,directionsInfo,latitude,longitude,name,parkCode,states,url,fullName",
         }

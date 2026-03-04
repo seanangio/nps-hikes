@@ -252,6 +252,7 @@ def sample_trails_response():
             "hiked",
             "viz_3d_available",
             "viz_3d_slug",
+            "total_count",
         ],
     )
 
@@ -270,6 +271,7 @@ def sample_trails_response():
                 hiked=True,
                 viz_3d_available=True,
                 viz_3d_slug="half_dome_trail",
+                total_count=2,
             ),
             Row(
                 trail_id="123456789",
@@ -284,6 +286,7 @@ def sample_trails_response():
                 hiked=False,
                 viz_3d_available=False,
                 viz_3d_slug=None,
+                total_count=2,
             ),
         ],
         "expected_response": {

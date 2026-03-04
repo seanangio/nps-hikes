@@ -445,6 +445,7 @@ class TestTrailsEndpoint:
         assert data["trail_count"] == 2
         assert data["total_miles"] == 20.7
         assert len(data["trails"]) == 2
+        assert "pagination" in data  # Pagination always present
 
     @patch("api.queries.get_db_engine")
     def test_get_trails_with_length_filters(
@@ -801,3 +802,222 @@ class TestQueryFunctions:
         assert result["trail_count"] == 0
         assert result["total_miles"] == 0.0
         assert result["trails"] == []
+
+
+class TestTrailsPagination:
+    """Tests for trails endpoint pagination."""
+
+    @patch("api.queries.get_db_engine")
+    def test_default_pagination(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
+    ):
+        """Test default pagination applies limit=50, offset=0 when no params provided."""
+        # Setup mock
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_trails_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        # Make request with no pagination params
+        response = client.get("/trails")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert "pagination" in data
+        assert data["pagination"]["limit"] == 50  # Default
+        assert data["pagination"]["offset"] == 0  # Default
+        assert data["pagination"]["total_count"] == 2
+        assert data["pagination"]["has_prev"] is False
+        assert data["pagination"]["has_next"] is False
+
+    @patch("api.queries.get_db_engine")
+    def test_pagination_with_limit_offset(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
+    ):
+        """Test pagination using explicit limit and offset parameters."""
+        # Setup mock
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_trails_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        # Make request with custom limit and offset
+        response = client.get("/trails?limit=10&offset=20")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["pagination"]["limit"] == 10
+        assert data["pagination"]["offset"] == 20
+        assert data["pagination"]["total_count"] == 2
+        assert data["trail_count"] <= 10  # Should not exceed limit
+
+    @patch("api.queries.get_db_engine")
+    def test_pagination_with_page_page_size(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
+    ):
+        """Test pagination using page and page_size parameters."""
+        # Setup mock
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_trails_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        # Make request with page-based pagination
+        response = client.get("/trails?page=3&page_size=25")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        # Page 3 with page_size 25 = offset 50
+        assert data["pagination"]["offset"] == 50  # (3-1) * 25
+        assert data["pagination"]["limit"] == 25
+
+    @patch("api.queries.get_db_engine")
+    def test_page_without_page_size_error(self, mock_get_engine, mock_db_engine):
+        """Test that using page without page_size returns 400 error."""
+        # Setup mock (shouldn't be called due to validation error)
+        mock_get_engine.return_value = mock_db_engine
+
+        response = client.get("/trails?page=2")
+        assert response.status_code == 400
+        assert "both" in response.json()["detail"].lower()
+
+    @patch("api.queries.get_db_engine")
+    def test_page_size_without_page_error(self, mock_get_engine, mock_db_engine):
+        """Test that using page_size without page returns 400 error."""
+        # Setup mock (shouldn't be called due to validation error)
+        mock_get_engine.return_value = mock_db_engine
+
+        response = client.get("/trails?page_size=25")
+        assert response.status_code == 400
+        assert "both" in response.json()["detail"].lower()
+
+    @patch("api.queries.get_db_engine")
+    def test_pagination_has_next_has_prev(self, mock_get_engine, mock_db_engine):
+        """Test has_next and has_prev flags are calculated correctly."""
+        from collections import namedtuple
+
+        # Create mock data with total_count=100
+        Row = namedtuple(
+            "Row",
+            [
+                "trail_id",
+                "trail_name",
+                "park_code",
+                "park_name",
+                "states",
+                "source",
+                "length_miles",
+                "geometry_type",
+                "highway_type",
+                "hiked",
+                "viz_3d_available",
+                "viz_3d_slug",
+                "total_count",
+            ],
+        )
+
+        mock_rows = [
+            Row(
+                trail_id=f"trail_{i}",
+                trail_name=f"Trail {i}",
+                park_code="yose",
+                park_name="Yosemite",
+                states="CA",
+                source="TNM",
+                length_miles=5.0,
+                geometry_type="LineString",
+                highway_type=None,
+                hiked=False,
+                viz_3d_available=False,
+                viz_3d_slug=None,
+                total_count=100,
+            )
+            for i in range(10)
+        ]
+
+        # Setup mock
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = mock_rows
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        # Test middle page: offset=50, limit=10, total=100
+        response = client.get("/trails?limit=10&offset=50")
+        data = response.json()
+        assert data["pagination"]["has_next"] is True  # 50+10 < 100
+        assert data["pagination"]["has_prev"] is True  # 50 > 0
+
+        # Test first page
+        response = client.get("/trails?limit=10&offset=0")
+        data = response.json()
+        assert data["pagination"]["has_next"] is True  # 0+10 < 100
+        assert data["pagination"]["has_prev"] is False  # 0 == 0
+
+        # Test last page (offset 90)
+        response = client.get("/trails?limit=10&offset=90")
+        data = response.json()
+        assert data["pagination"]["has_next"] is False  # 90+10 >= 100
+        assert data["pagination"]["has_prev"] is True  # 90 > 0
+
+    def test_pagination_max_limit_validation(self):
+        """Test that limit over 1000 returns validation error."""
+        response = client.get("/trails?limit=1001")
+        assert response.status_code == 422  # Validation error
+
+    def test_pagination_min_limit_validation(self):
+        """Test that limit of 0 returns validation error."""
+        response = client.get("/trails?limit=0")
+        assert response.status_code == 422  # Validation error
+
+    def test_pagination_negative_offset_validation(self):
+        """Test that negative offset returns validation error."""
+        response = client.get("/trails?offset=-1")
+        assert response.status_code == 422  # Validation error
+
+    @patch("api.queries.get_db_engine")
+    def test_pagination_metadata_always_present(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
+    ):
+        """Test that pagination metadata is always included in response."""
+        # Setup mock
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_trails_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        # Make request
+        response = client.get("/trails")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert "pagination" in data
+        assert "limit" in data["pagination"]
+        assert "offset" in data["pagination"]
+        assert "total_count" in data["pagination"]
+        assert "has_next" in data["pagination"]
+        assert "has_prev" in data["pagination"]
+
+    @patch("api.queries.get_db_engine")
+    def test_pagination_with_filters(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
+    ):
+        """Test pagination works correctly with filter parameters."""
+        # Setup mock
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_trails_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        # Make request with filters and pagination
+        response = client.get("/trails?park_code=yose&limit=25&offset=0")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["pagination"]["limit"] == 25
+        assert data["pagination"]["offset"] == 0
+        assert "pagination" in data

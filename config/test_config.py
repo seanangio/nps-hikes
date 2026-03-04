@@ -50,7 +50,8 @@ def test_config() -> None:
     print(f"Log Max Bytes: {config.LOG_MAX_BYTES}")
     print(f"Log Backup Count: {config.LOG_BACKUP_COUNT}")
     print(f"Rate Limit Warning Threshold: {config.RATE_LIMIT_WARNING_THRESHOLD}")
-    print(f"API Result Limit: {config.API_RESULT_LIMIT}")
+    print(f"API Default Page Size: {config.API_DEFAULT_PAGE_SIZE}")
+    print(f"API Max Page Size: {config.API_MAX_PAGE_SIZE}")
     print(f"Default CRS: {config.DEFAULT_CRS}")
 
     # Test database URL generation

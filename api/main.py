@@ -209,6 +209,28 @@ async def get_trails(
         default=None,
         description="Filter by 3D visualization availability. Use true to show only trails with 3D viz, false to show only trails without 3D viz, or omit to show all trails",
     ),
+    limit: int = Query(
+        default=50,
+        description="Number of trails per page (1-1000). Defaults to 50.",
+        ge=1,
+        le=1000,
+    ),
+    offset: int = Query(
+        default=0,
+        description="Number of trails to skip (for pagination). Defaults to 0.",
+        ge=0,
+    ),
+    page: int | None = Query(
+        default=None,
+        description="Page number (alternative to offset). Use with page_size parameter.",
+        ge=1,
+    ),
+    page_size: int | None = Query(
+        default=None,
+        description="Items per page (alternative to limit). Must be used with 'page' parameter.",
+        ge=1,
+        le=1000,
+    ),
 ) -> dict[str, Any]:
     """
     Get trails with optional filters.
@@ -235,6 +257,22 @@ async def get_trails(
     - Only footway trails: `/trails?trail_type=footway`
     - Trails with 3D viz: `/trails?viz_3d=true`
     """
+    # Resolve pagination parameters (outside try block for proper HTTP error handling)
+    # Priority: page/page_size overrides limit/offset
+    actual_limit = limit
+    actual_offset = offset
+
+    if page is not None and page_size is not None:
+        # Convert page-based to offset-based
+        actual_limit = page_size
+        actual_offset = (page - 1) * page_size
+    elif page is not None or page_size is not None:
+        # Invalid: page and page_size must be used together
+        raise HTTPException(
+            status_code=400,
+            detail="Both 'page' and 'page_size' parameters must be provided together",
+        )
+
     try:
         # Fetch trails from database
         result = fetch_trails(
@@ -246,6 +284,8 @@ async def get_trails(
             max_length=max_length,
             trail_type=trail_type,
             viz_3d=viz_3d,
+            limit=actual_limit,
+            offset=actual_offset,
         )
 
         return result

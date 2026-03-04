@@ -122,6 +122,8 @@ def fetch_trails(
     hiked: bool | None = None,
     trail_type: str | None = None,
     viz_3d: bool | None = None,
+    limit: int = 50,
+    offset: int = 0,
 ) -> dict[str, Any]:
     """
     Fetch trails with optional filters.
@@ -223,7 +225,8 @@ def fetch_trails(
             WHEN ute.trail_slug IS NOT NULL THEN true
             ELSE false
         END as viz_3d_available,
-        ute.trail_slug as viz_3d_slug
+        ute.trail_slug as viz_3d_slug,
+        COUNT(*) OVER() as total_count
     FROM all_trails t
     LEFT JOIN parks p ON t.park_code = p.park_code
     LEFT JOIN gmaps_hiking_locations_matched m
@@ -280,12 +283,20 @@ def fetch_trails(
     else:
         query += " ORDER BY t.park_code, t.trail_name"
 
+    # Add pagination
+    query += " LIMIT :limit OFFSET :offset"
+    params["limit"] = limit
+    params["offset"] = offset
+
     # Execute query
     with engine.connect() as conn:
         result = conn.execute(text(query), params)
         rows = result.fetchall()
 
-    # Format trails and calculate total mileage
+    # Extract total_count from first row (or 0 if no results)
+    total_count = rows[0].total_count if rows else 0
+
+    # Format trails and calculate total mileage for this page
     trails = []
     total_miles = 0.0
 
@@ -311,4 +322,11 @@ def fetch_trails(
         "trail_count": len(trails),
         "total_miles": round(total_miles, 2),
         "trails": trails,
+        "pagination": {
+            "limit": limit,
+            "offset": offset,
+            "total_count": total_count,
+            "has_next": (offset + limit) < total_count,
+            "has_prev": offset > 0,
+        },
     }

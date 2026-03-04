@@ -174,7 +174,7 @@ The `/trails` endpoint returns trail data from both The National Map (TNM) and O
 curl "http://localhost:8000/trails?park_code=acad" | python3 -m json.tool
 ```
 
-The response includes a `trail_count`, `total_miles`, and a `trails` array. Each trail includes:
+The response includes a `trail_count`, `total_miles`, a `trails` array, and `pagination` metadata. Each trail includes:
 
 | Field | Description |
 |---|---|
@@ -189,6 +189,62 @@ The response includes a `trail_count`, `total_miles`, and a `trails` array. Each
 When querying a single park, results are sorted by length (longest first). When querying across multiple parks, results are sorted by park code and trail name.
 
 > **Note:** The API deduplicates trails that appear in both data sources. When a TNM trail and an OSM trail in the same park share more than 70% name similarity, the API keeps the TNM version. This avoids double-counting while preferring the more detailed TNM data.
+
+### Pagination
+
+The `/trails` endpoint returns paginated results to keep response sizes manageable. By default, you get 50 trails per page:
+
+```bash
+curl "http://localhost:8000/trails?park_code=yose" | python3 -m json.tool
+```
+
+The response includes pagination metadata:
+
+```json
+{
+    "trail_count": 50,
+    "total_miles": 342.7,
+    "trails": [...],
+    "pagination": {
+        "limit": 50,
+        "offset": 0,
+        "total_count": 127,
+        "has_next": true,
+        "has_prev": false
+    }
+}
+```
+
+The `pagination` object tells you:
+- `limit`: Items per page (50 by default)
+- `offset`: Number of items skipped (0 for first page)
+- `total_count`: Total trails matching your query
+- `has_next`: Whether there are more pages
+- `has_prev`: Whether there are previous pages
+
+To get the next page, increase the offset:
+
+```bash
+curl "http://localhost:8000/trails?park_code=yose&limit=50&offset=50" | python3 -m json.tool
+```
+
+Or use page-based navigation (more intuitive):
+
+```bash
+# Page 1 (first 25 trails)
+curl "http://localhost:8000/trails?park_code=yose&page=1&page_size=25" | python3 -m json.tool
+
+# Page 2 (next 25 trails)
+curl "http://localhost:8000/trails?park_code=yose&page=2&page_size=25" | python3 -m json.tool
+```
+
+You can request up to 1000 trails per page:
+
+```bash
+curl "http://localhost:8000/trails?limit=1000" | python3 -m json.tool
+```
+
+> **Tip:** Use `has_next` and `has_prev` flags to build navigation controls in your application. Use `total_count` to show "Showing 1-50 of 127 trails" messages.
 
 ### Filter by data source
 
@@ -255,6 +311,13 @@ In the response, look for the `viz_3d_slug` field on each trail:
 {
     "trail_count": 2,
     "total_miles": 5.8,
+    "pagination": {
+        "limit": 50,
+        "offset": 0,
+        "total_count": 2,
+        "has_next": false,
+        "has_prev": false
+    },
     "trails": [
         {
             "trail_id": "123456",

@@ -45,7 +45,8 @@ class Config:
 
     # API and request settings
     RATE_LIMIT_WARNING_THRESHOLD: int = 50
-    API_RESULT_LIMIT: int = 10
+    API_DEFAULT_PAGE_SIZE: int = 50  # Default pagination page size for API endpoints
+    API_MAX_PAGE_SIZE: int = 1000  # Maximum allowed page size
     DEFAULT_CRS: str = "EPSG:4326"
 
     # Retry Configuration

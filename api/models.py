@@ -8,6 +8,59 @@ generate OpenAPI schema definitions.
 from pydantic import BaseModel, Field
 
 
+class PaginationMetadata(BaseModel):
+    """
+    Pagination metadata for paginated API responses.
+
+    Provides information about the current page, total results,
+    and navigation flags for next/previous pages.
+    """
+
+    limit: int = Field(
+        ...,
+        description="Number of items per page",
+        ge=1,
+        le=1000,
+        examples=[50],
+    )
+    offset: int = Field(
+        ...,
+        description="Number of items skipped (starting position)",
+        ge=0,
+        examples=[0],
+    )
+    total_count: int = Field(
+        ...,
+        description="Total number of items matching the query",
+        ge=0,
+        examples=[347],
+    )
+    has_next: bool = Field(
+        ...,
+        description="Whether there are more pages after this one",
+        examples=[True],
+    )
+    has_prev: bool = Field(
+        ...,
+        description="Whether there are previous pages before this one",
+        examples=[False],
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "limit": 50,
+                    "offset": 0,
+                    "total_count": 347,
+                    "has_next": True,
+                    "has_prev": False,
+                }
+            ]
+        }
+    }
+
+
 class Trail(BaseModel):
     """
     Individual trail information.
@@ -105,24 +158,28 @@ class TrailsResponse(BaseModel):
     """
     Response model for all trails endpoint.
 
-    Contains summary statistics and a list of trails across all parks.
+    Contains summary statistics, a list of trails, and pagination metadata.
     """
 
     trail_count: int = Field(
         ...,
-        description="Number of trails returned",
+        description="Number of trails returned in this page",
         ge=0,
-        examples=[127],
+        examples=[50],
     )
     total_miles: float = Field(
         ...,
-        description="Total trail mileage for all returned trails",
+        description="Total trail mileage for trails in this page",
         ge=0,
-        examples=[892.3],
+        examples=[342.7],
     )
     trails: list[Trail] = Field(
         ...,
         description="List of trails matching the query",
+    )
+    pagination: PaginationMetadata = Field(
+        ...,
+        description="Pagination metadata including total count and navigation flags",
     )
 
     model_config = {
@@ -131,6 +188,13 @@ class TrailsResponse(BaseModel):
                 {
                     "trail_count": 2,
                     "total_miles": 20.5,
+                    "pagination": {
+                        "limit": 50,
+                        "offset": 0,
+                        "total_count": 127,
+                        "has_next": True,
+                        "has_prev": False,
+                    },
                     "trails": [
                         {
                             "trail_id": "550779",
