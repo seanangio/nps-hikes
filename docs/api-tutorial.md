@@ -244,7 +244,7 @@ You can request up to 1000 trails per page:
 curl "http://localhost:8000/trails?limit=1000" | python3 -m json.tool
 ```
 
-> **Tip:** Use `has_next` and `has_prev` flags to build navigation controls in your application. Use `total_count` to show "Showing 1-50 of 127 trails" messages.
+> **Tip:** Use `has_next` and `has_prev` flags to build navigation controls in your app. Use `total_count` to show "Showing 1-50 of 127 trails" messages.
 
 ### Filter by data source
 
