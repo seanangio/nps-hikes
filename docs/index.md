@@ -47,6 +47,6 @@ The pipeline runs six steps in the following order:
 | 3. TNM trails collection | Official trail data within park boundaries | [The National Map(USGS)](https://www.usgs.gov/programs/national-geospatial-program/national-map) |
 | 4. GMaps import | Hiking locations from Google My Maps KML files | KML files in `raw_data/gmaps/` |
 | 5. Trail matching | Matches GMaps locations to TNM or OSM trail geometries | Internal |
-| 6. Elevation collection | Elevation profiles for matched trails | [USGS EPQS](https://apps.nationalmap.gov/epqs/) |
+| 6. Elevation collection | Elevation profiles for matched trails | [USGS Elevation Point Query Service (EPQS)](https://apps.nationalmap.gov/epqs/) |
 
 The pipeline is resumable: each collector skips parks or trails that already have data in the database. If something interrupts a run, re-running picks up where it left off.
