@@ -1,4 +1,4 @@
-# Data Sources and Schema
+# Data Sources & Schema
 
 ## External sources
 
@@ -35,7 +35,7 @@ All geographic data uses `EPSG:4326 (WGS84)`. Length calculations use `EPSG:5070
 
 ## Internal sources
 
-For the following two sources, you can replace the author's files with your own.
+For the following two sources, you can replace the files included in the git clone with your own.
 
 ### Park visit log
 

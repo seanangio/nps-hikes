@@ -1,6 +1,6 @@
 # NPS Hikes
 
-A Python project for collecting, validating, and analyzing hiking trail data from U.S. National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API.
+A Python project for collecting, validating, and analyzing hiking trail data from US National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API.
 
 ## Live demo
 
@@ -11,7 +11,7 @@ You can find a live instance of the API at [seanangio-nps-hikes.onrender.com](ht
 ## Project overview
 
 - Collect park metadata and boundaries from the NPS API.
-- Extract hiking trails from OpenStreetMap and The National Map.
+- Extract hiking trails from OpenStreetMap and The National Map (USGS).
 - Match personal hiking locations to trail geometries.
 - Explore parks and trails through a FastAPI REST API.
 
@@ -38,15 +38,15 @@ nps-hikes/
 
 ## Data collection pipeline
 
-The pipeline runs six steps in order:
+The pipeline runs six steps in the following order:
 
 | Step | What it does | Data source |
 |------|-------------|-------------|
-| 1. NPS Data Collection | Park metadata, coordinates, and boundary polygons | [NPS API](https://www.nps.gov/subjects/developer/) |
-| 2. OSM Trails Collection | Hiking trails within park boundaries | [OpenStreetMap](https://www.openstreetmap.org/) |
-| 3. TNM Trails Collection | Official trail data within park boundaries | [The National Map](https://www.usgs.gov/programs/national-geospatial-program/national-map) |
-| 4. GMaps Import | Hiking locations from Google My Maps KML files | KML files in `raw_data/gmaps/` |
-| 5. Trail Matching | Matches GMaps locations to TNM or OSM trail geometries | Internal |
-| 6. Elevation Collection | Elevation profiles for matched trails | [USGS EPQS](https://apps.nationalmap.gov/epqs/) |
+| 1. NPS data collection | Park metadata, coordinates, and boundary polygons | [NPS API](https://www.nps.gov/subjects/developer/) |
+| 2. OSM trails collection | Hiking trails within park boundaries | [OpenStreetMap](https://www.openstreetmap.org/) |
+| 3. TNM trails collection | Official trail data within park boundaries | [The National Map(USGS)](https://www.usgs.gov/programs/national-geospatial-program/national-map) |
+| 4. GMaps import | Hiking locations from Google My Maps KML files | KML files in `raw_data/gmaps/` |
+| 5. Trail matching | Matches GMaps locations to TNM or OSM trail geometries | Internal |
+| 6. Elevation collection | Elevation profiles for matched trails | [USGS EPQS](https://apps.nationalmap.gov/epqs/) |
 
 The pipeline is resumable: each collector skips parks or trails that already have data in the database. If something interrupts a run, re-running picks up where it left off.

@@ -291,7 +291,8 @@ The response should show `"database": "connected"`. If connected but no data, re
 
 ## Next steps
 
+- **[Data Sources & Schema](data.md)**: Additional details on the project's data sources such as the NPS, OpenStreetMap, the USGS, and Google My Maps.
 - **[API Tutorial](api-tutorial.md)**: A guided tour of the API's query capabilities and visualizations
-- **[README](https://github.com/seanangio/nps-hikes)**; Full project documentation including architecture, testing, and data profiling
+- **[README](https://github.com/seanangio/nps-hikes)**: Full project documentation including architecture, testing, and data profiling
 
 [^1]: The NPS manages Sequoia and Kings Canyon as one park (`seki`), and so it appears as one entry.
