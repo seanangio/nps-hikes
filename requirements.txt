@@ -12,12 +12,15 @@ annotated-types==0.7.0
     # via pydantic
 anyio==4.12.1
     # via
+    #   httpx
     #   starlette
     #   watchfiles
 cartopy==0.25.0
     # via -r requirements.in
 certifi==2026.1.4
     # via
+    #   httpcore
+    #   httpx
     #   pyogrio
     #   pyproj
     #   requests
@@ -50,12 +53,19 @@ google-auth-oauthlib==1.2.4
 gspread==6.2.1
     # via -r requirements.in
 h11==0.16.0
-    # via uvicorn
+    # via
+    #   httpcore
+    #   uvicorn
+httpcore==1.0.9
+    # via httpx
 httptools==0.7.1
     # via uvicorn
+httpx==0.28.1
+    # via -r requirements.in
 idna==3.11
     # via
     #   anyio
+    #   httpx
     #   requests
 kiwisolver==1.4.9
     # via matplotlib

@@ -15,7 +15,10 @@ Hierarchy:
     ├── DatabaseError
     │   ├── DatabaseConnectionError
     │   └── DatabaseWriteError
-    └── DataProcessingError
+    ├── DataProcessingError
+    └── LlmError
+        ├── LlmConnectionError
+        └── LlmResponseError
 """
 
 from __future__ import annotations
@@ -83,3 +86,18 @@ class DatabaseWriteError(DatabaseError):
 
 class DataProcessingError(NpsHikesError):
     """Failure during data transformation or processing steps."""
+
+
+# --- LLM errors ---
+
+
+class LlmError(NpsHikesError):
+    """Base exception for LLM-related failures."""
+
+
+class LlmConnectionError(LlmError):
+    """Unable to connect to Ollama or LLM service."""
+
+
+class LlmResponseError(LlmError):
+    """LLM returned an unparseable or invalid response."""

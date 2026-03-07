@@ -5,6 +5,8 @@ These models define the structure of API responses and automatically
 generate OpenAPI schema definitions.
 """
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -378,3 +380,44 @@ class ParksResponse(BaseModel):
             ]
         }
     }
+
+
+class NlqRequest(BaseModel):
+    """Request model for natural language trail/park queries."""
+
+    query: str = Field(
+        ...,
+        description="Natural language question about trails or parks",
+        min_length=3,
+        max_length=500,
+        examples=[
+            "Show me long trails in Yosemite",
+            "What parks have I visited?",
+            "Find hikes under 3 miles in Utah",
+        ],
+    )
+
+
+class NlqResponse(BaseModel):
+    """Response model for natural language queries.
+
+    Returns the original query, how it was interpreted, which function
+    was called, and the results (same structure as /trails or /parks).
+    """
+
+    original_query: str = Field(
+        ...,
+        description="The original natural language query",
+    )
+    interpreted_as: dict[str, Any] = Field(
+        ...,
+        description="The structured parameters extracted from the query",
+    )
+    function_called: str = Field(
+        ...,
+        description="Which function was called (search_trails or search_parks)",
+    )
+    results: dict[str, Any] = Field(
+        ...,
+        description="The API results (same structure as /trails or /parks response)",
+    )

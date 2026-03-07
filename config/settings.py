@@ -150,6 +150,11 @@ class Config:
     ORCHESTRATOR_STEP_TIMEOUT: int = 3600  # 1 hour max per step
     ORCHESTRATOR_ELEVATION_TIMEOUT: int = 86400  # 24 hours for elevation collection
 
+    # Ollama LLM Configuration (for natural language queries)
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.1:8b"
+    OLLAMA_TIMEOUT: int = 60  # seconds; 8B models on CPU can be slow
+
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_MAX_BYTES: int = 5 * 1024 * 1024  # 5MB
@@ -212,6 +217,19 @@ class Config:
         log_level = os.getenv("LOG_LEVEL")
         if log_level:
             self.LOG_LEVEL = log_level
+
+        # Ollama settings
+        ollama_url = os.getenv("OLLAMA_BASE_URL")
+        if ollama_url:
+            self.OLLAMA_BASE_URL = ollama_url
+
+        ollama_model = os.getenv("OLLAMA_MODEL")
+        if ollama_model:
+            self.OLLAMA_MODEL = ollama_model
+
+        ollama_timeout = os.getenv("OLLAMA_TIMEOUT")
+        if ollama_timeout:
+            self.OLLAMA_TIMEOUT = int(ollama_timeout)
 
     def validate_for_api_operations(self) -> None:
         """

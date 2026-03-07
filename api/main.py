@@ -29,9 +29,18 @@ from sqlalchemy import text
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from api.database import get_db_engine
-from api.models import ParksResponse, TrailsResponse
+from api.models import NlqRequest, NlqResponse, ParksResponse, TrailsResponse
+from api.nlq.ollama_client import call_ollama
+from api.nlq.park_lookup import build_park_lookup_text, get_park_lookup
+from api.nlq.parser import parse_tool_call, validate_and_normalize
+from api.nlq.prompt import TOOLS, build_chat_messages, build_system_message
 from api.queries import fetch_all_parks, fetch_trails
-from utils.exceptions import DatabaseError, NpsHikesError
+from utils.exceptions import (
+    DatabaseError,
+    LlmConnectionError,
+    LlmResponseError,
+    NpsHikesError,
+)
 
 # Create FastAPI app with metadata for OpenAPI documentation
 app = FastAPI(
@@ -69,6 +78,7 @@ async def root() -> dict[str, Any]:
             "openapi_json": "/openapi.json",
         },
         "endpoints": {
+            "query": "/query",
             "parks": "/parks",
             "trails": "/trails",
             "us_static_park_map": "/parks/viz/us-static-park-map",
@@ -672,6 +682,92 @@ async def get_trail_3d_visualization(
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving 3D visualization: {e!s}",
+        ) from e
+
+
+@app.post(
+    "/query",
+    response_model=NlqResponse,
+    tags=["Natural Language Query"],
+    summary="Ask a question about trails or parks in natural language",
+    description="""
+    Translates a natural language question into a structured API call
+    using a local LLM (Ollama).
+
+    Requires Ollama to be running locally with a compatible model.
+
+    **Example queries:**
+    - "Show me trails in Yosemite"
+    - "What are the longest trails I've hiked?"
+    - "Find footway trails in California under 3 miles"
+    - "Which parks have I visited?"
+    """,
+    responses={
+        503: {"description": "Ollama is not running or unreachable"},
+        422: {"description": "Could not interpret the query"},
+    },
+)
+async def natural_language_query(request: NlqRequest) -> dict[str, Any]:
+    """
+    Process a natural language query about trails or parks.
+
+    Uses a local LLM via Ollama to extract structured parameters from
+    the query, then dispatches to the existing fetch_trails() or
+    fetch_all_parks() functions.
+    """
+    try:
+        # Build park lookup and prompt
+        park_lookup = get_park_lookup()
+        lookup_text = build_park_lookup_text(park_lookup)
+        system_message = build_system_message(lookup_text)
+        messages = build_chat_messages(request.query, system_message)
+
+        # Call LLM
+        response = await call_ollama(messages, TOOLS)
+
+        # Parse and validate
+        function_name, raw_params = parse_tool_call(response)
+        function_name, params = validate_and_normalize(
+            function_name, raw_params, park_lookup
+        )
+
+        # Dispatch to existing query functions
+        if function_name == "search_trails":
+            results = fetch_trails(**params)
+        else:
+            results = fetch_all_parks(**params)
+
+        return {
+            "original_query": request.query,
+            "interpreted_as": params,
+            "function_called": function_name,
+            "results": results,
+        }
+
+    except LlmConnectionError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"LLM service unavailable: {e!s}",
+        ) from e
+    except LlmResponseError as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Could not interpret query: {e!s}",
+        ) from e
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable: {e!s}",
+        ) from e
+    except NpsHikesError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing query: {e!s}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing query: {e!s}",
         ) from e
 
 
