@@ -1,12 +1,12 @@
 # Using the API
 
-This tutorial walks through the API's capabilities, starting with a broad overview of your parks and progressively narrowing down to individual trail visualizations. By the end, you'll know how to query parks and trails, generate visualizations, and build a 3D elevation profile for a specific trail.
+This tutorial walks through the API's capabilities, starting with a broad overview of your parks and progressively narrowing down to individual trail visualizations. By the end, you'll know how to query parks and trails, generate visualizations, build a 3D elevation profile for a specific trail, and use natural language search.
 
 The tutorial assumes you've completed the [Getting Started](getting-started.md) guide, run the full data collection pipeline, and have both Docker services running.
 
 The examples below use `curl` with `python3 -m json.tool` for pretty-printed output. You can also paste the URLs directly into your browser, which is especially useful for the visualization endpoints that return images and interactive HTML.
 
-> **Tip:** Don't want to set up locally? You can query the data endpoints on the [live demo](https://seanangio-nps-hikes.onrender.com/docs). In the examples below, replace `http://localhost:8000` with `https://seanangio-nps-hikes.onrender.com`. Note that visualization endpoints (maps, elevation charts, etc.) are only available locally.
+> **Tip:** Don't want to set up locally? You can query the data endpoints on the [live demo](https://seanangio-nps-hikes.onrender.com/docs). In the examples below, replace `http://localhost:8000` with `https://seanangio-nps-hikes.onrender.com`. Note that visualization endpoints and the natural language query endpoint (`/query`) are only available locally.
 
 ## Orient yourself
 
@@ -42,6 +42,7 @@ curl http://localhost:8000/ | python3 -m json.tool
         "openapi_json": "/openapi.json"
     },
     "endpoints": {
+        "query": "/query",
         "parks": "/parks",
         "trails": "/trails",
         "us_static_park_map": "/parks/viz/us-static-park-map",
@@ -389,3 +390,54 @@ curl "http://localhost:8000/trails?hiked=true&viz_3d=true" | python3 -m json.too
 From there, pick any trail with a `viz_3d_slug` and open its 3D visualization in your browser.
 
 > **Tip:** You can also use Python's `requests` library, the Swagger UI at `/docs`, or any HTTP client to query these endpoints.
+
+## Natural language queries
+
+Instead of building query parameters by hand, you can ask questions in plain English using the `/query` endpoint. This requires [Ollama](https://ollama.com/) running locally with a compatible model (see [Prerequisites](getting-started.md#step-0-prerequisites)).
+
+Start Ollama if it isn't already running:
+
+```bash
+ollama serve
+```
+
+Then ask a question:
+
+```bash
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "short hikes in Yosemite"}' | python3 -m json.tool
+```
+
+The response includes four fields:
+
+| Field | Description |
+|---|---|
+| `original_query` | Your question as submitted |
+| `interpreted_as` | The structured parameters the LLM extracted (for example, `{"park_code": "yose", "max_length": 3}`) |
+| `function_called` | Which function was used (`search_trails` or `search_parks`) |
+| `results` | The API results (same structure as `/trails` or `/parks`) |
+
+The `interpreted_as` field is useful for debugging. If the results look wrong, check what parameters were extracted to understand how the LLM interpreted your question.
+
+### Example queries
+
+```bash
+# Trails you've hiked in Zion
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "trails I have hiked in Zion"}' | python3 -m json.tool
+
+# Parks you haven't visited
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "which parks have I never visited?"}' | python3 -m json.tool
+```
+
+### How it works
+
+The endpoint uses a local LLM (via Ollama) to translate a question into structured parameters for the existing `/trails` or `/parks` query functions. The LLM's only job is parameter extraction. It doesn't answer questions directly or generate SQL. Your data never leaves your machine.
+
+The default model is `llama3.1:8b` (configurable via the `OLLAMA_MODEL` environment variable). You can swap models by changing the env var and pulling the new model with `ollama pull <model_name>`.
+
+> **Note:** The `/query` endpoint requires Ollama running on the host machine (not inside Docker). This allows the model to use Metal GPU acceleration on macOS for faster responses.

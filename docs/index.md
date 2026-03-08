@@ -1,12 +1,12 @@
 # NPS Hikes
 
-A Python project for collecting, validating, and analyzing hiking trail data from US National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API.
+A Python project for collecting, validating, and analyzing hiking trail data from US National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API with natural language search.
 
 ## Live demo
 
 You can find a live instance of the API at [seanangio-nps-hikes.onrender.com](https://seanangio-nps-hikes.onrender.com/docs). There you can browse the interactive Swagger UI and query park and trail data without any local setup.
 
-> **Note:** The live demo runs on a free tier and may take 30-60 seconds to respond on the first request while the server wakes up. Visualization endpoints (maps, elevation charts, 3D trails) are only available with a [local deployment](getting-started.md).
+> **Note:** The live demo runs on a free tier and may take 30-60 seconds to respond on the first request while the server wakes up. Visualization endpoints (maps, elevation charts, 3D trails) and the natural language query endpoint (`/query`) are only available with a [local deployment](getting-started.md).
 
 ## Project overview
 
@@ -14,6 +14,7 @@ You can find a live instance of the API at [seanangio-nps-hikes.onrender.com](ht
 - Extract hiking trails from OpenStreetMap and The National Map (USGS).
 - Match personal hiking locations to trail geometries.
 - Explore parks and trails through a FastAPI REST API.
+- Ask questions in natural language (for example, "short hikes in Yosemite") via a local LLM.
 
 ## Project structure
 
@@ -23,7 +24,8 @@ nps-hikes/
 │   ├── main.py                        # API endpoints and application
 │   ├── models.py                      # Pydantic response models
 │   ├── queries.py                     # Database query functions
-│   └── database.py                    # Database connection management
+│   ├── database.py                    # Database connection management
+│   └── nlq/                           # Natural language query module (Ollama LLM)
 ├── scripts/                   # Data collection and processing scripts
 │   ├── collectors/            # Data collection from external sources
 │   ├── processors/            # Data processing and analysis

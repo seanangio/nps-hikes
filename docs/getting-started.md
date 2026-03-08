@@ -2,7 +2,7 @@
 
 This guide walks through locally setting up this NPS hiking project from scratch. By the end, you'll have a PostGIS database with all 63 US national parks and hundreds of hiking trails, queryable through an interactive API.
 
-> **Tip:** Instead of a local setup, you can also explore a live demo of the Swagger UI docs at [seanangio-nps-hikes.onrender.com/docs](https://seanangio-nps-hikes.onrender.com/docs). To query the visualization endpoints however, continue with the local setup instructions here.
+> **Tip:** Instead of a local setup, you can also explore a live demo of the Swagger UI docs at [seanangio-nps-hikes.onrender.com/docs](https://seanangio-nps-hikes.onrender.com/docs). Visualization endpoints and the natural language query endpoint (`/query`) require a local setup.
 
 ## Step 0: Prerequisites
 
@@ -12,6 +12,7 @@ Before you begin, make sure you have the following:
 - **Python 3.12+**: The data collection pipeline runs on your local machine. Check your version with `python3 --version`. If you need to install or upgrade, see [python.org](https://www.python.org/downloads/).
 - **Git**: Install [Git](https://git-scm.com/install/) for your operating system to clone the repository.
 - An **NPS API key**: Free to sign up at the [NPS Developer Portal](https://www.nps.gov/subjects/developer/get-started.htm). You should receive a key by email within minutes.
+- **Ollama** (optional): Required only for the natural language query endpoint (`/query`). Install from [ollama.com](https://ollama.com/), and pull a model with `ollama pull llama3.1:8b`.
 
 ## Step 1: Clone the repository
 
@@ -59,6 +60,10 @@ NPS_USER_EMAIL=your_email@example.com
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_DB=nps_hikes_db
+
+# Ollama (optional, for natural language queries)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b
 ```
 
 > **How the project uses the `.env` file:** Docker Compose reads it automatically to configure the database container. The Python scripts also read it (via `python-dotenv`) for API credentials and database connections.
@@ -214,8 +219,9 @@ Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to
 | See all trails for a specific park | `http://localhost:8000/parks/yose/trails` |
 | Find long trails across all parks | `http://localhost:8000/trails?min_length=10` |
 | Filter by state | `http://localhost:8000/trails?state=CA` |
+| Ask a question in natural language | `curl -X POST http://localhost:8000/query -H 'Content-Type: application/json' -d '{"query": "short hikes in Yosemite"}'` |
 
-> **Note:** The data endpoints (`/parks`, `/trails`) work immediately after the pipeline. The visualization endpoints (park maps, trail maps, elevation charts) require an additional generation step covered in the [API Tutorial](api-tutorial.md).
+> **Note:** The data endpoints (`/parks`, `/trails`) work immediately after the pipeline. The natural language query endpoint (`/query`) also works immediately, but it requires [Ollama](https://ollama.com/) running locally. The visualization endpoints (park maps, trail maps, elevation charts) require an additional generation step covered in the [API Tutorial](api-tutorial.md).
 
 ## Stopping and restarting
 
