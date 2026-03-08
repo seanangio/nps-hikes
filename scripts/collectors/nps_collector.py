@@ -309,7 +309,7 @@ class NPSDataCollector:
         """
         # Extract basic park information with safe defaults
         extracted_data = {
-            "park_name": park_api_data.get("fullName", ""),
+            "park_name": park_api_data.get("name", park_api_data.get("fullName", "")),
             "visit_month": visit_data["month"] if visit_data is not None else None,
             "visit_year": visit_data["year"] if visit_data is not None else None,
             "park_code": park_api_data.get("parkCode", ""),

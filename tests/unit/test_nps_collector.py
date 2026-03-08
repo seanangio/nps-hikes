@@ -73,6 +73,7 @@ class TestNPSDataCollector:
         mock_api_data = {
             "parkCode": "zion",
             "fullName": "Zion National Park",
+            "name": "Zion",
             "designation": "National Park",
             "states": "UT",
             "url": "https://www.nps.gov/zion/",
@@ -83,7 +84,7 @@ class TestNPSDataCollector:
 
         result = collector.extract_park_data(mock_api_data, sample_csv_row)
 
-        assert result["park_name"] == "Zion National Park"
+        assert result["park_name"] == "Zion"
         assert result["visit_month"] == "June"
         assert result["visit_year"] == 2024
         assert result["park_code"] == "zion"
@@ -97,6 +98,7 @@ class TestNPSDataCollector:
         mock_api_data = {
             "parkCode": "dena",
             "fullName": "Denali National Park & Preserve",
+            "name": "Denali",
             "designation": "National Park & Preserve",
             "states": "AK",
             "url": "https://www.nps.gov/dena/",
@@ -107,7 +109,7 @@ class TestNPSDataCollector:
 
         result = collector.extract_park_data(mock_api_data)
 
-        assert result["park_name"] == "Denali National Park & Preserve"
+        assert result["park_name"] == "Denali"
         assert result["visit_month"] is None
         assert result["visit_year"] is None
         assert result["park_code"] == "dena"

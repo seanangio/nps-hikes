@@ -45,21 +45,26 @@ def get_park_lookup() -> dict[str, str]:
     for park in result["parks"]:
         code = park["park_code"]
         name = park.get("park_name") or ""
+        full = park.get("full_name") or ""
 
         # Index by park code
         lookup[code] = code
 
-        # Index by full name
+        # Index by short park name
         if name:
             lookup[name.lower()] = code
 
+        # Index by full name
+        if full:
+            lookup[full.lower()] = code
+
             # Index by short name (strip designation suffixes)
-            short = name.lower()
+            short = full.lower()
             for suffix in _DESIGNATION_SUFFIXES:
                 if short.endswith(suffix):
                     short = short[: -len(suffix)].strip()
                     break
-            if short != name.lower():
+            if short != full.lower():
                 lookup[short] = code
 
     _park_lookup_cache = lookup

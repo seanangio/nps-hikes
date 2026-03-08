@@ -78,7 +78,7 @@ curl "http://localhost:8000/parks?visited=true" | python3 -m json.tool
     "parks": [
         {
             "park_code": "acad",
-            "park_name": "Acadia National Park",
+            "park_name": "Acadia",
             "full_name": "Acadia National Park",
             "designation": "National Park",
             "states": "ME",

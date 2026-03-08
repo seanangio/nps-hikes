@@ -46,6 +46,7 @@ def sample_park_api_response():
     return {
         "parkCode": "zion",
         "fullName": "Zion National Park",
+        "name": "Zion",
         "designation": "National Park",
         "states": "UT",
         "url": "https://www.nps.gov/zion/",

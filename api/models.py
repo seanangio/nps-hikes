@@ -89,8 +89,8 @@ class Trail(BaseModel):
     )
     park_name: str | None = Field(
         None,
-        description="Full park name",
-        examples=["Yosemite National Park"],
+        description="Short park name",
+        examples=["Yosemite"],
     )
     states: str | None = Field(
         None,
@@ -141,7 +141,7 @@ class Trail(BaseModel):
                     "trail_id": "550779",
                     "trail_name": "Mono Pass Trail",
                     "park_code": "yose",
-                    "park_name": "Yosemite National Park",
+                    "park_name": "Yosemite",
                     "states": "CA",
                     "source": "TNM",
                     "length_miles": 8.2,
@@ -202,7 +202,7 @@ class TrailsResponse(BaseModel):
                             "trail_id": "550779",
                             "trail_name": "Half Dome Trail",
                             "park_code": "yose",
-                            "park_name": "Yosemite National Park",
+                            "park_name": "Yosemite",
                             "states": "CA",
                             "source": "TNM",
                             "length_miles": 14.2,
@@ -216,7 +216,7 @@ class TrailsResponse(BaseModel):
                             "trail_id": "123456789",
                             "trail_name": "Mist Trail",
                             "park_code": "yose",
-                            "park_name": "Yosemite National Park",
+                            "park_name": "Yosemite",
                             "states": "CA",
                             "source": "OSM",
                             "length_miles": 6.3,
@@ -248,8 +248,8 @@ class Park(BaseModel):
     )
     park_name: str | None = Field(
         None,
-        description="Full park name",
-        examples=["Yosemite National Park"],
+        description="Short park name",
+        examples=["Yosemite"],
     )
     full_name: str | None = Field(
         None,
@@ -308,7 +308,7 @@ class Park(BaseModel):
             "examples": [
                 {
                     "park_code": "yose",
-                    "park_name": "Yosemite National Park",
+                    "park_name": "Yosemite",
                     "full_name": "Yosemite National Park",
                     "states": "CA",
                     "latitude": 37.8651,
@@ -355,7 +355,7 @@ class ParksResponse(BaseModel):
                     "parks": [
                         {
                             "park_code": "dena",
-                            "park_name": "Denali National Park & Preserve",
+                            "park_name": "Denali",
                             "full_name": "Denali National Park & Preserve",
                             "designation": "National Park & Preserve",
                             "states": "AK",
@@ -365,7 +365,7 @@ class ParksResponse(BaseModel):
                         },
                         {
                             "park_code": "yose",
-                            "park_name": "Yosemite National Park",
+                            "park_name": "Yosemite",
                             "full_name": "Yosemite National Park",
                             "designation": "National Park",
                             "states": "CA",
