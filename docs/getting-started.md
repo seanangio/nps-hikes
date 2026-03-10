@@ -175,18 +175,21 @@ The pipeline runs six steps in order:
 First, confirm that the pipeline created and populated the tables by querying the database directly:
 
 ```bash
-docker compose exec db bash -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT park_code, park_name FROM parks;"'
+docker compose exec db bash -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+  SELECT
+    (SELECT COUNT(*) FROM parks) AS parks,
+    (SELECT COUNT(*) FROM tnm_hikes) AS tnm_trails,
+    (SELECT COUNT(*) FROM osm_hikes) AS osm_trails;
+"'
 ```
 
-> **Tip:** You should see the park code and name of parks collected (one if you used `--test-limit 1`). This runs `psql` inside the already-running database container, so you don't need PostgreSQL installed locally.
-
-You can also verify through the API:
+You can also verify through the API, replacing `acad` with one of your own parks:
 
 ```bash
-curl http://localhost:8000/parks | python3 -m json.tool
+curl "http://localhost:8000/trails?park_code=acad" | python3 -m json.tool
 ```
 
-You should see a JSON response with `park_count` showing the number of parks collected and a `parks` array with details for each one.
+You should see a JSON response with a `trails` array and a `pagination` object. The `pagination.total_count` field shows the total number of trails collected for Acadia (results are paginated with 50 per page by default).
 
 ### Run the full pipeline
 
