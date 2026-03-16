@@ -354,5 +354,35 @@
         </Point>
       </Placemark>
     </Folder>
+    <Folder>
+      <name>cong</name>
+      <Placemark>
+        <name>Boardwalk Loop Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.8237569,33.8295527,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Sims Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.8212446,33.8222114,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Weston Lake Loop</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -80.8234309,33.8136153,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
   </Document>
 </kml>
