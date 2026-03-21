@@ -570,11 +570,11 @@ async def get_trail_3d_visualization(
     ),
     trail_slug: str = Path(
         ...,
-        description="URL-safe trail slug (e.g., 'half_dome_trail')",
+        description="URL-safe trail slug (e.g., 'mariposa_grove_trail')",
         min_length=1,
         max_length=255,
         pattern="^[a-z0-9_-]+$",
-        examples=["half_dome_trail", "bright_angel_trail"],
+        examples=["mariposa_grove_trail", "bright_angel_trail"],
     ),
     z_scale: float = Query(
         default=5.0,
@@ -593,8 +593,8 @@ async def get_trail_3d_visualization(
     - Trail statistics (distance, elevation gain/loss, etc.)
 
     **Example usage:**
-    - Half Dome trail: `/parks/yose/trails/half_dome_trail/viz/3d`
-    - With custom z-scale: `/parks/yose/trails/half_dome_trail/viz/3d?z_scale=10`
+    - Mariposa Grove trail: `/parks/yose/trails/mariposa_grove_trail/viz/3d`
+    - With custom z-scale: `/parks/yose/trails/mariposa_grove_trail/viz/3d?z_scale=10`
 
     **Use cases:**
     - Explore trail elevation profiles interactively

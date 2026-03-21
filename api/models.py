@@ -210,7 +210,7 @@ class TrailsResponse(BaseModel):
                             "highway_type": None,
                             "hiked": True,
                             "viz_3d_available": True,
-                            "viz_3d_slug": "half_dome_trail",
+                            "viz_3d_slug": "mariposa_grove_trail",
                         },
                         {
                             "trail_id": "123456789",

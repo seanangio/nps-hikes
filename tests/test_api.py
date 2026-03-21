@@ -262,7 +262,7 @@ class TestVisualizationEndpoints:
         # Create temp directory structure and HTML file
         viz_dir = tmp_path / "profiling_results" / "visualizations" / "3d_trails"
         viz_dir.mkdir(parents=True)
-        html_file = viz_dir / "yose_half_dome_trail_3d.html"
+        html_file = viz_dir / "yose_mariposa_grove_trail_3d.html"
         html_file.write_text("<html><body>Test 3D Viz</body></html>")
 
         # Mock get_db_engine to return trail info
@@ -286,7 +286,7 @@ class TestVisualizationEndpoints:
         monkeypatch.setattr("api.main.os.path.dirname", mock_dirname)
 
         # Make request
-        response = client.get("/parks/yose/trails/half_dome_trail/viz/3d")
+        response = client.get("/parks/yose/trails/mariposa_grove_trail/viz/3d")
 
         # Assertions
         assert response.status_code == 200
@@ -311,7 +311,7 @@ class TestVisualizationEndpoints:
         )
 
         # Create temp HTML file that will be "generated"
-        html_file = tmp_path / "yose_half_dome_trail_3d.html"
+        html_file = tmp_path / "yose_mariposa_grove_trail_3d.html"
 
         # Mock visualizer
         mock_visualizer = Mock()
@@ -330,7 +330,9 @@ class TestVisualizationEndpoints:
         mock_exists.side_effect = [False, True]
 
         # Make request with custom z_scale
-        response = client.get("/parks/yose/trails/half_dome_trail/viz/3d?z_scale=10.0")
+        response = client.get(
+            "/parks/yose/trails/mariposa_grove_trail/viz/3d?z_scale=10.0"
+        )
 
         # Assertions
         assert response.status_code == 200
@@ -385,7 +387,7 @@ class TestVisualizationEndpoints:
         mock_exists.return_value = False
 
         # Make request
-        response = client.get("/parks/yose/trails/half_dome_trail/viz/3d")
+        response = client.get("/parks/yose/trails/mariposa_grove_trail/viz/3d")
 
         # Assertions
         assert response.status_code == 500
