@@ -382,6 +382,222 @@ class ParksResponse(BaseModel):
     }
 
 
+class TrailSummary(BaseModel):
+    """Summary of a single trail (used in stats for longest/shortest)."""
+
+    trail_name: str | None = Field(
+        None,
+        description="Trail name",
+        examples=["Half Dome Trail"],
+    )
+    park_code: str = Field(
+        ...,
+        description="4-character lowercase park code",
+        pattern="^[a-z]{4}$",
+        examples=["yose"],
+    )
+    park_name: str | None = Field(
+        None,
+        description="Short park name",
+        examples=["Yosemite"],
+    )
+    length_miles: float = Field(
+        ...,
+        description="Trail length in miles",
+        ge=0,
+        examples=[14.2],
+    )
+
+
+class SourceBreakdown(BaseModel):
+    """Count of trails by data source."""
+
+    tnm: int = Field(
+        ...,
+        description="Number of trails from The National Map",
+        ge=0,
+        examples=[200],
+    )
+    osm: int = Field(
+        ...,
+        description="Number of trails from OpenStreetMap",
+        ge=0,
+        examples=[147],
+    )
+
+
+class StatsResponse(BaseModel):
+    """
+    Aggregate hiking statistics.
+
+    Provides summary statistics across all trails, optionally filtered
+    by hiking status.
+    """
+
+    total_trails: int = Field(
+        ...,
+        description="Total number of deduplicated trails",
+        ge=0,
+        examples=[347],
+    )
+    total_miles: float = Field(
+        ...,
+        description="Total trail mileage",
+        ge=0,
+        examples=[1523.4],
+    )
+    avg_trail_length: float = Field(
+        ...,
+        description="Average trail length in miles",
+        ge=0,
+        examples=[4.39],
+    )
+    parks_count: int = Field(
+        ...,
+        description="Number of distinct parks with trails",
+        ge=0,
+        examples=[36],
+    )
+    states_count: int = Field(
+        ...,
+        description="Number of distinct states covered",
+        ge=0,
+        examples=[22],
+    )
+    source_breakdown: SourceBreakdown = Field(
+        ...,
+        description="Trail counts by data source (TNM vs OSM)",
+    )
+    longest_trail: TrailSummary | None = Field(
+        None,
+        description="The longest trail matching the filters",
+    )
+    shortest_trail: TrailSummary | None = Field(
+        None,
+        description="The shortest trail matching the filters",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "total_trails": 347,
+                    "total_miles": 1523.4,
+                    "avg_trail_length": 4.39,
+                    "parks_count": 36,
+                    "states_count": 22,
+                    "source_breakdown": {"tnm": 200, "osm": 147},
+                    "longest_trail": {
+                        "trail_name": "Half Dome Trail",
+                        "park_code": "yose",
+                        "park_name": "Yosemite",
+                        "length_miles": 14.2,
+                    },
+                    "shortest_trail": {
+                        "trail_name": "Mist Trail",
+                        "park_code": "yose",
+                        "park_name": "Yosemite",
+                        "length_miles": 0.3,
+                    },
+                }
+            ]
+        }
+    }
+
+
+class ParkStats(BaseModel):
+    """Statistics for a single park."""
+
+    park_code: str = Field(
+        ...,
+        description="4-character lowercase park code",
+        pattern="^[a-z]{4}$",
+        examples=["yose"],
+    )
+    park_name: str | None = Field(
+        None,
+        description="Short park name",
+        examples=["Yosemite"],
+    )
+    trail_count: int = Field(
+        ...,
+        description="Number of trails in this park",
+        ge=0,
+        examples=[42],
+    )
+    total_miles: float = Field(
+        ...,
+        description="Total trail mileage in this park",
+        ge=0,
+        examples=[187.3],
+    )
+    avg_trail_length: float = Field(
+        ...,
+        description="Average trail length in this park",
+        ge=0,
+        examples=[4.46],
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "park_code": "yose",
+                    "park_name": "Yosemite",
+                    "trail_count": 42,
+                    "total_miles": 187.3,
+                    "avg_trail_length": 4.46,
+                }
+            ]
+        }
+    }
+
+
+class ParkStatsResponse(BaseModel):
+    """
+    Per-park hiking statistics.
+
+    Provides trail statistics broken down by park, sorted by trail count descending.
+    """
+
+    park_count: int = Field(
+        ...,
+        description="Number of parks with trails",
+        ge=0,
+        examples=[36],
+    )
+    parks: list[ParkStats] = Field(
+        ...,
+        description="Per-park statistics sorted by trail count descending",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "park_count": 2,
+                    "parks": [
+                        {
+                            "park_code": "yose",
+                            "park_name": "Yosemite",
+                            "trail_count": 42,
+                            "total_miles": 187.3,
+                            "avg_trail_length": 4.46,
+                        },
+                        {
+                            "park_code": "zion",
+                            "park_name": "Zion",
+                            "trail_count": 15,
+                            "total_miles": 48.7,
+                            "avg_trail_length": 3.25,
+                        },
+                    ],
+                }
+            ]
+        }
+    }
+
+
 class NlqRequest(BaseModel):
     """Request model for natural language trail/park queries."""
 

@@ -330,3 +330,283 @@ def fetch_trails(
             "has_prev": offset > 0,
         },
     }
+
+
+def fetch_stats(hiked: bool | None = None) -> dict[str, Any]:
+    """
+    Fetch aggregate hiking statistics.
+
+    Computes summary statistics across all deduplicated trails, optionally
+    filtered by hiking status.
+
+    Args:
+        hiked: Filter by hiking status. True=hiked only, False=not hiked only,
+               None=all trails (default: None)
+
+    Returns:
+        Dictionary containing:
+            - total_trails: int
+            - total_miles: float
+            - avg_trail_length: float
+            - parks_count: int
+            - states_count: int
+            - source_breakdown: dict with tnm and osm counts
+            - longest_trail: dict or None
+            - shortest_trail: dict or None
+    """
+    engine = get_db_engine()
+
+    query = """
+    WITH tnm_trails AS (
+        SELECT
+            name as trail_name,
+            park_code,
+            'TNM' as source,
+            length_miles
+        FROM tnm_hikes
+        WHERE name IS NOT NULL
+    ),
+    osm_trails AS (
+        SELECT
+            name as trail_name,
+            park_code,
+            'OSM' as source,
+            length_miles
+        FROM osm_hikes
+        WHERE name IS NOT NULL
+    ),
+    osm_unique AS (
+        SELECT o.*
+        FROM osm_trails o
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM tnm_trails t
+            WHERE t.park_code = o.park_code
+            AND similarity(lower(t.trail_name), lower(o.trail_name)) > 0.7
+        )
+    ),
+    all_trails AS (
+        SELECT * FROM tnm_trails
+        UNION ALL
+        SELECT * FROM osm_unique
+    ),
+    filtered AS (
+        SELECT t.trail_name, t.park_code, t.source, t.length_miles,
+               p.park_name, p.states
+        FROM all_trails t
+        LEFT JOIN parks p ON t.park_code = p.park_code
+        LEFT JOIN gmaps_hiking_locations_matched m
+            ON t.park_code = m.park_code
+            AND t.source = m.source
+            AND t.trail_name = m.matched_trail_name
+        WHERE 1=1
+    """
+
+    params: dict[str, Any] = {}
+
+    if hiked is not None:
+        if hiked:
+            query += " AND m.gmaps_location_id IS NOT NULL"
+        else:
+            query += " AND m.gmaps_location_id IS NULL"
+
+    query += """
+    ),
+    stats AS (
+        SELECT
+            COUNT(*) as total_trails,
+            COALESCE(SUM(length_miles), 0) as total_miles,
+            COALESCE(AVG(length_miles), 0) as avg_trail_length,
+            COUNT(DISTINCT park_code) as parks_count,
+            COUNT(*) FILTER (WHERE source = 'TNM') as tnm_count,
+            COUNT(*) FILTER (WHERE source = 'OSM') as osm_count
+        FROM filtered
+    ),
+    longest AS (
+        SELECT trail_name, park_code, park_name, length_miles
+        FROM filtered
+        ORDER BY length_miles DESC
+        LIMIT 1
+    ),
+    shortest AS (
+        SELECT trail_name, park_code, park_name, length_miles
+        FROM filtered
+        ORDER BY length_miles ASC
+        LIMIT 1
+    ),
+    distinct_states AS (
+        SELECT COUNT(DISTINCT trim(s)) as states_count
+        FROM filtered, unnest(string_to_array(states, ',')) as s
+    )
+    SELECT
+        s.total_trails, s.total_miles, s.avg_trail_length, s.parks_count,
+        s.tnm_count, s.osm_count,
+        ds.states_count,
+        l.trail_name as longest_trail_name,
+        l.park_code as longest_park_code,
+        l.park_name as longest_park_name,
+        l.length_miles as longest_length_miles,
+        sh.trail_name as shortest_trail_name,
+        sh.park_code as shortest_park_code,
+        sh.park_name as shortest_park_name,
+        sh.length_miles as shortest_length_miles
+    FROM stats s
+    CROSS JOIN distinct_states ds
+    LEFT JOIN longest l ON true
+    LEFT JOIN shortest sh ON true
+    """
+
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        row = result.fetchone()
+
+    if not row or row.total_trails == 0:
+        return {
+            "total_trails": 0,
+            "total_miles": 0.0,
+            "avg_trail_length": 0.0,
+            "parks_count": 0,
+            "states_count": 0,
+            "source_breakdown": {"tnm": 0, "osm": 0},
+            "longest_trail": None,
+            "shortest_trail": None,
+        }
+
+    longest_trail = None
+    if row.longest_trail_name is not None:
+        longest_trail = {
+            "trail_name": row.longest_trail_name,
+            "park_code": row.longest_park_code,
+            "park_name": row.longest_park_name,
+            "length_miles": float(row.longest_length_miles),
+        }
+
+    shortest_trail = None
+    if row.shortest_trail_name is not None:
+        shortest_trail = {
+            "trail_name": row.shortest_trail_name,
+            "park_code": row.shortest_park_code,
+            "park_name": row.shortest_park_name,
+            "length_miles": float(row.shortest_length_miles),
+        }
+
+    return {
+        "total_trails": row.total_trails,
+        "total_miles": round(float(row.total_miles), 2),
+        "avg_trail_length": round(float(row.avg_trail_length), 2),
+        "parks_count": row.parks_count,
+        "states_count": row.states_count,
+        "source_breakdown": {
+            "tnm": row.tnm_count,
+            "osm": row.osm_count,
+        },
+        "longest_trail": longest_trail,
+        "shortest_trail": shortest_trail,
+    }
+
+
+def fetch_park_stats(hiked: bool | None = None) -> dict[str, Any]:
+    """
+    Fetch per-park hiking statistics.
+
+    Computes trail statistics grouped by park, optionally filtered
+    by hiking status.
+
+    Args:
+        hiked: Filter by hiking status. True=hiked only, False=not hiked only,
+               None=all trails (default: None)
+
+    Returns:
+        Dictionary containing:
+            - park_count: int
+            - parks: list of per-park stat dictionaries
+    """
+    engine = get_db_engine()
+
+    query = """
+    WITH tnm_trails AS (
+        SELECT
+            name as trail_name,
+            park_code,
+            'TNM' as source,
+            length_miles
+        FROM tnm_hikes
+        WHERE name IS NOT NULL
+    ),
+    osm_trails AS (
+        SELECT
+            name as trail_name,
+            park_code,
+            'OSM' as source,
+            length_miles
+        FROM osm_hikes
+        WHERE name IS NOT NULL
+    ),
+    osm_unique AS (
+        SELECT o.*
+        FROM osm_trails o
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM tnm_trails t
+            WHERE t.park_code = o.park_code
+            AND similarity(lower(t.trail_name), lower(o.trail_name)) > 0.7
+        )
+    ),
+    all_trails AS (
+        SELECT * FROM tnm_trails
+        UNION ALL
+        SELECT * FROM osm_unique
+    ),
+    filtered AS (
+        SELECT t.trail_name, t.park_code, t.source, t.length_miles,
+               p.park_name
+        FROM all_trails t
+        LEFT JOIN parks p ON t.park_code = p.park_code
+        LEFT JOIN gmaps_hiking_locations_matched m
+            ON t.park_code = m.park_code
+            AND t.source = m.source
+            AND t.trail_name = m.matched_trail_name
+        WHERE 1=1
+    """
+
+    params: dict[str, Any] = {}
+
+    if hiked is not None:
+        if hiked:
+            query += " AND m.gmaps_location_id IS NOT NULL"
+        else:
+            query += " AND m.gmaps_location_id IS NULL"
+
+    query += """
+    )
+    SELECT
+        park_code,
+        park_name,
+        COUNT(*) as trail_count,
+        COALESCE(SUM(length_miles), 0) as total_miles,
+        COALESCE(AVG(length_miles), 0) as avg_trail_length
+    FROM filtered
+    GROUP BY park_code, park_name
+    ORDER BY trail_count DESC, total_miles DESC
+    """
+
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        rows = result.fetchall()
+
+    parks = []
+    for row in rows:
+        parks.append(
+            {
+                "park_code": row.park_code,
+                "park_name": row.park_name,
+                "trail_count": row.trail_count,
+                "total_miles": round(float(row.total_miles), 2),
+                "avg_trail_length": round(float(row.avg_trail_length), 2),
+            }
+        )
+
+    return {
+        "park_count": len(parks),
+        "parks": parks,
+    }

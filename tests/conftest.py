@@ -440,6 +440,114 @@ def sample_parks_response():
 
 
 @pytest.fixture
+def sample_stats_response():
+    """
+    Provide sample data for stats endpoint testing.
+
+    Returns a dictionary with a mock row matching the stats query result.
+    """
+    from collections import namedtuple
+
+    StatsRow = namedtuple(
+        "StatsRow",
+        [
+            "total_trails",
+            "total_miles",
+            "avg_trail_length",
+            "parks_count",
+            "tnm_count",
+            "osm_count",
+            "states_count",
+            "longest_trail_name",
+            "longest_park_code",
+            "longest_park_name",
+            "longest_length_miles",
+            "shortest_trail_name",
+            "shortest_park_code",
+            "shortest_park_name",
+            "shortest_length_miles",
+        ],
+    )
+
+    return {
+        "row": StatsRow(
+            total_trails=3,
+            total_miles=28.9,
+            avg_trail_length=9.63,
+            parks_count=2,
+            tnm_count=2,
+            osm_count=1,
+            states_count=2,
+            longest_trail_name="Half Dome Trail",
+            longest_park_code="yose",
+            longest_park_name="Yosemite",
+            longest_length_miles=14.2,
+            shortest_trail_name="Canyon Overlook Trail",
+            shortest_park_code="zion",
+            shortest_park_name="Zion",
+            shortest_length_miles=1.0,
+        ),
+        "empty_row": StatsRow(
+            total_trails=0,
+            total_miles=0,
+            avg_trail_length=0,
+            parks_count=0,
+            tnm_count=0,
+            osm_count=0,
+            states_count=0,
+            longest_trail_name=None,
+            longest_park_code=None,
+            longest_park_name=None,
+            longest_length_miles=None,
+            shortest_trail_name=None,
+            shortest_park_code=None,
+            shortest_park_name=None,
+            shortest_length_miles=None,
+        ),
+    }
+
+
+@pytest.fixture
+def sample_park_stats_response():
+    """
+    Provide sample data for park stats endpoint testing.
+
+    Returns a dictionary with mock rows matching the park stats query result.
+    """
+    from collections import namedtuple
+
+    ParkStatsRow = namedtuple(
+        "ParkStatsRow",
+        [
+            "park_code",
+            "park_name",
+            "trail_count",
+            "total_miles",
+            "avg_trail_length",
+        ],
+    )
+
+    return {
+        "rows": [
+            ParkStatsRow(
+                park_code="yose",
+                park_name="Yosemite",
+                trail_count=2,
+                total_miles=20.7,
+                avg_trail_length=10.35,
+            ),
+            ParkStatsRow(
+                park_code="zion",
+                park_name="Zion",
+                trail_count=1,
+                total_miles=8.2,
+                avg_trail_length=8.2,
+            ),
+        ],
+    }
+
+
+@pytest.fixture
 def temp_viz_files(tmp_path):
     """
     Create temporary visualization files for testing.

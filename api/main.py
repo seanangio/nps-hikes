@@ -29,12 +29,19 @@ from sqlalchemy import text
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from api.database import get_db_engine
-from api.models import NlqRequest, NlqResponse, ParksResponse, TrailsResponse
+from api.models import (
+    NlqRequest,
+    NlqResponse,
+    ParksResponse,
+    ParkStatsResponse,
+    StatsResponse,
+    TrailsResponse,
+)
 from api.nlq.ollama_client import call_ollama
 from api.nlq.park_lookup import build_park_lookup_text, get_park_lookup
 from api.nlq.parser import parse_tool_call, validate_and_normalize
 from api.nlq.prompt import TOOLS, build_chat_messages, build_system_message
-from api.queries import fetch_all_parks, fetch_trails
+from api.queries import fetch_all_parks, fetch_park_stats, fetch_stats, fetch_trails
 from utils.exceptions import (
     DatabaseError,
     LlmConnectionError,
@@ -81,6 +88,8 @@ async def root() -> dict[str, Any]:
             "query": "/query",
             "parks": "/parks",
             "trails": "/trails",
+            "stats": "/stats",
+            "stats_parks": "/stats/parks",
             "us_static_park_map": "/parks/viz/us-static-park-map",
             "us_interactive_park_map": "/parks/viz/us-interactive-park-map",
             "static_map": "/parks/{park_code}/viz/static-map",
@@ -314,6 +323,105 @@ async def get_trails(
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving trails: {e!s}",
+        ) from e
+
+
+@app.get(
+    "/stats",
+    response_model=StatsResponse,
+    tags=["Stats"],
+    summary="Get aggregate hiking statistics",
+    description="""
+    Returns aggregate statistics across all trails, including total trails,
+    total miles, average trail length, parks and states counts, source breakdown,
+    and longest/shortest trails.
+
+    Use `hiked=true` to get stats for only hiked trails (personal stats),
+    `hiked=false` for only unvisited trails, or omit for all trails.
+    """,
+)
+async def get_stats(
+    hiked: bool | None = Query(
+        default=None,
+        description="Filter by hiking status: true=hiked only, false=not yet hiked, omit=all trails",
+    ),
+) -> dict[str, Any]:
+    """
+    Get aggregate hiking statistics.
+
+    Returns summary statistics computed across all deduplicated trails.
+
+    **Example queries:**
+    - All trail stats: `/stats`
+    - Personal hiking stats: `/stats?hiked=true`
+    - Unvisited trail stats: `/stats?hiked=false`
+    """
+    try:
+        result = fetch_stats(hiked=hiked)
+        return result
+
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable: {e!s}",
+        ) from e
+    except NpsHikesError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving stats: {e!s}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving stats: {e!s}",
+        ) from e
+
+
+@app.get(
+    "/stats/parks",
+    response_model=ParkStatsResponse,
+    tags=["Stats"],
+    summary="Get per-park hiking statistics",
+    description="""
+    Returns trail statistics broken down by park, sorted by trail count descending.
+
+    Use `hiked=true` to get stats for only hiked trails per park,
+    `hiked=false` for only unvisited trails per park, or omit for all trails.
+    """,
+)
+async def get_park_stats(
+    hiked: bool | None = Query(
+        default=None,
+        description="Filter by hiking status: true=hiked only, false=not yet hiked, omit=all trails",
+    ),
+) -> dict[str, Any]:
+    """
+    Get per-park hiking statistics.
+
+    Returns trail count, total miles, and average trail length for each park.
+
+    **Example queries:**
+    - All parks: `/stats/parks`
+    - Parks with hiked trails: `/stats/parks?hiked=true`
+    """
+    try:
+        result = fetch_park_stats(hiked=hiked)
+        return result
+
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable: {e!s}",
+        ) from e
+    except NpsHikesError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving park stats: {e!s}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving park stats: {e!s}",
         ) from e
 
 

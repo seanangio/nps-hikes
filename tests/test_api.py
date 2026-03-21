@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from api.main import app
-from api.queries import fetch_all_parks, fetch_trails
+from api.queries import fetch_all_parks, fetch_park_stats, fetch_stats, fetch_trails
 
 # Create test client
 client = TestClient(app)
@@ -39,6 +39,8 @@ class TestRootEndpoint:
         assert "endpoints" in data
         assert data["endpoints"]["parks"] == "/parks"
         assert data["endpoints"]["trails"] == "/trails"
+        assert data["endpoints"]["stats"] == "/stats"
+        assert data["endpoints"]["stats_parks"] == "/stats/parks"
 
 
 class TestParksEndpoint:
@@ -1023,3 +1025,243 @@ class TestTrailsPagination:
         assert data["pagination"]["limit"] == 25
         assert data["pagination"]["offset"] == 0
         assert "pagination" in data
+
+
+class TestStatsEndpoint:
+    """Tests for the stats endpoint (GET /stats)."""
+
+    @patch("api.queries.get_db_engine")
+    def test_get_stats_no_filter(
+        self, mock_get_engine, mock_db_engine, sample_stats_response
+    ):
+        """Test stats endpoint without filters."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = sample_stats_response["row"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/stats")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_trails"] == 3
+        assert data["total_miles"] == 28.9
+        assert data["avg_trail_length"] == 9.63
+        assert data["parks_count"] == 2
+        assert data["states_count"] == 2
+        assert data["source_breakdown"]["tnm"] == 2
+        assert data["source_breakdown"]["osm"] == 1
+        assert data["longest_trail"]["trail_name"] == "Half Dome Trail"
+        assert data["longest_trail"]["park_code"] == "yose"
+        assert data["longest_trail"]["length_miles"] == 14.2
+        assert data["shortest_trail"]["trail_name"] == "Canyon Overlook Trail"
+        assert data["shortest_trail"]["park_code"] == "zion"
+        assert data["shortest_trail"]["length_miles"] == 1.0
+
+    @patch("api.queries.get_db_engine")
+    def test_get_stats_hiked_filter(
+        self, mock_get_engine, mock_db_engine, sample_stats_response
+    ):
+        """Test stats endpoint with hiked=true filter."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = sample_stats_response["row"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/stats?hiked=true")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "total_trails" in data
+        assert "total_miles" in data
+        assert "source_breakdown" in data
+
+    @patch("api.queries.get_db_engine")
+    def test_get_stats_empty_result(self, mock_get_engine, mock_db_engine):
+        """Test stats endpoint with no trails in database."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = None
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/stats")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_trails"] == 0
+        assert data["total_miles"] == 0.0
+        assert data["avg_trail_length"] == 0.0
+        assert data["parks_count"] == 0
+        assert data["states_count"] == 0
+        assert data["source_breakdown"]["tnm"] == 0
+        assert data["source_breakdown"]["osm"] == 0
+        assert data["longest_trail"] is None
+        assert data["shortest_trail"] is None
+
+    @patch("api.queries.get_db_engine")
+    def test_get_stats_database_error(self, mock_get_engine):
+        """Test 500 error when database query fails."""
+        mock_get_engine.side_effect = Exception("Database connection failed")
+
+        response = client.get("/stats")
+
+        assert response.status_code == 500
+        data = response.json()
+        assert "Error retrieving stats" in data["detail"]
+
+
+class TestParkStatsEndpoint:
+    """Tests for the park stats endpoint (GET /stats/parks)."""
+
+    @patch("api.queries.get_db_engine")
+    def test_get_park_stats_no_filter(
+        self, mock_get_engine, mock_db_engine, sample_park_stats_response
+    ):
+        """Test park stats endpoint without filters."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_park_stats_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/stats/parks")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["park_count"] == 2
+        assert len(data["parks"]) == 2
+
+        # Sorted by trail_count desc
+        assert data["parks"][0]["park_code"] == "yose"
+        assert data["parks"][0]["trail_count"] == 2
+        assert data["parks"][0]["total_miles"] == 20.7
+        assert data["parks"][0]["avg_trail_length"] == 10.35
+
+        assert data["parks"][1]["park_code"] == "zion"
+        assert data["parks"][1]["trail_count"] == 1
+
+    @patch("api.queries.get_db_engine")
+    def test_get_park_stats_hiked_filter(
+        self, mock_get_engine, mock_db_engine, sample_park_stats_response
+    ):
+        """Test park stats endpoint with hiked=true filter."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_park_stats_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/stats/parks?hiked=true")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "park_count" in data
+        assert "parks" in data
+
+    @patch("api.queries.get_db_engine")
+    def test_get_park_stats_empty_result(self, mock_get_engine, mock_db_engine):
+        """Test park stats endpoint with no trails."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = []
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/stats/parks")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["park_count"] == 0
+        assert data["parks"] == []
+
+    @patch("api.queries.get_db_engine")
+    def test_get_park_stats_database_error(self, mock_get_engine):
+        """Test 500 error when database query fails."""
+        mock_get_engine.side_effect = Exception("Database connection failed")
+
+        response = client.get("/stats/parks")
+
+        assert response.status_code == 500
+        data = response.json()
+        assert "Error retrieving park stats" in data["detail"]
+
+
+class TestStatsQueryFunctions:
+    """Tests for stats query functions in api.queries module."""
+
+    @patch("api.queries.get_db_engine")
+    def test_fetch_stats(self, mock_get_engine, mock_db_engine, sample_stats_response):
+        """Test fetch_stats function."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = sample_stats_response["row"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        result = fetch_stats()
+
+        assert result["total_trails"] == 3
+        assert result["total_miles"] == 28.9
+        assert result["avg_trail_length"] == 9.63
+        assert result["parks_count"] == 2
+        assert result["states_count"] == 2
+        assert result["source_breakdown"]["tnm"] == 2
+        assert result["source_breakdown"]["osm"] == 1
+        assert result["longest_trail"]["trail_name"] == "Half Dome Trail"
+        assert result["shortest_trail"]["trail_name"] == "Canyon Overlook Trail"
+
+    @patch("api.queries.get_db_engine")
+    def test_fetch_stats_empty(self, mock_get_engine, mock_db_engine):
+        """Test fetch_stats with no results."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = None
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        result = fetch_stats()
+
+        assert result["total_trails"] == 0
+        assert result["total_miles"] == 0.0
+        assert result["longest_trail"] is None
+        assert result["shortest_trail"] is None
+
+    @patch("api.queries.get_db_engine")
+    def test_fetch_stats_with_zero_total(
+        self, mock_get_engine, mock_db_engine, sample_stats_response
+    ):
+        """Test fetch_stats returns empty result when total_trails is 0."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = sample_stats_response["empty_row"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        result = fetch_stats()
+
+        assert result["total_trails"] == 0
+        assert result["longest_trail"] is None
+
+    @patch("api.queries.get_db_engine")
+    def test_fetch_park_stats(
+        self, mock_get_engine, mock_db_engine, sample_park_stats_response
+    ):
+        """Test fetch_park_stats function."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_park_stats_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        result = fetch_park_stats()
+
+        assert result["park_count"] == 2
+        assert len(result["parks"]) == 2
+        assert result["parks"][0]["park_code"] == "yose"
+        assert result["parks"][0]["trail_count"] == 2
+
+    @patch("api.queries.get_db_engine")
+    def test_fetch_park_stats_empty(self, mock_get_engine, mock_db_engine):
+        """Test fetch_park_stats with no results."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = []
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        result = fetch_park_stats()
+
+        assert result["park_count"] == 0
+        assert result["parks"] == []
