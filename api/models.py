@@ -598,6 +598,138 @@ class ParkStatsResponse(BaseModel):
     }
 
 
+class ParkSummaryResponse(BaseModel):
+    """
+    Detailed park summary combining metadata and trail statistics.
+
+    Provides a complete overview of a single park including visit info,
+    trail counts (total and hiked), mileage, source breakdown, and
+    3D visualization availability.
+    """
+
+    park_code: str = Field(
+        ...,
+        description="4-character lowercase park code",
+        pattern="^[a-z]{4}$",
+        examples=["yose"],
+    )
+    park_name: str | None = Field(
+        None,
+        description="Short park name",
+        examples=["Yosemite"],
+    )
+    full_name: str | None = Field(
+        None,
+        description="Official full name of the park",
+        examples=["Yosemite National Park"],
+    )
+    designation: str | None = Field(
+        None,
+        description="NPS designation",
+        examples=["National Park"],
+    )
+    states: str | None = Field(
+        None,
+        description="States where the park is located",
+        examples=["CA"],
+    )
+    latitude: float | None = Field(
+        None,
+        description="Latitude coordinate",
+        ge=-90,
+        le=90,
+        examples=[37.8651],
+    )
+    longitude: float | None = Field(
+        None,
+        description="Longitude coordinate",
+        ge=-180,
+        le=180,
+        examples=[-119.5383],
+    )
+    url: str | None = Field(
+        None,
+        description="NPS website URL for the park",
+        examples=["https://www.nps.gov/yose/index.htm"],
+    )
+    visit_month: str | None = Field(
+        None,
+        description="Month of park visit",
+        examples=["July"],
+    )
+    visit_year: int | None = Field(
+        None,
+        description="Year of park visit",
+        examples=[2023],
+    )
+    total_trails: int = Field(
+        ...,
+        description="Total number of deduplicated trails in this park",
+        ge=0,
+        examples=[42],
+    )
+    total_miles: float = Field(
+        ...,
+        description="Total trail mileage in this park",
+        ge=0,
+        examples=[187.3],
+    )
+    avg_trail_length: float = Field(
+        ...,
+        description="Average trail length in miles",
+        ge=0,
+        examples=[4.46],
+    )
+    hiked_trails: int = Field(
+        ...,
+        description="Number of trails hiked in this park",
+        ge=0,
+        examples=[15],
+    )
+    hiked_miles: float = Field(
+        ...,
+        description="Total miles of hiked trails in this park",
+        ge=0,
+        examples=[67.2],
+    )
+    source_breakdown: SourceBreakdown = Field(
+        ...,
+        description="Trail counts by data source (TNM vs OSM)",
+    )
+    viz_3d_count: int = Field(
+        ...,
+        description="Number of trails with 3D visualization available",
+        ge=0,
+        examples=[10],
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "park_code": "yose",
+                    "park_name": "Yosemite",
+                    "full_name": "Yosemite National Park",
+                    "designation": "National Park",
+                    "states": "CA",
+                    "latitude": 37.8651,
+                    "longitude": -119.5383,
+                    "url": "https://www.nps.gov/yose/index.htm",
+                    "visit_month": "July",
+                    "visit_year": 2023,
+                    "total_trails": 42,
+                    "total_miles": 187.3,
+                    "avg_trail_length": 4.46,
+                    "hiked_trails": 15,
+                    "hiked_miles": 67.2,
+                    "source_breakdown": {"tnm": 30, "osm": 12},
+                    "viz_3d_count": 10,
+                }
+            ]
+        }
+    }
+
+
 class NlqRequest(BaseModel):
     """Request model for natural language trail/park queries."""
 

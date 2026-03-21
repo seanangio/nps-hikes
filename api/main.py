@@ -34,6 +34,7 @@ from api.models import (
     NlqResponse,
     ParksResponse,
     ParkStatsResponse,
+    ParkSummaryResponse,
     StatsResponse,
     TrailsResponse,
 )
@@ -41,7 +42,13 @@ from api.nlq.ollama_client import call_ollama
 from api.nlq.park_lookup import build_park_lookup_text, get_park_lookup
 from api.nlq.parser import parse_tool_call, validate_and_normalize
 from api.nlq.prompt import TOOLS, build_chat_messages, build_system_message
-from api.queries import fetch_all_parks, fetch_park_stats, fetch_stats, fetch_trails
+from api.queries import (
+    fetch_all_parks,
+    fetch_park_stats,
+    fetch_park_summary,
+    fetch_stats,
+    fetch_trails,
+)
 from utils.exceptions import (
     DatabaseError,
     LlmConnectionError,
@@ -90,6 +97,7 @@ async def root() -> dict[str, Any]:
             "trails": "/trails",
             "stats": "/stats",
             "stats_parks": "/stats/parks",
+            "park_summary": "/parks/{park_code}/summary",
             "us_static_park_map": "/parks/viz/us-static-park-map",
             "us_interactive_park_map": "/parks/viz/us-interactive-park-map",
             "static_map": "/parks/{park_code}/viz/static-map",
@@ -422,6 +430,72 @@ async def get_park_stats(
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving park stats: {e!s}",
+        ) from e
+
+
+@app.get(
+    "/parks/{park_code}/summary",
+    response_model=ParkSummaryResponse,
+    response_model_exclude_none=True,
+    tags=["Parks"],
+    summary="Get park summary with trail statistics",
+    description="""
+    Returns a detailed summary for a single park combining metadata
+    (name, location, visit date) with trail statistics (total/hiked counts,
+    mileage, source breakdown, 3D visualization availability).
+    """,
+    responses={
+        404: {"description": "Park not found"},
+    },
+)
+async def get_park_summary(
+    park_code: str = Path(
+        ...,
+        description="4-character lowercase park code (e.g., 'yose' for Yosemite)",
+        min_length=4,
+        max_length=4,
+        pattern="^[a-z]{4}$",
+        examples=["yose", "grca", "zion"],
+    ),
+) -> dict[str, Any]:
+    """
+    Get a detailed summary for a specific park.
+
+    Returns park metadata combined with trail statistics including
+    total and hiked trail counts, mileage, source breakdown, and
+    3D visualization availability.
+
+    **Example queries:**
+    - Yosemite summary: `/parks/yose/summary`
+    - Zion summary: `/parks/zion/summary`
+    """
+    try:
+        result = fetch_park_summary(park_code=park_code)
+
+        if result is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Park not found for park code '{park_code}'",
+            )
+
+        return result
+
+    except HTTPException:
+        raise
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable: {e!s}",
+        ) from e
+    except NpsHikesError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving park summary: {e!s}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving park summary: {e!s}",
         ) from e
 
 

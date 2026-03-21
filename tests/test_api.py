@@ -18,7 +18,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from api.main import app
-from api.queries import fetch_all_parks, fetch_park_stats, fetch_stats, fetch_trails
+from api.queries import (
+    fetch_all_parks,
+    fetch_park_stats,
+    fetch_park_summary,
+    fetch_stats,
+    fetch_trails,
+)
 
 # Create test client
 client = TestClient(app)
@@ -41,6 +47,7 @@ class TestRootEndpoint:
         assert data["endpoints"]["trails"] == "/trails"
         assert data["endpoints"]["stats"] == "/stats"
         assert data["endpoints"]["stats_parks"] == "/stats/parks"
+        assert data["endpoints"]["park_summary"] == "/parks/{park_code}/summary"
 
 
 class TestParksEndpoint:
@@ -1265,3 +1272,115 @@ class TestStatsQueryFunctions:
 
         assert result["park_count"] == 0
         assert result["parks"] == []
+
+
+class TestParkSummaryEndpoint:
+    """Tests for the park summary endpoint (GET /parks/{park_code}/summary)."""
+
+    @patch("api.queries.get_db_engine")
+    def test_get_park_summary(
+        self, mock_get_engine, mock_db_engine, sample_park_summary_response
+    ):
+        """Test park summary endpoint with valid park code."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = sample_park_summary_response["row"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/parks/yose/summary")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Park metadata
+        assert data["park_code"] == "yose"
+        assert data["park_name"] == "Yosemite"
+        assert data["full_name"] == "Yosemite National Park"
+        assert data["designation"] == "National Park"
+        assert data["states"] == "CA"
+        assert data["latitude"] == 37.8651
+        assert data["longitude"] == -119.5383
+        assert data["visit_month"] == "July"
+        assert data["visit_year"] == 2023
+
+        # Trail stats
+        assert data["total_trails"] == 42
+        assert data["total_miles"] == 187.3
+        assert data["avg_trail_length"] == 4.46
+        assert data["hiked_trails"] == 15
+        assert data["hiked_miles"] == 67.2
+        assert data["source_breakdown"]["tnm"] == 30
+        assert data["source_breakdown"]["osm"] == 12
+        assert data["viz_3d_count"] == 10
+
+    @patch("api.queries.get_db_engine")
+    def test_get_park_summary_not_found(self, mock_get_engine, mock_db_engine):
+        """Test park summary returns 404 for nonexistent park."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = None
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/parks/fake/summary")
+
+        assert response.status_code == 404
+        data = response.json()
+        assert "not found" in data["detail"].lower()
+        assert "fake" in data["detail"]
+
+    def test_get_park_summary_invalid_park_code(self):
+        """Test validation error for invalid park code format."""
+        invalid_codes = ["YOS", "YOSEM", "YOSE", "yo se"]
+
+        for code in invalid_codes:
+            response = client.get(f"/parks/{code}/summary")
+            assert response.status_code == 422
+
+    @patch("api.queries.get_db_engine")
+    def test_get_park_summary_database_error(self, mock_get_engine):
+        """Test 500 error when database query fails."""
+        mock_get_engine.side_effect = Exception("Database connection failed")
+
+        response = client.get("/parks/yose/summary")
+
+        assert response.status_code == 500
+        data = response.json()
+        assert "Error retrieving park summary" in data["detail"]
+
+
+class TestParkSummaryQueryFunction:
+    """Tests for fetch_park_summary query function."""
+
+    @patch("api.queries.get_db_engine")
+    def test_fetch_park_summary(
+        self, mock_get_engine, mock_db_engine, sample_park_summary_response
+    ):
+        """Test fetch_park_summary function."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = sample_park_summary_response["row"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        result = fetch_park_summary("yose")
+
+        assert result is not None
+        assert result["park_code"] == "yose"
+        assert result["park_name"] == "Yosemite"
+        assert result["total_trails"] == 42
+        assert result["hiked_trails"] == 15
+        assert result["hiked_miles"] == 67.2
+        assert result["source_breakdown"]["tnm"] == 30
+        assert result["source_breakdown"]["osm"] == 12
+        assert result["viz_3d_count"] == 10
+
+    @patch("api.queries.get_db_engine")
+    def test_fetch_park_summary_not_found(self, mock_get_engine, mock_db_engine):
+        """Test fetch_park_summary returns None for nonexistent park."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchone.return_value = None
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        result = fetch_park_summary("fake")
+
+        assert result is None

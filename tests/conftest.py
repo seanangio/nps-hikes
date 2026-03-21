@@ -548,6 +548,63 @@ def sample_park_stats_response():
 
 
 @pytest.fixture
+def sample_park_summary_response():
+    """
+    Provide sample data for park summary endpoint testing.
+
+    Returns a dictionary with a mock row matching the park summary query result.
+    """
+    from collections import namedtuple
+
+    ParkSummaryRow = namedtuple(
+        "ParkSummaryRow",
+        [
+            "park_code",
+            "park_name",
+            "full_name",
+            "designation",
+            "states",
+            "latitude",
+            "longitude",
+            "url",
+            "visit_month",
+            "visit_year",
+            "total_trails",
+            "total_miles",
+            "avg_trail_length",
+            "hiked_trails",
+            "hiked_miles",
+            "tnm_count",
+            "osm_count",
+            "viz_3d_count",
+        ],
+    )
+
+    return {
+        "row": ParkSummaryRow(
+            park_code="yose",
+            park_name="Yosemite",
+            full_name="Yosemite National Park",
+            designation="National Park",
+            states="CA",
+            latitude=37.8651,
+            longitude=-119.5383,
+            url="https://www.nps.gov/yose/index.htm",
+            visit_month="July",
+            visit_year=2023,
+            total_trails=42,
+            total_miles=187.3,
+            avg_trail_length=4.46,
+            hiked_trails=15,
+            hiked_miles=67.2,
+            tnm_count=30,
+            osm_count=12,
+            viz_3d_count=10,
+        ),
+    }
+
+
+@pytest.fixture
 def temp_viz_files(tmp_path):
     """
     Create temporary visualization files for testing.
