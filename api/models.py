@@ -750,7 +750,7 @@ class NlqResponse(BaseModel):
     """Response model for natural language queries.
 
     Returns the original query, how it was interpreted, which function
-    was called, and the results (same structure as /trails or /parks).
+    was called, and the results from the dispatched endpoint.
     """
 
     original_query: str = Field(
@@ -763,9 +763,9 @@ class NlqResponse(BaseModel):
     )
     function_called: str = Field(
         ...,
-        description="Which function was called (search_trails or search_parks)",
+        description="The function that was called to answer the query",
     )
     results: dict[str, Any] = Field(
         ...,
-        description="The API results (same structure as /trails or /parks response)",
+        description="The API results from the dispatched function",
     )

@@ -84,6 +84,63 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_stats",
+            "description": (
+                "Get aggregate hiking statistics like total miles, trail counts, "
+                "park counts, longest/shortest trails, and source breakdown. "
+                "Use this for questions about overall numbers and summaries."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "hiked": {
+                        "type": "boolean",
+                        "description": (
+                            "true = stats for hiked trails only, "
+                            "false = stats for unhiked trails only. "
+                            "Omit for stats across all trails."
+                        ),
+                    },
+                    "per_park": {
+                        "type": "boolean",
+                        "description": (
+                            "true = return a per-park breakdown (trail count, miles, "
+                            "avg length per park). false or omit = return aggregate totals."
+                        ),
+                    },
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_park_summary",
+            "description": (
+                "Get a detailed summary for a specific park including metadata "
+                "(name, location, visit date) and trail statistics (total/hiked counts, "
+                "mileage, source breakdown, 3D visualization availability). "
+                "Use this when the user asks about a specific park's details or overview."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "park_code": {
+                        "type": "string",
+                        "description": (
+                            "4-character lowercase park code. "
+                            "Use the park lookup table to find the correct code."
+                        ),
+                    },
+                },
+                "required": ["park_code"],
+            },
+        },
+    },
 ]
 
 _SYSTEM_MESSAGE_TEMPLATE = """\
@@ -99,8 +156,11 @@ Rules:
 - State codes must be 2 uppercase letters (e.g., CA, UT, CO).
 - Trail lengths are in miles.
 - For "short" trails, use max_length=3. For "long" trails, use min_length=5.
-- If the user asks about parks (not trails), use search_parks.
 - If the user asks about trails or hikes, use search_trails.
+- If the user asks about parks (not trails), use search_parks.
+- If the user asks about overall statistics (total miles, trail counts, park counts, averages, longest/shortest), use search_stats.
+- If the user asks for a per-park breakdown of stats, use search_stats with per_park=true.
+- If the user asks about a specific park's details, summary, or overview, use search_park_summary.
 - Only include parameters that the user's question implies. Do not add extra filters.\
 """
 

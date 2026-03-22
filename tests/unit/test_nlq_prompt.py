@@ -6,8 +6,8 @@ from api.nlq.prompt import TOOLS, build_chat_messages, build_system_message
 class TestToolDefinitions:
     """Tests for the TOOLS constant."""
 
-    def test_two_tools_defined(self):
-        assert len(TOOLS) == 2
+    def test_four_tools_defined(self):
+        assert len(TOOLS) == 4
 
     def test_search_trails_tool_exists(self):
         names = [t["function"]["name"] for t in TOOLS]
@@ -16,6 +16,14 @@ class TestToolDefinitions:
     def test_search_parks_tool_exists(self):
         names = [t["function"]["name"] for t in TOOLS]
         assert "search_parks" in names
+
+    def test_search_stats_tool_exists(self):
+        names = [t["function"]["name"] for t in TOOLS]
+        assert "search_stats" in names
+
+    def test_search_park_summary_tool_exists(self):
+        names = [t["function"]["name"] for t in TOOLS]
+        assert "search_park_summary" in names
 
     def test_search_trails_has_expected_params(self):
         trails_tool = next(t for t in TOOLS if t["function"]["name"] == "search_trails")
@@ -37,11 +45,33 @@ class TestToolDefinitions:
         props = parks_tool["function"]["parameters"]["properties"]
         assert "visited" in props
 
-    def test_no_required_params(self):
-        """All parameters should be optional (no required fields)."""
+    def test_search_stats_has_expected_params(self):
+        stats_tool = next(t for t in TOOLS if t["function"]["name"] == "search_stats")
+        props = stats_tool["function"]["parameters"]["properties"]
+        assert set(props.keys()) == {"hiked", "per_park"}
+
+    def test_search_park_summary_has_expected_params(self):
+        summary_tool = next(
+            t for t in TOOLS if t["function"]["name"] == "search_park_summary"
+        )
+        props = summary_tool["function"]["parameters"]["properties"]
+        assert set(props.keys()) == {"park_code"}
+
+    def test_search_park_summary_park_code_required(self):
+        summary_tool = next(
+            t for t in TOOLS if t["function"]["name"] == "search_park_summary"
+        )
+        required = summary_tool["function"]["parameters"].get("required", [])
+        assert "park_code" in required
+
+    def test_optional_params_for_other_tools(self):
+        """All tools except search_park_summary have no required fields."""
         for tool in TOOLS:
+            name = tool["function"]["name"]
             required = tool["function"]["parameters"].get("required", [])
-            assert required == []
+            if name == "search_park_summary":
+                continue
+            assert required == [], f"{name} should have no required params"
 
 
 class TestBuildSystemMessage:

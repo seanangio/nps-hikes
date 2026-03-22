@@ -263,3 +263,73 @@ class TestValidateAndNormalize:
             park_lookup,
         )
         assert params == {}
+
+    # --- search_stats ---
+
+    def test_search_stats_valid(self, park_lookup):
+        name, params = validate_and_normalize(
+            "search_stats",
+            {"hiked": True},
+            park_lookup,
+        )
+        assert name == "search_stats"
+        assert params == {"hiked": True}
+
+    def test_search_stats_per_park_coerced(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_stats",
+            {"per_park": 1},
+            park_lookup,
+        )
+        assert params["per_park"] is True
+
+    def test_search_stats_empty_params(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_stats",
+            {},
+            park_lookup,
+        )
+        assert params == {}
+
+    # --- search_park_summary ---
+
+    def test_search_park_summary_valid(self, park_lookup):
+        name, params = validate_and_normalize(
+            "search_park_summary",
+            {"park_code": "yose"},
+            park_lookup,
+        )
+        assert name == "search_park_summary"
+        assert params == {"park_code": "yose"}
+
+    def test_search_park_summary_name_resolved(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_park_summary",
+            {"park_code": "Yosemite"},
+            park_lookup,
+        )
+        assert params["park_code"] == "yose"
+
+    def test_search_park_summary_missing_park_code_raises(self, park_lookup):
+        with pytest.raises(LlmResponseError, match="requires a park_code"):
+            validate_and_normalize(
+                "search_park_summary",
+                {},
+                park_lookup,
+            )
+
+    def test_search_park_summary_none_park_code_raises(self, park_lookup):
+        with pytest.raises(LlmResponseError, match="requires a park_code"):
+            validate_and_normalize(
+                "search_park_summary",
+                {"park_code": None},
+                park_lookup,
+            )
+
+    def test_search_park_summary_unresolvable_raises(self, park_lookup):
+        with pytest.raises(LlmResponseError, match="Could not resolve"):
+            validate_and_normalize(
+                "search_park_summary",
+                {"park_code": "xyzxyzxyz"},
+                park_lookup,
+            )

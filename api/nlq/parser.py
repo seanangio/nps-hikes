@@ -67,7 +67,12 @@ _STATE_NAME_TO_CODE: dict[str, str] = {
     "wyoming": "WY",
 }
 
-VALID_FUNCTIONS = {"search_trails", "search_parks"}
+VALID_FUNCTIONS = {
+    "search_trails",
+    "search_parks",
+    "search_stats",
+    "search_park_summary",
+}
 
 
 def parse_tool_call(response: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -188,8 +193,12 @@ def validate_and_normalize(
 
     if function_name == "search_trails":
         return function_name, _normalize_trail_params(params, park_lookup)
-    else:
+    elif function_name == "search_parks":
         return function_name, _normalize_park_params(params)
+    elif function_name == "search_stats":
+        return function_name, _normalize_stats_params(params)
+    else:
+        return function_name, _normalize_park_summary_params(params, park_lookup)
 
 
 def _normalize_trail_params(
@@ -256,5 +265,44 @@ def _normalize_park_params(params: dict[str, Any]) -> dict[str, Any]:
 
     if "visited" in params and params["visited"] is not None:
         cleaned["visited"] = bool(params["visited"])
+
+    return cleaned
+
+
+def _normalize_stats_params(params: dict[str, Any]) -> dict[str, Any]:
+    """Normalize parameters for the search_stats function."""
+    cleaned: dict[str, Any] = {}
+
+    if "hiked" in params and params["hiked"] is not None:
+        cleaned["hiked"] = bool(params["hiked"])
+
+    if "per_park" in params and params["per_park"] is not None:
+        cleaned["per_park"] = bool(params["per_park"])
+
+    return cleaned
+
+
+def _normalize_park_summary_params(
+    params: dict[str, Any], park_lookup: dict[str, str]
+) -> dict[str, Any]:
+    """Normalize parameters for the search_park_summary function."""
+    cleaned: dict[str, Any] = {}
+
+    raw = params.get("park_code")
+    if raw:
+        resolved = resolve_park_code(str(raw), park_lookup)
+        if resolved:
+            cleaned["park_code"] = resolved
+        else:
+            raise LlmResponseError(
+                f"Could not resolve park code '{raw}'. Try using a known park name.",
+                context={"park_code": str(raw)},
+            )
+    else:
+        raise LlmResponseError(
+            "search_park_summary requires a park_code parameter. "
+            "Try specifying which park you want to know about.",
+            context={"params": params},
+        )
 
     return cleaned

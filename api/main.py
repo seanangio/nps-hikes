@@ -913,11 +913,22 @@ async def natural_language_query(request: NlqRequest) -> dict[str, Any]:
             function_name, raw_params, park_lookup
         )
 
-        # Dispatch to existing query functions
+        # Dispatch to query functions
         if function_name == "search_trails":
             results = fetch_trails(**params)
-        else:
+        elif function_name == "search_parks":
             results = fetch_all_parks(**params)
+        elif function_name == "search_stats":
+            per_park = params.pop("per_park", False)
+            results = fetch_park_stats(**params) if per_park else fetch_stats(**params)
+        elif function_name == "search_park_summary":
+            summary = fetch_park_summary(**params)
+            if summary is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Park not found for park code '{params.get('park_code')}'",
+                )
+            results = summary
 
         return {
             "original_query": request.query,
