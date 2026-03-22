@@ -45,6 +45,9 @@ curl http://localhost:8000/ | python3 -m json.tool
         "query": "/query",
         "parks": "/parks",
         "trails": "/trails",
+        "stats": "/stats",
+        "stats_parks": "/stats/parks",
+        "park_summary": "/parks/{park_code}/summary",
         "us_static_park_map": "/parks/viz/us-static-park-map",
         "us_interactive_park_map": "/parks/viz/us-interactive-park-map",
         "static_map": "/parks/{park_code}/viz/static-map",
@@ -294,6 +297,30 @@ curl "http://localhost:8000/trails?state=CA&state=UT" | python3 -m json.tool
 
 > **Note:** State parameters surface state data as returned from the NPS API, rather than geographic validation. Keep this in mind when querying trails in parks that span multiple states (Yellowstone for example).
 
+## Check your stats
+
+The `/stats` endpoint gives you aggregate numbers across all trails:
+
+```bash
+curl http://localhost:8000/stats | python3 -m json.tool
+```
+
+The response includes total trails, total miles, average trail length, parks and states visited, a source breakdown (TNM vs OSM), and the longest and shortest trails.
+
+Filter to just the trails you've hiked for personal stats:
+
+```bash
+curl "http://localhost:8000/stats?hiked=true" | python3 -m json.tool
+```
+
+For a per-park breakdown sorted by trail count, use `/stats/parks`:
+
+```bash
+curl "http://localhost:8000/stats/parks" | python3 -m json.tool
+```
+
+Each entry shows the park's trail count, total miles, and average trail length. Add `hiked=true` to see only parks where you've hiked.
+
 ## The 3D trail journey
 
 The most detailed visualization in the API is an interactive 3D elevation profile for individual trails. Getting there takes a few steps because you need to discover which trails have elevation data and find their URL slugs.
@@ -415,8 +442,8 @@ The response includes four fields:
 |---|---|
 | `original_query` | Your question as submitted |
 | `interpreted_as` | The structured parameters the LLM extracted (for example, `{"park_code": "yose", "max_length": 3}`) |
-| `function_called` | Which function was used (`search_trails` or `search_parks`) |
-| `results` | The API results (same structure as `/trails` or `/parks`) |
+| `function_called` | Which function was used (for example, `search_trails`, `search_parks`, `search_stats`, `search_park_summary`) |
+| `results` | The API results from the dispatched endpoint |
 
 The `interpreted_as` field is useful for debugging. If the results look wrong, check what parameters were extracted to understand how the LLM interpreted your question.
 
@@ -436,7 +463,7 @@ curl -X POST http://localhost:8000/query \
 
 ### How it works
 
-The endpoint uses a local LLM (via Ollama) to translate a question into structured parameters for the existing `/trails` or `/parks` query functions. The LLM's only job is parameter extraction. It doesn't answer questions directly or generate SQL. Your data never leaves your machine.
+The endpoint uses a local LLM (via Ollama) to translate a question into structured parameters for the existing query functions (`/trails`, `/parks`, `/stats`, and `/parks/{park_code}/summary`). The LLM's only job is parameter extraction. It doesn't answer questions directly or generate SQL. Your data never leaves your machine.
 
 The default model is `llama3.1:8b` (configurable via the `OLLAMA_MODEL` environment variable). You can swap models by changing the env var and pulling the new model with `ollama pull <model_name>`.
 
