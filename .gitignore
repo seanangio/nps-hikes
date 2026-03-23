@@ -6,6 +6,7 @@ artifacts/*
 !artifacts/.gitkeep
 !artifacts/README.md
 profiling_results/*
+eval_results/
 scratch*
 
 # MCP configuration files

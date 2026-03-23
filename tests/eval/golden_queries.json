@@ -1,0 +1,272 @@
+[
+  {
+    "query": "Show me trails in Yosemite",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "yose"},
+    "category": "search_trails"
+  },
+  {
+    "query": "Hikes in Zion National Park",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "zion"},
+    "category": "search_trails"
+  },
+  {
+    "query": "Trails in Utah",
+    "expected_function": "search_trails",
+    "expected_params": {"state": "UT"},
+    "category": "search_trails"
+  },
+  {
+    "query": "California hiking trails",
+    "expected_function": "search_trails",
+    "expected_params": {"state": "CA"},
+    "category": "search_trails"
+  },
+  {
+    "query": "Short trails in Rocky Mountain",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "romo", "max_length": 3},
+    "category": "search_trails"
+  },
+  {
+    "query": "Long hikes in the Grand Canyon",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "grca", "min_length": 5},
+    "category": "search_trails"
+  },
+  {
+    "query": "Trails I've hiked in Saguaro NP",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "sagu", "hiked": true},
+    "category": "search_trails"
+  },
+  {
+    "query": "Trails I haven't hiked yet",
+    "expected_function": "search_trails",
+    "expected_params": {"hiked": false},
+    "category": "search_trails"
+  },
+  {
+    "query": "OSM trails in Glacier",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "glac", "source": "OSM"},
+    "category": "search_trails"
+  },
+  {
+    "query": "TNM data for Death Valley",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "deva", "source": "TNM"},
+    "category": "search_trails"
+  },
+  {
+    "query": "Footway trails in Shenandoah",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "shen", "trail_type": "footway"},
+    "category": "search_trails"
+  },
+  {
+    "query": "Show me 10 trails",
+    "expected_function": "search_trails",
+    "expected_params": {"limit": 10},
+    "category": "search_trails"
+  },
+  {
+    "query": "Hikes under 2 miles in Colorado",
+    "expected_function": "search_trails",
+    "expected_params": {"state": "CO", "max_length": 2},
+    "category": "search_trails"
+  },
+  {
+    "query": "Trails between 3 and 8 miles in Grand Teton",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "grte", "min_length": 3, "max_length": 8},
+    "category": "search_trails"
+  },
+  {
+    "query": "Which parks have I visited?",
+    "expected_function": "search_parks",
+    "expected_params": {"visited": true},
+    "category": "search_parks"
+  },
+  {
+    "query": "Parks I've been to",
+    "expected_function": "search_parks",
+    "expected_params": {"visited": true},
+    "category": "search_parks"
+  },
+  {
+    "query": "Parks I haven't visited",
+    "expected_function": "search_parks",
+    "expected_params": {"visited": false},
+    "category": "search_parks"
+  },
+  {
+    "query": "Which parks have I never been to?",
+    "expected_function": "search_parks",
+    "expected_params": {"visited": false},
+    "category": "search_parks"
+  },
+  {
+    "query": "Unvisited national parks",
+    "expected_function": "search_parks",
+    "expected_params": {"visited": false},
+    "category": "search_parks"
+  },
+  {
+    "query": "Show me all parks",
+    "expected_function": "search_parks",
+    "expected_params": {},
+    "category": "search_parks"
+  },
+  {
+    "query": "List the national parks",
+    "expected_function": "search_parks",
+    "expected_params": {},
+    "category": "search_parks"
+  },
+  {
+    "query": "What parks are there?",
+    "expected_function": "search_parks",
+    "expected_params": {},
+    "category": "search_parks"
+  },
+  {
+    "query": "How many miles have I hiked?",
+    "expected_function": "search_stats",
+    "expected_params": {"hiked": true},
+    "category": "search_stats"
+  },
+  {
+    "query": "How many trails are there?",
+    "expected_function": "search_stats",
+    "expected_params": {},
+    "category": "search_stats"
+  },
+  {
+    "query": "What's the longest trail?",
+    "expected_function": "search_stats",
+    "expected_params": {},
+    "category": "search_stats"
+  },
+  {
+    "query": "Total mileage across all trails",
+    "expected_function": "search_stats",
+    "expected_params": {},
+    "category": "search_stats"
+  },
+  {
+    "query": "Stats for trails I haven't hiked",
+    "expected_function": "search_stats",
+    "expected_params": {"hiked": false},
+    "category": "search_stats"
+  },
+  {
+    "query": "Per-park trail statistics",
+    "expected_function": "search_stats",
+    "expected_params": {"per_park": true},
+    "category": "search_stats"
+  },
+  {
+    "query": "Which park has the most trails?",
+    "expected_function": "search_stats",
+    "expected_params": {"per_park": true},
+    "category": "search_stats"
+  },
+  {
+    "query": "Average trail length by park",
+    "expected_function": "search_stats",
+    "expected_params": {"per_park": true},
+    "category": "search_stats"
+  },
+  {
+    "query": "How many parks have I hiked in?",
+    "expected_function": "search_stats",
+    "expected_params": {"hiked": true},
+    "category": "search_stats"
+  },
+  {
+    "query": "Breakdown of trails by park for hikes I've done",
+    "expected_function": "search_stats",
+    "expected_params": {"per_park": true, "hiked": true},
+    "category": "search_stats"
+  },
+  {
+    "query": "Tell me about Capitol Reef",
+    "expected_function": "search_park_summary",
+    "expected_params": {"park_code": "care"},
+    "category": "search_park_summary"
+  },
+  {
+    "query": "Big Bend overview",
+    "expected_function": "search_park_summary",
+    "expected_params": {"park_code": "bibe"},
+    "category": "search_park_summary"
+  },
+  {
+    "query": "Details for Redwoods",
+    "expected_function": "search_park_summary",
+    "expected_params": {"park_code": "redw"},
+    "category": "search_park_summary"
+  },
+  {
+    "query": "What do you know about Lassen?",
+    "expected_function": "search_park_summary",
+    "expected_params": {"park_code": "lavo"},
+    "category": "search_park_summary"
+  },
+  {
+    "query": "Summary of the Badlands",
+    "expected_function": "search_park_summary",
+    "expected_params": {"park_code": "badl"},
+    "category": "search_park_summary"
+  },
+  {
+    "query": "Grand Canyon park info",
+    "expected_function": "search_park_summary",
+    "expected_params": {"park_code": "grca"},
+    "category": "search_park_summary"
+  },
+  {
+    "query": "Describe Crater Lake",
+    "expected_function": "search_park_summary",
+    "expected_params": {"park_code": "crla"},
+    "category": "search_park_summary"
+  },
+  {
+    "query": "Info on Shenandoah",
+    "expected_function": "search_park_summary",
+    "expected_params": {"park_code": "shen"},
+    "category": "search_park_summary"
+  },
+  {
+    "query": "What's in Yellowstone?",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "yell"},
+    "category": "search_trails"
+  },
+  {
+    "query": "Acadia trails I haven't done",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "acad", "hiked": false},
+    "category": "search_trails"
+  },
+  {
+    "query": "Do I have any hikes in Olympic?",
+    "expected_function": "search_trails",
+    "expected_params": {"park_code": "olym", "hiked": true},
+    "category": "search_trails"
+  },
+  {
+    "query": "Give me everything about Sequoia",
+    "expected_function": "search_park_summary",
+    "expected_params": {"park_code": "seki"},
+    "category": "search_park_summary"
+  },
+  {
+    "query": "All the trails",
+    "expected_function": "search_trails",
+    "expected_params": {},
+    "category": "search_trails"
+  }
+]
