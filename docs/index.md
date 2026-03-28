@@ -12,9 +12,9 @@ You can find a live instance of the API at [seanangio-nps-hikes.onrender.com](ht
 
 - Collect park metadata and boundaries from the NPS API.
 - Extract hiking trails from OpenStreetMap and The National Map (USGS).
-- Match personal hiking locations to trail geometries.
+- Match personal hiking locations stored in Google My Maps to trail geometries.
 - Explore parks and trails through a FastAPI REST API.
-- Ask questions in natural language (for example, "short hikes in Yosemite") via a local LLM.
+- Query the API in natural language via a local LLM.
 
 ## Project structure
 

@@ -10,8 +10,8 @@ A Python project for collecting, validating, and analyzing hiking trail data fro
 
 - Collect park metadata and boundaries from the NPS API.
 - Extract hiking trails from OpenStreetMap and The National Map.
-- Match personal hiking locations to trail geometries.
-- Explore parks and trails through a FastAPI REST API.
+- Match personal hiking locations stored in Google My Maps to trail geometries.
+- Query the API in natural language via a local LLM.
 
 ## Prerequisites
 

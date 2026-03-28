@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide walks through locally setting up this NPS hiking project from scratch. By the end, you'll have a PostGIS database with all 63 US national parks and hundreds of hiking trails, queryable through an interactive API.
+This guide walks through locally setting up your own NPS hiking project from scratch. By the end, you'll have a PostGIS database with parks you've visited, queryable through an interactive API.
 
 > **Tip:** Instead of a local setup, you can also explore a live demo of the Swagger UI docs at [seanangio-nps-hikes.onrender.com/docs](https://seanangio-nps-hikes.onrender.com/docs). Visualization endpoints and the natural language query endpoint (`/query`) require a local setup.
 
@@ -23,7 +23,7 @@ git clone https://github.com/seanangio/nps-hikes.git
 cd nps-hikes
 ```
 
-## Step 2: Set up a Python environment
+## Step 2: Set up the Python environment
 
 Create a virtual environment, and install the project dependencies. You need them for the data collection pipeline, which runs outside of Docker.
 
@@ -35,7 +35,7 @@ pip install -r requirements.txt
 
 ## Step 3: Configure environment variables
 
-Copy the example environment file, and fill in your credentials:
+Copy the example environment file included in the repository, and fill in your credentials:
 
 ```bash
 cp .env.example .env
@@ -193,13 +193,13 @@ You should see a JSON response with a `trails` array and a `pagination` object. 
 
 ### Run the full pipeline
 
-Once you've confirmed the test run works, collect data for all 63[^1] national parks:
+Once you've confirmed the test run works, collect data for all visited parks:
 
 ```bash
 POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db
 ```
 
-This takes longer. If using the author's files, expect more than 2 hours for the full run. The main bottleneck is the elevation collection step, which queries the USGS EPQS API for sampled points along each matched trail (one request per point, with a rate limit delay between calls). The more trails matched from your KML files, the longer this step takes.
+This takes longer. If using the author's files, expect more than two hours for the full run. The main bottleneck is the elevation collection step, which queries the USGS EPQS API for sampled points along each matched trail (one request per point, with a rate limit delay between calls). The more trails matched from your KML files, the longer this step takes.
 
 The pipeline is resumable: with `--write-db`, each collector skips parks or trails that already have data in the database, and the elevation collector also maintains a persistent cache of individual elevation lookups. If something interrupts a run, re-running the same command picks up roughly where it left off. To force a full re-collection, pass `--force-refresh`.
 
@@ -303,5 +303,3 @@ The response should show `"database": "connected"`. If connected but no data, re
 - **[Data Sources & Schema](data.md)**: Additional details on the project's data sources such as the NPS, OpenStreetMap, the USGS, and Google My Maps.
 - **[API Tutorial](api-tutorial.md)**: A guided tour of the API's query capabilities and visualizations
 - **[README](https://github.com/seanangio/nps-hikes)**: Full project documentation including architecture, testing, and data profiling
-
-[^1]: The NPS manages Sequoia and Kings Canyon as one park (`seki`), and so it appears as one entry.

@@ -29,9 +29,7 @@ The pipeline collects trail geometries from [OpenStreetMap](https://www.openstre
 
 The [USGS EPQS](https://apps.nationalmap.gov/epqs/) returns elevation in meters for individual latitude/longitude coordinates. The collector samples points along matched trail geometries at regular intervals (default 50 meters) and queries the service for each point. The collector caches results locally to avoid redundant API calls. A three-stage validation pipeline checks API responses, individual point values, and the complete elevation profile. It treates the USGS sentinel value of `-1,000,000` as missing data.
 
-### Coordinate systems
-
-All geographic data uses `EPSG:4326 (WGS84)`. Length calculations use `EPSG:5070 (NAD83/Conus Albers)` for accurate distance measurements in meters.
+> **Note:** All geographic data uses `EPSG:4326 (WGS84)`. Length calculations use `EPSG:5070 (NAD83/Conus Albers)` for accurate distance measurements in meters.
 
 ## Internal sources
 
