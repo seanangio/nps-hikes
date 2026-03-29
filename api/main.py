@@ -21,7 +21,7 @@ import os
 import sys
 from typing import Annotated, Any
 
-from fastapi import FastAPI, HTTPException, Path, Query
+from fastapi import Depends, FastAPI, HTTPException, Path, Query
 from fastapi.responses import FileResponse
 from sqlalchemy import text
 
@@ -42,6 +42,7 @@ from api.nlq.ollama_client import call_ollama
 from api.nlq.park_lookup import build_park_lookup_text, get_park_lookup
 from api.nlq.parser import parse_tool_call, validate_and_normalize
 from api.nlq.prompt import TOOLS, build_chat_messages, build_system_message
+from api.nlq.rate_limit import require_ollama_slot, require_rate_limit
 from api.queries import (
     fetch_all_parks,
     fetch_park_stats,
@@ -907,11 +908,16 @@ async def get_trail_3d_visualization(
     - "Which parks have I visited?"
     """,
     responses={
+        429: {"description": "Rate limit exceeded or LLM is busy"},
         503: {"description": "Ollama is not running or unreachable"},
         422: {"description": "Could not interpret the query"},
     },
 )
-async def natural_language_query(request: NlqRequest) -> dict[str, Any]:
+async def natural_language_query(
+    request: NlqRequest,
+    _rate_limit: None = Depends(require_rate_limit),
+    _ollama_slot: None = Depends(require_ollama_slot),
+) -> dict[str, Any]:
     """
     Process a natural language query about trails or parks.
 

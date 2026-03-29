@@ -155,6 +155,11 @@ class Config:
     OLLAMA_MODEL: str = "llama3.1:8b"
     OLLAMA_TIMEOUT: int = 60  # seconds; 8B models on CPU can be slow
 
+    # NLQ rate limiting
+    NLQ_MAX_CONCURRENT: int = 2  # max simultaneous Ollama calls
+    NLQ_RATE_LIMIT: int = 10  # max requests per IP per window
+    NLQ_RATE_LIMIT_WINDOW: int = 60  # window in seconds
+
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_MAX_BYTES: int = 5 * 1024 * 1024  # 5MB
@@ -230,6 +235,19 @@ class Config:
         ollama_timeout = os.getenv("OLLAMA_TIMEOUT")
         if ollama_timeout:
             self.OLLAMA_TIMEOUT = int(ollama_timeout)
+
+        # NLQ rate limiting
+        nlq_max_concurrent = os.getenv("NLQ_MAX_CONCURRENT")
+        if nlq_max_concurrent:
+            self.NLQ_MAX_CONCURRENT = int(nlq_max_concurrent)
+
+        nlq_rate_limit = os.getenv("NLQ_RATE_LIMIT")
+        if nlq_rate_limit:
+            self.NLQ_RATE_LIMIT = int(nlq_rate_limit)
+
+        nlq_rate_limit_window = os.getenv("NLQ_RATE_LIMIT_WINDOW")
+        if nlq_rate_limit_window:
+            self.NLQ_RATE_LIMIT_WINDOW = int(nlq_rate_limit_window)
 
     def validate_for_api_operations(self) -> None:
         """
