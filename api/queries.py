@@ -15,14 +15,20 @@ from api.database import get_db_engine
 def fetch_all_parks(
     include_description: bool = False,
     visited: bool | None = None,
+    visit_year: int | None = None,
+    visit_month: list[str] | None = None,
 ) -> dict[str, Any]:
     """
-    Fetch all parks from the database with optional visit status filtering.
+    Fetch all parks from the database with optional filtering.
 
     Args:
         include_description: Whether to include park descriptions (default: False)
         visited: Filter by visit status. True=visited only, False=unvisited only,
                  None=all parks (default: None)
+        visit_year: Filter by visit year (e.g., 2024). Default: None (no filter)
+        visit_month: Filter by visit month(s). Accepts a list of month strings
+                     to match against the database (e.g., ["Oct", "October"]).
+                     Default: None (no filter)
 
     Returns:
         Dictionary containing:
@@ -59,12 +65,24 @@ def fetch_all_parks(
 
     columns_str = ", ".join(columns)
 
-    # Build WHERE clause based on visited filter
-    where_clauses = []
+    # Build WHERE clause and query parameters
+    where_clauses: list[str] = []
+    query_params: dict[str, Any] = {}
+
     if visited is True:
         where_clauses.append("visit_year IS NOT NULL")
     elif visited is False:
         where_clauses.append("visit_year IS NULL")
+
+    if visit_year is not None:
+        where_clauses.append("visit_year = :visit_year")
+        query_params["visit_year"] = visit_year
+
+    if visit_month:
+        month_placeholders = ", ".join(f":month_{i}" for i in range(len(visit_month)))
+        where_clauses.append(f"visit_month IN ({month_placeholders})")
+        for i, m in enumerate(visit_month):
+            query_params[f"month_{i}"] = m
 
     where_str = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
@@ -78,7 +96,7 @@ def fetch_all_parks(
 
     # Execute query
     with engine.connect() as conn:
-        result = conn.execute(text(query))
+        result = conn.execute(text(query), query_params)
         rows = result.fetchall()
 
     # Format parks

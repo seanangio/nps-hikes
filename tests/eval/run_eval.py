@@ -59,7 +59,7 @@ async def run_single_query(
         response = await call_ollama(messages, TOOLS)
         function_name, raw_params = parse_tool_call(response)
         function_name, params = validate_and_normalize(
-            function_name, raw_params, park_lookup
+            function_name, raw_params, park_lookup, query=query
         )
         elapsed = time.time() - start
         return {

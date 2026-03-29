@@ -169,6 +169,82 @@ class TestParksEndpoint:
         assert data["visited_count"] == 0
 
     @patch("api.queries.get_db_engine")
+    def test_get_all_parks_visit_year_filter(
+        self, mock_get_engine, mock_db_engine, sample_parks_response
+    ):
+        """Test parks endpoint with visit_year filter."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = [
+            sample_parks_response["rows_without_description"][0]
+        ]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/parks?visit_year=2023")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["park_count"] == 1
+        assert data["parks"][0]["visit_year"] == 2023
+
+    @patch("api.queries.get_db_engine")
+    def test_get_all_parks_visit_month_filter(
+        self, mock_get_engine, mock_db_engine, sample_parks_response
+    ):
+        """Test parks endpoint with visit_month filter."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = [
+            sample_parks_response["rows_without_description"][0]
+        ]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/parks?visit_month=July")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["park_count"] == 1
+        assert data["parks"][0]["visit_month"] == "July"
+
+    @patch("api.queries.get_db_engine")
+    def test_get_all_parks_visit_month_multiple(
+        self, mock_get_engine, mock_db_engine, sample_parks_response
+    ):
+        """Test parks endpoint with multiple visit_month values."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_parks_response[
+            "rows_without_description"
+        ]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/parks?visit_month=July&visit_month=June")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["park_count"] == 2
+
+    @patch("api.queries.get_db_engine")
+    def test_get_all_parks_visit_year_and_month_combined(
+        self, mock_get_engine, mock_db_engine, sample_parks_response
+    ):
+        """Test parks endpoint with combined visit_year and visit_month filters."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = [
+            sample_parks_response["rows_without_description"][0]
+        ]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/parks?visit_year=2023&visit_month=July")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["park_count"] == 1
+        assert data["parks"][0]["visit_year"] == 2023
+        assert data["parks"][0]["visit_month"] == "July"
+
+    @patch("api.queries.get_db_engine")
     def test_get_all_parks_database_error(self, mock_get_engine):
         """Test 500 error when database query fails."""
         # Setup mock to raise exception

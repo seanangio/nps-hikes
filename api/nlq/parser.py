@@ -67,6 +67,65 @@ _STATE_NAME_TO_CODE: dict[str, str] = {
     "wyoming": "WY",
 }
 
+# Month name → DB-compatible values for SQL IN clauses.
+# The DB stores a mix of 3-letter ("Oct") and full ("October") formats,
+# so both variants are included to match either.
+_MONTH_NAME_TO_DB_VALUES: dict[str, list[str]] = {
+    "january": ["Jan", "January"],
+    "february": ["Feb", "February"],
+    "march": ["Mar", "March"],
+    "april": ["Apr", "April"],
+    "may": ["May"],
+    "june": ["Jun", "June"],
+    "july": ["Jul", "July"],
+    "august": ["Aug", "August"],
+    "september": ["Sep", "September"],
+    "october": ["Oct", "October"],
+    "november": ["Nov", "November"],
+    "december": ["Dec", "December"],
+}
+
+# 3-letter abbreviation → full lowercase month key
+_MONTH_ABBR_TO_FULL: dict[str, str] = {
+    "jan": "january",
+    "feb": "february",
+    "mar": "march",
+    "apr": "april",
+    "may": "may",
+    "jun": "june",
+    "jul": "july",
+    "aug": "august",
+    "sep": "september",
+    "oct": "october",
+    "nov": "november",
+    "dec": "december",
+}
+
+# Numeric string → full lowercase month key
+_MONTH_NUM_TO_FULL: dict[str, str] = {
+    "1": "january",
+    "2": "february",
+    "3": "march",
+    "4": "april",
+    "5": "may",
+    "6": "june",
+    "7": "july",
+    "8": "august",
+    "9": "september",
+    "10": "october",
+    "11": "november",
+    "12": "december",
+}
+
+# Season → list of month keys
+_SEASON_TO_MONTHS: dict[str, list[str]] = {
+    "spring": ["march", "april", "may"],
+    "summer": ["june", "july", "august"],
+    "fall": ["september", "october", "november"],
+    "autumn": ["september", "october", "november"],
+    "winter": ["december", "january", "february"],
+}
+
 VALID_FUNCTIONS = {
     "search_trails",
     "search_parks",
@@ -160,10 +219,17 @@ def _extract_json_from_text(text: str) -> dict[str, Any] | None:
     return None
 
 
+_NEGATION_PATTERN = re.compile(
+    r"\b(haven'?t|hasn'?t|don'?t|didn'?t|not|never|unvisited|unhiked)\b",
+    re.IGNORECASE,
+)
+
+
 def validate_and_normalize(
     function_name: str,
     params: dict[str, Any],
     park_lookup: dict[str, str],
+    query: str = "",
 ) -> tuple[str, dict[str, Any]]:
     """Validate and normalize extracted parameters.
 
@@ -172,11 +238,13 @@ def validate_and_normalize(
     - Full state names → 2-letter codes
     - Park names in park_code → resolved to actual codes
     - Out-of-range values clamped
+    - Negation in query with wrong boolean polarity
 
     Args:
         function_name: The extracted function name.
         params: The raw parameters from the LLM.
         park_lookup: The park name → code lookup dict.
+        query: The original user query (used for negation detection).
 
     Returns:
         A tuple of (validated_function_name, cleaned_params).
@@ -192,13 +260,41 @@ def validate_and_normalize(
         )
 
     if function_name == "search_trails":
-        return function_name, _normalize_trail_params(params, park_lookup)
+        cleaned = _normalize_trail_params(params, park_lookup)
     elif function_name == "search_parks":
-        return function_name, _normalize_park_params(params)
+        cleaned = _normalize_park_params(params)
     elif function_name == "search_stats":
-        return function_name, _normalize_stats_params(params)
+        cleaned = _normalize_stats_params(params)
     else:
-        return function_name, _normalize_park_summary_params(params, park_lookup)
+        cleaned = _normalize_park_summary_params(params, park_lookup)
+
+    if query:
+        cleaned = _apply_negation_correction(query, function_name, cleaned)
+
+    return function_name, cleaned
+
+
+def _apply_negation_correction(
+    query: str, function_name: str, params: dict[str, Any]
+) -> dict[str, Any]:
+    """Flip boolean params when the query contains negation but the LLM set True.
+
+    Small LLMs often ignore negation words and set boolean parameters to True
+    when the user meant False. This detects negation in the original query
+    and corrects the mismatch.
+    """
+    if not _NEGATION_PATTERN.search(query):
+        return params
+
+    if function_name == "search_parks" and params.get("visited") is True:
+        params["visited"] = False
+    if (
+        function_name in ("search_trails", "search_stats")
+        and params.get("hiked") is True
+    ):
+        params["hiked"] = False
+
+    return params
 
 
 def _normalize_trail_params(
@@ -259,12 +355,64 @@ def _normalize_trail_params(
     return cleaned
 
 
+def _normalize_visit_month(raw: str) -> list[str] | None:
+    """Normalize a visit_month string to a list of DB-compatible values.
+
+    Handles full names, 3-letter abbreviations, numeric strings, and seasons.
+    Returns None if the input cannot be recognized.
+    """
+    key = raw.strip().lower()
+
+    # Check season first (expands to multiple months)
+    if key in _SEASON_TO_MONTHS:
+        result: list[str] = []
+        for month_key in _SEASON_TO_MONTHS[key]:
+            result.extend(_MONTH_NAME_TO_DB_VALUES[month_key])
+        return result
+
+    # Check full month name
+    if key in _MONTH_NAME_TO_DB_VALUES:
+        return list(_MONTH_NAME_TO_DB_VALUES[key])
+
+    # Check 3-letter abbreviation
+    if key in _MONTH_ABBR_TO_FULL:
+        full = _MONTH_ABBR_TO_FULL[key]
+        return list(_MONTH_NAME_TO_DB_VALUES[full])
+
+    # Check numeric string
+    if key in _MONTH_NUM_TO_FULL:
+        full = _MONTH_NUM_TO_FULL[key]
+        return list(_MONTH_NAME_TO_DB_VALUES[full])
+
+    return None
+
+
 def _normalize_park_params(params: dict[str, Any]) -> dict[str, Any]:
     """Normalize parameters for the search_parks function."""
     cleaned: dict[str, Any] = {}
 
     if "visited" in params and params["visited"] is not None:
         cleaned["visited"] = bool(params["visited"])
+
+    if "visit_year" in params and params["visit_year"] is not None:
+        try:
+            val = int(params["visit_year"])
+            if 2000 <= val <= 2100:
+                cleaned["visit_year"] = val
+        except (ValueError, TypeError):
+            pass
+
+    if "visit_month" in params and params["visit_month"] is not None:
+        normalized = _normalize_visit_month(str(params["visit_month"]))
+        if normalized:
+            cleaned["visit_month"] = normalized
+
+    # Infer visited=True when visit timing is specified, since having a
+    # visit_year or visit_month implies the park was visited.
+    if (
+        "visit_year" in cleaned or "visit_month" in cleaned
+    ) and "visited" not in cleaned:
+        cleaned["visited"] = True
 
     return cleaned
 

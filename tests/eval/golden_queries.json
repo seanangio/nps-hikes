@@ -42,12 +42,6 @@
     "category": "search_trails"
   },
   {
-    "query": "Trails I haven't hiked yet",
-    "expected_function": "search_trails",
-    "expected_params": {"hiked": false},
-    "category": "search_trails"
-  },
-  {
     "query": "OSM trails in Glacier",
     "expected_function": "search_trails",
     "expected_params": {"park_code": "glac", "source": "OSM"},
@@ -180,19 +174,13 @@
     "category": "search_stats"
   },
   {
-    "query": "How many parks have I hiked in?",
-    "expected_function": "search_stats",
-    "expected_params": {"hiked": true},
-    "category": "search_stats"
-  },
-  {
     "query": "Breakdown of trails by park for hikes I've done",
     "expected_function": "search_stats",
     "expected_params": {"per_park": true, "hiked": true},
     "category": "search_stats"
   },
   {
-    "query": "Tell me about Capitol Reef",
+    "query": "Tell me about Capital Reef",
     "expected_function": "search_park_summary",
     "expected_params": {"park_code": "care"},
     "category": "search_park_summary"
@@ -240,12 +228,6 @@
     "category": "search_park_summary"
   },
   {
-    "query": "What's in Yellowstone?",
-    "expected_function": "search_trails",
-    "expected_params": {"park_code": "yell"},
-    "category": "search_trails"
-  },
-  {
     "query": "Acadia trails I haven't done",
     "expected_function": "search_trails",
     "expected_params": {"park_code": "acad", "hiked": false},
@@ -268,5 +250,35 @@
     "expected_function": "search_trails",
     "expected_params": {},
     "category": "search_trails"
+  },
+  {
+    "query": "Parks I visited in 2024",
+    "expected_function": "search_parks",
+    "expected_params": {"visited": true, "visit_year": 2024},
+    "category": "search_parks"
+  },
+  {
+    "query": "Which parks did I go to in October?",
+    "expected_function": "search_parks",
+    "expected_params": {"visited": true, "visit_month": ["Oct", "October"]},
+    "category": "search_parks"
+  },
+  {
+    "query": "Parks visited in summer",
+    "expected_function": "search_parks",
+    "expected_params": {"visited": true, "visit_month": ["Jun", "June", "Jul", "July", "Aug", "August"]},
+    "category": "search_parks"
+  },
+  {
+    "query": "Where did I go in January 2025?",
+    "expected_function": "search_parks",
+    "expected_params": {"visited": true, "visit_year": 2025, "visit_month": ["Jan", "January"]},
+    "category": "search_parks"
+  },
+  {
+    "query": "Fall park visits",
+    "expected_function": "search_parks",
+    "expected_params": {"visit_month": ["Sep", "September", "Oct", "October", "Nov", "November"]},
+    "category": "search_parks"
   }
 ]

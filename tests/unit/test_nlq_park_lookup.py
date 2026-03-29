@@ -63,6 +63,9 @@ class TestResolveParkCode:
         # "Yosemit" is close enough to "yosemite"
         assert resolve_park_code("Yosemit", sample_lookup) == "yose"
 
+    def test_fuzzy_match_misspelling(self, sample_lookup):
+        assert resolve_park_code("Yosemmite", sample_lookup) == "yose"
+
     def test_no_match_returns_none(self, sample_lookup):
         assert resolve_park_code("completely unknown park", sample_lookup) is None
 

@@ -19,7 +19,7 @@ Usage:
 
 import os
 import sys
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import FastAPI, HTTPException, Path, Query
 from fastapi.responses import FileResponse
@@ -115,10 +115,11 @@ async def root() -> dict[str, Any]:
     tags=["Parks"],
     summary="Get all parks",
     description="""
-    Returns all National Parks with metadata and optional visit status filtering.
+    Returns all National Parks with metadata and optional filtering.
 
     By default, returns all parks. Use `visited=true` to get only visited parks,
     or `visited=false` to get only unvisited parks.
+    Use `visit_year` and/or `visit_month` to filter by when parks were visited.
     Use `include_description=true` to include full park descriptions.
     """,
 )
@@ -131,6 +132,22 @@ async def get_all_parks(
         default=None,
         description="Filter by visit status: true=visited only, false=not yet visited, omit=all parks",
     ),
+    visit_year: int | None = Query(
+        default=None,
+        description="Filter by visit year (e.g., 2024)",
+        ge=2000,
+        le=2100,
+    ),
+    visit_month: Annotated[
+        list[str] | None,
+        Query(
+            description=(
+                "Filter by visit month(s). Use month names or abbreviations "
+                "(e.g., 'Oct', 'October'). Repeat for multiple months: "
+                "?visit_month=Jun&visit_month=Jul&visit_month=Aug"
+            ),
+        ),
+    ] = None,
 ) -> dict[str, Any]:
     """
     Get all parks with metadata.
@@ -147,6 +164,9 @@ async def get_all_parks(
     - All parks: `/parks`
     - Only visited parks: `/parks?visited=true`
     - Unvisited parks: `/parks?visited=false`
+    - Parks visited in 2024: `/parks?visit_year=2024`
+    - Parks visited in October: `/parks?visit_month=Oct`
+    - Parks visited in summer: `/parks?visit_month=Jun&visit_month=Jul&visit_month=Aug`
     - All parks with descriptions: `/parks?include_description=true`
 
     **Use cases:**
@@ -159,6 +179,8 @@ async def get_all_parks(
         result = fetch_all_parks(
             include_description=include_description,
             visited=visited,
+            visit_year=visit_year,
+            visit_month=visit_month,
         )
         return result
 
@@ -910,7 +932,7 @@ async def natural_language_query(request: NlqRequest) -> dict[str, Any]:
         # Parse and validate
         function_name, raw_params = parse_tool_call(response)
         function_name, params = validate_and_normalize(
-            function_name, raw_params, park_lookup
+            function_name, raw_params, park_lookup, query=request.query
         )
 
         # Dispatch to query functions

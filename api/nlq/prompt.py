@@ -37,7 +37,7 @@ TOOLS = [
                     },
                     "hiked": {
                         "type": "boolean",
-                        "description": "true = only trails the user has hiked, false = only unhibited trails",
+                        "description": "true = only trails the user has hiked, false = only unhiked trails",
                     },
                     "min_length": {
                         "type": "number",
@@ -67,7 +67,8 @@ TOOLS = [
             "name": "search_parks",
             "description": (
                 "Search for National Parks. "
-                "Use this for questions about parks, which parks exist, or park visit status."
+                "Use this for questions about parks, which parks exist, "
+                "park visit status, or when parks were visited."
             ),
             "parameters": {
                 "type": "object",
@@ -77,6 +78,18 @@ TOOLS = [
                         "description": (
                             "true = only visited parks, false = only unvisited parks. "
                             "Omit to return all parks."
+                        ),
+                    },
+                    "visit_year": {
+                        "type": "integer",
+                        "description": "Filter by visit year (e.g., 2024).",
+                    },
+                    "visit_month": {
+                        "type": "string",
+                        "description": (
+                            "Filter by visit month or season. "
+                            "Use a month name (e.g., 'October', 'July') "
+                            "or a season ('spring', 'summer', 'fall', 'winter')."
                         ),
                     },
                 },
@@ -154,10 +167,16 @@ Park name to park_code lookup:
 Rules:
 - Always use the park_code (4 lowercase letters), never the full park name, as the parameter value.
 - State codes must be 2 uppercase letters (e.g., CA, UT, CO).
+- When the user mentions a US state (e.g., "in Colorado", "California trails"), use the state parameter. Do NOT pick a specific park within that state instead.
 - Trail lengths are in miles.
 - For "short" trails, use max_length=3. For "long" trails, use min_length=5.
+- "Under X miles", "less than X miles", "shorter than X miles" → use max_length=X.
+- "Over X miles", "more than X miles", "at least X miles", "longer than X miles" → use min_length=X.
 - If the user asks about trails or hikes, use search_trails.
 - If the user asks about parks (not trails), use search_parks.
+- Words like "haven't", "not", "never", "unvisited" indicate negation. "Parks I haven't visited" → visited=false. "Trails I haven't hiked" → hiked=false.
+- If the user mentions a specific year for park visits, include visit_year in search_parks.
+- If the user mentions a specific month or season for park visits, include visit_month with the month name or season name (spring, summer, fall, winter).
 - If the user asks about overall statistics (total miles, trail counts, park counts, averages, longest/shortest), use search_stats.
 - If the user asks for a per-park breakdown of stats, use search_stats with per_park=true.
 - If the user asks about a specific park's details, summary, or overview, use search_park_summary.

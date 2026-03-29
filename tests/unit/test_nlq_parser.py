@@ -252,6 +252,141 @@ class TestValidateAndNormalize:
         )
         assert params == {}
 
+    # --- search_parks visit_year / visit_month ---
+
+    def test_search_parks_visit_year_valid(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_year": 2024}, park_lookup
+        )
+        assert params == {"visit_year": 2024, "visited": True}
+
+    def test_search_parks_visit_year_string_coerced(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_year": "2024"}, park_lookup
+        )
+        assert params == {"visit_year": 2024, "visited": True}
+
+    def test_search_parks_visit_year_out_of_range_dropped(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_year": 1800}, park_lookup
+        )
+        assert "visit_year" not in params
+
+    def test_search_parks_visit_month_full_name(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "October"}, park_lookup
+        )
+        assert params["visit_month"] == ["Oct", "October"]
+
+    def test_search_parks_visit_month_abbreviation(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "Oct"}, park_lookup
+        )
+        assert params["visit_month"] == ["Oct", "October"]
+
+    def test_search_parks_visit_month_numeric(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "10"}, park_lookup
+        )
+        assert params["visit_month"] == ["Oct", "October"]
+
+    def test_search_parks_visit_month_season_summer(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "summer"}, park_lookup
+        )
+        assert params["visit_month"] == ["Jun", "June", "Jul", "July", "Aug", "August"]
+
+    def test_search_parks_visit_month_season_winter(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "winter"}, park_lookup
+        )
+        assert params["visit_month"] == [
+            "Dec",
+            "December",
+            "Jan",
+            "January",
+            "Feb",
+            "February",
+        ]
+
+    def test_search_parks_visit_month_season_fall(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "fall"}, park_lookup
+        )
+        assert params["visit_month"] == [
+            "Sep",
+            "September",
+            "Oct",
+            "October",
+            "Nov",
+            "November",
+        ]
+
+    def test_search_parks_visit_month_season_autumn_alias(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "autumn"}, park_lookup
+        )
+        assert params["visit_month"] == [
+            "Sep",
+            "September",
+            "Oct",
+            "October",
+            "Nov",
+            "November",
+        ]
+
+    def test_search_parks_visit_month_invalid_dropped(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "notamonth"}, park_lookup
+        )
+        assert "visit_month" not in params
+
+    def test_search_parks_visit_month_case_insensitive(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "JULY"}, park_lookup
+        )
+        assert params["visit_month"] == ["Jul", "July"]
+
+    def test_search_parks_may_single_value(self, park_lookup):
+        """May is both 3-letter and full name, so only one value."""
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "May"}, park_lookup
+        )
+        assert params["visit_month"] == ["May"]
+
+    def test_search_parks_visit_year_and_month_combined(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks",
+            {"visit_year": 2024, "visit_month": "summer", "visited": True},
+            park_lookup,
+        )
+        assert params["visit_year"] == 2024
+        assert params["visited"] is True
+        assert "Jun" in params["visit_month"]
+
+    def test_search_parks_visit_year_infers_visited(self, park_lookup):
+        """visit_year without explicit visited should infer visited=True."""
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_year": 2024}, park_lookup
+        )
+        assert params["visit_year"] == 2024
+        assert params["visited"] is True
+
+    def test_search_parks_visit_month_infers_visited(self, park_lookup):
+        """visit_month without explicit visited should infer visited=True."""
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_month": "October"}, park_lookup
+        )
+        assert params["visit_month"] == ["Oct", "October"]
+        assert params["visited"] is True
+
+    def test_search_parks_visited_false_not_overridden(self, park_lookup):
+        """Explicit visited=False should not be overridden by inference."""
+        _, params = validate_and_normalize(
+            "search_parks", {"visit_year": 2024, "visited": False}, park_lookup
+        )
+        assert params["visited"] is False
+
     def test_unknown_function_raises(self, park_lookup):
         with pytest.raises(LlmResponseError, match="Unknown function"):
             validate_and_normalize("unknown_function", {}, park_lookup)
@@ -333,3 +468,82 @@ class TestValidateAndNormalize:
                 {"park_code": "xyzxyzxyz"},
                 park_lookup,
             )
+
+    # --- negation correction ---
+
+    def test_negation_flips_visited_true_to_false(self, park_lookup):
+        """'haven't visited' should flip visited from True to False."""
+        _, params = validate_and_normalize(
+            "search_parks",
+            {"visited": True},
+            park_lookup,
+            query="Parks I haven't visited",
+        )
+        assert params["visited"] is False
+
+    def test_negation_flips_hiked_true_to_false(self, park_lookup):
+        """'haven't hiked' should flip hiked from True to False."""
+        _, params = validate_and_normalize(
+            "search_trails",
+            {"hiked": True},
+            park_lookup,
+            query="Trails I haven't hiked yet",
+        )
+        assert params["hiked"] is False
+
+    def test_negation_never_flips_visited(self, park_lookup):
+        """'never been to' should flip visited from True to False."""
+        _, params = validate_and_normalize(
+            "search_parks",
+            {"visited": True},
+            park_lookup,
+            query="Which parks have I never been to?",
+        )
+        assert params["visited"] is False
+
+    def test_negation_unvisited_flips_visited(self, park_lookup):
+        """'unvisited' should flip visited from True to False."""
+        _, params = validate_and_normalize(
+            "search_parks",
+            {"visited": True},
+            park_lookup,
+            query="Unvisited national parks",
+        )
+        assert params["visited"] is False
+
+    def test_negation_stats_hiked_false(self, park_lookup):
+        """'haven't hiked' in stats context should flip hiked."""
+        _, params = validate_and_normalize(
+            "search_stats",
+            {"hiked": True},
+            park_lookup,
+            query="Stats for trails I haven't hiked",
+        )
+        assert params["hiked"] is False
+
+    def test_no_negation_preserves_true(self, park_lookup):
+        """Queries without negation should not flip booleans."""
+        _, params = validate_and_normalize(
+            "search_parks",
+            {"visited": True},
+            park_lookup,
+            query="Parks I have visited",
+        )
+        assert params["visited"] is True
+
+    def test_no_negation_hiked_preserves_true(self, park_lookup):
+        """Queries without negation should not flip hiked."""
+        _, params = validate_and_normalize(
+            "search_trails",
+            {"park_code": "yose", "hiked": True},
+            park_lookup,
+            query="Trails I've hiked in Yosemite",
+        )
+        assert params["hiked"] is True
+
+    def test_negation_no_query_is_noop(self, park_lookup):
+        """Without a query string, negation correction is skipped."""
+        _, params = validate_and_normalize(
+            "search_parks", {"visited": True}, park_lookup
+        )
+        assert params["visited"] is True
