@@ -55,8 +55,10 @@ async def run_single_query(
     """
     messages = build_chat_messages(query, system_message)
     start = time.time()
+    raw_response: dict[str, Any] = {}
     try:
         response = await call_ollama(messages, TOOLS)
+        raw_response = response.get("message", {})
         function_name, raw_params = parse_tool_call(response)
         function_name, params = validate_and_normalize(
             function_name, raw_params, park_lookup, query=query
@@ -67,6 +69,7 @@ async def run_single_query(
             "params": params,
             "error": None,
             "elapsed": elapsed,
+            "raw_response": raw_response,
         }
     except (LlmResponseError, LlmConnectionError) as e:
         elapsed = time.time() - start
@@ -75,6 +78,7 @@ async def run_single_query(
             "params": {},
             "error": str(e),
             "elapsed": elapsed,
+            "raw_response": raw_response,
         }
 
 
@@ -151,6 +155,7 @@ async def run_eval(
                     "status": status,
                     "detail": detail,
                     "elapsed": actual["elapsed"],
+                    "raw_response": actual["raw_response"],
                 }
             )
 
