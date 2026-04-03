@@ -20,6 +20,7 @@ from sqlalchemy import text
 from api.main import app
 from api.queries import (
     fetch_all_parks,
+    fetch_hiked_points,
     fetch_park_stats,
     fetch_park_summary,
     fetch_stats,
@@ -40,11 +41,12 @@ class TestRootEndpoint:
 
         data = response.json()
         assert data["name"] == "NPS Trails API"
-        assert data["version"] == "1.0.0"
+        assert data["version"] == "1.1.0"
         assert "documentation" in data
         assert "endpoints" in data
         assert data["endpoints"]["parks"] == "/parks"
         assert data["endpoints"]["trails"] == "/trails"
+        assert data["endpoints"]["hiked_points"] == "/trails/hiked-points"
         assert data["endpoints"]["stats"] == "/stats"
         assert data["endpoints"]["stats_parks"] == "/stats/parks"
         assert data["endpoints"]["park_summary"] == "/parks/{park_code}/summary"
@@ -100,8 +102,8 @@ class TestParksEndpoint:
         mock_result.fetchall.return_value = sample_parks_response["rows"]
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
-        # Make request with include_description=true
-        response = client.get("/parks?include_description=true")
+        # Make request with description=true
+        response = client.get("/parks?description=true")
 
         # Assertions
         assert response.status_code == 200
@@ -243,6 +245,96 @@ class TestParksEndpoint:
         assert data["park_count"] == 1
         assert data["parks"][0]["visit_year"] == 2023
         assert data["parks"][0]["visit_month"] == "July"
+
+    @patch("api.queries.get_db_engine")
+    def test_get_parks_filtered_by_park_code(
+        self, mock_get_engine, mock_db_engine, sample_parks_response
+    ):
+        """Test parks endpoint filtered by park_code."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = [
+            sample_parks_response["rows_without_description"][0]
+        ]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/parks?park_code=yose")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["park_count"] == 1
+        assert data["parks"][0]["park_code"] == "yose"
+
+    @patch("api.queries.get_db_engine")
+    def test_get_parks_filtered_by_state(
+        self, mock_get_engine, mock_db_engine, sample_parks_response
+    ):
+        """Test parks endpoint filtered by state."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = [
+            sample_parks_response["rows_without_description"][0]
+        ]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/parks?state=CA")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["park_count"] == 1
+
+    def test_get_parks_filtered_by_park_code_invalid(self):
+        """Test parks endpoint rejects invalid park_code format."""
+        response = client.get("/parks?park_code=YOSE")
+        assert response.status_code == 422
+
+        response = client.get("/parks?park_code=yo")
+        assert response.status_code == 422
+
+    @patch("api.queries.get_db_engine")
+    def test_get_parks_with_boundary(
+        self, mock_get_engine, mock_db_engine, sample_parks_boundary_response
+    ):
+        """Test parks endpoint with boundary=true returns GeoJSON dicts."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_parks_boundary_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/parks?boundary=true")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["park_count"] == 2
+
+        # First park has boundary
+        park1 = data["parks"][0]
+        assert "boundary" in park1
+        assert park1["boundary"]["type"] == "Polygon"
+        assert "coordinates" in park1["boundary"]
+
+        # Second park has null boundary (no boundary data)
+        park2 = data["parks"][1]
+        assert park2.get("boundary") is None
+
+    @patch("api.queries.get_db_engine")
+    def test_get_parks_without_boundary(
+        self, mock_get_engine, mock_db_engine, sample_parks_response
+    ):
+        """Test parks endpoint without boundary=true omits boundary field."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_parks_response[
+            "rows_without_description"
+        ]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/parks")
+
+        assert response.status_code == 200
+        data = response.json()
+        # Boundary field should not be present
+        assert "boundary" not in data["parks"][0]
 
     @patch("api.queries.get_db_engine")
     def test_get_all_parks_database_error(self, mock_get_engine):
@@ -707,6 +799,43 @@ class TestTrailsEndpoint:
             assert response.status_code == 422  # Validation error
 
     @patch("api.queries.get_db_engine")
+    def test_get_trails_with_geojson(
+        self, mock_get_engine, mock_db_engine, sample_trails_geojson_response
+    ):
+        """Test trails endpoint with geojson=true returns geometry dicts."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_trails_geojson_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/trails?geojson=true")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["trail_count"] == 1
+
+        trail = data["trails"][0]
+        assert "geometry" in trail
+        assert trail["geometry"]["type"] == "LineString"
+        assert "coordinates" in trail["geometry"]
+
+    @patch("api.queries.get_db_engine")
+    def test_get_trails_without_geojson(
+        self, mock_get_engine, mock_db_engine, sample_trails_response
+    ):
+        """Test trails endpoint without geojson=true omits geometry field."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_trails_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/trails")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "geometry" not in data["trails"][0]
+
+    @patch("api.queries.get_db_engine")
     def test_get_trails_database_error(self, mock_get_engine):
         """Test 500 error when database query fails."""
         # Setup mock to raise exception
@@ -719,6 +848,69 @@ class TestTrailsEndpoint:
         assert response.status_code == 500
         data = response.json()
         assert "Error retrieving trails" in data["detail"]
+
+
+class TestHikedPointsEndpoint:
+    """Tests for the hiked points endpoint (GET /trails/hiked-points)."""
+
+    @patch("api.queries.get_db_engine")
+    def test_get_hiked_points_no_filter(
+        self, mock_get_engine, mock_db_engine, sample_hiked_points_response
+    ):
+        """Test hiked points endpoint without filters."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_hiked_points_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/trails/hiked-points")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 2
+        assert len(data["hiked_points"]) == 2
+
+        point1 = data["hiked_points"][0]
+        assert point1["park_code"] == "yose"
+        assert point1["location_name"] == "Vernal Fall"
+        assert point1["matched_trail_name"] == "Mist Trail"
+        assert point1["source"] == "TNM"
+
+    @patch("api.queries.get_db_engine")
+    def test_get_hiked_points_by_park(
+        self, mock_get_engine, mock_db_engine, sample_hiked_points_response
+    ):
+        """Test hiked points endpoint filtered by park_code."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = sample_hiked_points_response["rows"]
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/trails/hiked-points?park_code=yose")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 2
+
+    @patch("api.queries.get_db_engine")
+    def test_get_hiked_points_empty(self, mock_get_engine, mock_db_engine):
+        """Test hiked points endpoint with no results."""
+        mock_get_engine.return_value = mock_db_engine
+        mock_result = Mock()
+        mock_result.fetchall.return_value = []
+        mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
+
+        response = client.get("/trails/hiked-points?park_code=zion")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 0
+        assert data["hiked_points"] == []
+
+    def test_get_hiked_points_invalid_park_code(self):
+        """Test hiked points endpoint rejects invalid park_code format."""
+        response = client.get("/trails/hiked-points?park_code=YOSE")
+        assert response.status_code == 422
 
 
 class TestHealthEndpoint:
@@ -779,7 +971,7 @@ class TestQueryFunctions:
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Call function
-        result = fetch_all_parks(include_description=False)
+        result = fetch_all_parks(description=False)
 
         # Assertions
         assert result["park_count"] == 2
@@ -800,7 +992,7 @@ class TestQueryFunctions:
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         # Call function
-        result = fetch_all_parks(include_description=True)
+        result = fetch_all_parks(description=True)
 
         # Assertions
         assert result["park_count"] == 2

@@ -328,6 +328,57 @@ def sample_trails_response():
 
 
 @pytest.fixture
+def sample_trails_geojson_response():
+    """
+    Provide sample data for trails endpoint with geojson testing.
+
+    Returns rows with a geojson column containing GeoJSON strings.
+    """
+    from collections import namedtuple
+
+    Row = namedtuple(
+        "Row",
+        [
+            "trail_id",
+            "trail_name",
+            "park_code",
+            "park_name",
+            "states",
+            "source",
+            "length_miles",
+            "geometry_type",
+            "highway_type",
+            "hiked",
+            "viz_3d_available",
+            "viz_3d_slug",
+            "total_count",
+            "geojson",
+        ],
+    )
+
+    return {
+        "rows": [
+            Row(
+                trail_id="550779",
+                trail_name="Half Dome Trail",
+                park_code="yose",
+                park_name="Yosemite National Park",
+                states="CA",
+                source="TNM",
+                length_miles=14.2,
+                geometry_type="LineString",
+                highway_type=None,
+                hiked=True,
+                viz_3d_available=True,
+                viz_3d_slug="mariposa_grove_trail",
+                total_count=1,
+                geojson='{"type": "LineString", "coordinates": [[-119.5, 37.7], [-119.6, 37.8]]}',
+            ),
+        ],
+    }
+
+
+@pytest.fixture
 def empty_db_result():
     """
     Provide an empty database result for testing no-results scenarios.
@@ -346,7 +397,7 @@ def sample_parks_response():
     """
     from collections import namedtuple
 
-    # Row with description (for include_description=true)
+    # Row with description (for description=true)
     RowWithDescription = namedtuple(
         "RowWithDescription",
         [
@@ -364,7 +415,7 @@ def sample_parks_response():
         ],
     )
 
-    # Row without description (for include_description=false, default)
+    # Row without description (for description=false, default)
     RowWithoutDescription = namedtuple(
         "RowWithoutDescription",
         [
@@ -434,6 +485,64 @@ def sample_parks_response():
                 url="https://www.nps.gov/zion/index.htm",
                 visit_month="June",
                 visit_year=2022,
+            ),
+        ],
+    }
+
+
+@pytest.fixture
+def sample_parks_boundary_response():
+    """
+    Provide sample data for parks endpoint with boundary testing.
+
+    Returns rows with a boundary column containing GeoJSON strings.
+    """
+    from collections import namedtuple
+
+    RowWithBoundary = namedtuple(
+        "RowWithBoundary",
+        [
+            "park_code",
+            "park_name",
+            "full_name",
+            "designation",
+            "states",
+            "latitude",
+            "longitude",
+            "url",
+            "visit_month",
+            "visit_year",
+            "boundary",
+        ],
+    )
+
+    return {
+        "rows": [
+            RowWithBoundary(
+                park_code="yose",
+                park_name="Yosemite National Park",
+                full_name="Yosemite National Park",
+                designation="National Park",
+                states="CA",
+                latitude=37.8651,
+                longitude=-119.5383,
+                url="https://www.nps.gov/yose/index.htm",
+                visit_month="July",
+                visit_year=2023,
+                boundary='{"type": "Polygon", "coordinates": [[[-119.0, 37.0], [-119.0, 38.0], [-120.0, 38.0], [-120.0, 37.0], [-119.0, 37.0]]]}',
+            ),
+            RowWithBoundary(
+                park_code="zion",
+                park_name="Zion National Park",
+                full_name="Zion National Park",
+                designation="National Park",
+                states="UT",
+                latitude=37.2982,
+                longitude=-113.0265,
+                url="https://www.nps.gov/zion/index.htm",
+                visit_month="June",
+                visit_year=2022,
+                boundary=None,
             ),
         ],
     }
@@ -601,6 +710,55 @@ def sample_park_summary_response():
             osm_count=12,
             viz_3d_count=10,
         ),
+    }
+
+
+@pytest.fixture
+def sample_hiked_points_response():
+    """
+    Provide sample data for hiked points endpoint testing.
+
+    Returns rows matching the gmaps_hiking_locations query result.
+    """
+    from collections import namedtuple
+
+    HikedPointRow = namedtuple(
+        "HikedPointRow",
+        [
+            "id",
+            "park_code",
+            "park_name",
+            "location_name",
+            "latitude",
+            "longitude",
+            "matched_trail_name",
+            "source",
+        ],
+    )
+
+    return {
+        "rows": [
+            HikedPointRow(
+                id=1,
+                park_code="yose",
+                park_name="Yosemite",
+                location_name="Vernal Fall",
+                latitude=37.7268,
+                longitude=-119.5428,
+                matched_trail_name="Mist Trail",
+                source="TNM",
+            ),
+            HikedPointRow(
+                id=2,
+                park_code="yose",
+                park_name="Yosemite",
+                location_name="Mirror Lake",
+                latitude=37.7459,
+                longitude=-119.5563,
+                matched_trail_name=None,
+                source=None,
+            ),
+        ],
     }
 
 

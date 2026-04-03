@@ -5,6 +5,7 @@ These functions execute SQL queries and return formatted results
 ready for API responses.
 """
 
+import json
 from typing import Any
 
 from sqlalchemy import text
@@ -13,16 +14,19 @@ from api.database import get_db_engine
 
 
 def fetch_all_parks(
-    include_description: bool = False,
+    description: bool = False,
     visited: bool | None = None,
     visit_year: int | None = None,
     visit_month: list[str] | None = None,
+    park_code: str | None = None,
+    state: str | None = None,
+    boundary: bool = False,
 ) -> dict[str, Any]:
     """
     Fetch all parks from the database with optional filtering.
 
     Args:
-        include_description: Whether to include park descriptions (default: False)
+        description: Whether to include park descriptions (default: False)
         visited: Filter by visit status. True=visited only, False=unvisited only,
                  None=all parks (default: None)
         visit_year: Filter by visit year (e.g., 2024). Default: None (no filter)
@@ -46,22 +50,23 @@ def fetch_all_parks(
     """
     engine = get_db_engine()
 
-    # Build column list based on include_description parameter
+    # Build column list based on description parameter
+    # Use parks. prefix to avoid ambiguity when boundary JOIN is active
     columns = [
-        "park_code",
-        "park_name",
-        "full_name",
-        "designation",
-        "states",
-        "latitude",
-        "longitude",
-        "url",
-        "visit_month",
-        "visit_year",
+        "parks.park_code",
+        "parks.park_name",
+        "parks.full_name",
+        "parks.designation",
+        "parks.states",
+        "parks.latitude",
+        "parks.longitude",
+        "parks.url",
+        "parks.visit_month",
+        "parks.visit_year",
     ]
 
-    if include_description:
-        columns.append("description")
+    if description:
+        columns.append("parks.description")
 
     columns_str = ", ".join(columns)
 
@@ -70,28 +75,49 @@ def fetch_all_parks(
     query_params: dict[str, Any] = {}
 
     if visited is True:
-        where_clauses.append("visit_year IS NOT NULL")
+        where_clauses.append("parks.visit_year IS NOT NULL")
     elif visited is False:
-        where_clauses.append("visit_year IS NULL")
+        where_clauses.append("parks.visit_year IS NULL")
 
     if visit_year is not None:
-        where_clauses.append("visit_year = :visit_year")
+        where_clauses.append("parks.visit_year = :visit_year")
         query_params["visit_year"] = visit_year
 
     if visit_month:
         month_placeholders = ", ".join(f":month_{i}" for i in range(len(visit_month)))
-        where_clauses.append(f"visit_month IN ({month_placeholders})")
+        where_clauses.append(f"parks.visit_month IN ({month_placeholders})")
         for i, m in enumerate(visit_month):
             query_params[f"month_{i}"] = m
 
+    if park_code is not None:
+        where_clauses.append("parks.park_code = :park_code")
+        query_params["park_code"] = park_code
+
+    if state is not None:
+        where_clauses.append("parks.states LIKE :state")
+        query_params["state"] = f"%{state}%"
+
     where_str = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+    # Conditionally add boundary JOIN and column
+    boundary_col = (
+        ", ST_AsGeoJSON(ST_Simplify(pb.geometry, 0.001)) as boundary"
+        if boundary
+        else ""
+    )
+    boundary_join = (
+        "LEFT JOIN park_boundaries pb ON parks.park_code = pb.park_code"
+        if boundary
+        else ""
+    )
 
     # Query parks ordered by park name
     query = f"""
-    SELECT {columns_str}
+    SELECT {columns_str}{boundary_col}
     FROM parks
+    {boundary_join}
     {where_str}
-    ORDER BY park_name
+    ORDER BY parks.park_name
     """
 
     # Execute query
@@ -119,8 +145,11 @@ def fetch_all_parks(
         if row.visit_year is not None:
             visited_count += 1
 
-        if include_description:
+        if description:
             park["description"] = row.description
+
+        if boundary:
+            park["boundary"] = json.loads(row.boundary) if row.boundary else None
 
         parks.append(park)
 
@@ -142,6 +171,7 @@ def fetch_trails(
     viz_3d: bool | None = None,
     limit: int = 50,
     offset: int = 0,
+    geojson: bool = False,
 ) -> dict[str, Any]:
     """
     Fetch trails with optional filters.
@@ -175,8 +205,12 @@ def fetch_trails(
     """
     engine = get_db_engine()
 
+    # Conditionally add GeoJSON columns
+    geojson_col = ", ST_AsGeoJSON(geometry) as geojson" if geojson else ""
+    geojson_ref = ", geojson" if geojson else ""
+
     # Build query with CTEs for TNM trails, OSM trails, and deduplication
-    query = """
+    query = f"""
     WITH tnm_trails AS (
         SELECT
             permanent_identifier as trail_id,
@@ -184,7 +218,7 @@ def fetch_trails(
             park_code,
             'TNM' as source,
             length_miles,
-            geometry_type
+            geometry_type{geojson_col}
         FROM tnm_hikes
         WHERE name IS NOT NULL
     ),
@@ -196,7 +230,7 @@ def fetch_trails(
             'OSM' as source,
             length_miles,
             geometry_type,
-            highway as highway_type
+            highway as highway_type{geojson_col}
         FROM osm_hikes
         WHERE name IS NOT NULL
     ),
@@ -220,7 +254,7 @@ def fetch_trails(
             source,
             length_miles,
             geometry_type,
-            CAST(NULL AS VARCHAR) as highway_type
+            CAST(NULL AS VARCHAR) as highway_type{geojson_ref}
         FROM tnm_trails
         UNION ALL
         SELECT * FROM osm_unique
@@ -244,7 +278,7 @@ def fetch_trails(
             ELSE false
         END as viz_3d_available,
         ute.trail_slug as viz_3d_slug,
-        COUNT(*) OVER() as total_count
+        COUNT(*) OVER() as total_count{geojson_ref.replace("geojson", "t.geojson")}
     FROM all_trails t
     LEFT JOIN parks p ON t.park_code = p.park_code
     LEFT JOIN gmaps_hiking_locations_matched m
@@ -333,6 +367,10 @@ def fetch_trails(
             "viz_3d_available": row.viz_3d_available,
             "viz_3d_slug": row.viz_3d_slug,
         }
+
+        if geojson:
+            trail["geometry"] = json.loads(row.geojson) if row.geojson else None
+
         trails.append(trail)
         total_miles += float(row.length_miles)
 
@@ -739,4 +777,63 @@ def fetch_park_summary(park_code: str) -> dict[str, Any] | None:
             "osm": row.osm_count,
         },
         "viz_3d_count": row.viz_3d_count,
+    }
+
+
+def fetch_hiked_points(park_code: str | None = None) -> dict[str, Any]:
+    """
+    Fetch hiked location points from Google My Maps.
+
+    Args:
+        park_code: Filter by park code (optional)
+
+    Returns:
+        Dictionary containing:
+            - count: int
+            - hiked_points: list of hiked point dictionaries
+    """
+    engine = get_db_engine()
+
+    query = """
+    SELECT
+        g.id, g.park_code, p.park_name, g.location_name,
+        g.latitude, g.longitude, m.matched_trail_name, m.source
+    FROM gmaps_hiking_locations g
+    JOIN parks p ON g.park_code = p.park_code
+    LEFT JOIN gmaps_hiking_locations_matched m
+        ON g.id = m.gmaps_location_id AND m.matched = true
+    """
+
+    params: dict[str, Any] = {}
+
+    if park_code is not None:
+        query += " WHERE g.park_code = :park_code"
+        params["park_code"] = park_code
+
+    query += " ORDER BY g.park_code, g.location_name"
+
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        rows = result.fetchall()
+
+    hiked_points = []
+    for row in rows:
+        hiked_points.append(
+            {
+                "id": row.id,
+                "park_code": row.park_code,
+                "park_name": row.park_name,
+                "location_name": row.location_name,
+                "latitude": float(row.latitude) if row.latitude is not None else None,
+                "longitude": float(row.longitude)
+                if row.longitude is not None
+                else None,
+                "matched_trail_name": row.matched_trail_name,
+                "source": row.source,
+            }
+        )
+
+    return {
+        "count": len(hiked_points),
+        "hiked_points": hiked_points,
     }

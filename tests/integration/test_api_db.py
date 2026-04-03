@@ -119,7 +119,7 @@ class TestParksEndpoint:
         assert "description" not in yose  # Not included by default
 
     def test_parks_endpoint_with_description_filter(self, test_db_writer, api_client):
-        """Test that include_description=true returns descriptions."""
+        """Test that description=true returns descriptions."""
         # Arrange
         import pandas as pd
 
@@ -141,7 +141,7 @@ class TestParksEndpoint:
         test_db_writer.write_parks(parks_df, mode="upsert")
 
         # Act
-        response = api_client.get("/parks?include_description=true")
+        response = api_client.get("/parks?description=true")
 
         # Assert
         assert response.status_code == 200
@@ -729,7 +729,7 @@ class TestRootEndpoint:
         data = response.json()
 
         assert data["name"] == "NPS Trails API"
-        assert data["version"] == "1.0.0"
+        assert data["version"] == "1.1.0"
         assert "endpoints" in data
         assert data["endpoints"]["parks"] == "/parks"
         assert data["endpoints"]["trails"] == "/trails"

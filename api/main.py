@@ -30,6 +30,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from api.database import get_db_engine
 from api.models import (
+    HikedPointsResponse,
     NlqRequest,
     NlqResponse,
     ParksResponse,
@@ -45,6 +46,7 @@ from api.nlq.prompt import TOOLS, build_chat_messages, build_system_message
 from api.nlq.rate_limit import require_ollama_slot, require_rate_limit
 from api.queries import (
     fetch_all_parks,
+    fetch_hiked_points,
     fetch_park_stats,
     fetch_park_summary,
     fetch_stats,
@@ -65,7 +67,7 @@ app = FastAPI(
 
     See the [full project documentation](https://seanangio.github.io/nps-hikes/) for details.
     """,
-    version="1.0.0",
+    version="1.1.0",
     contact={
         "name": "NPS Hikes Project",
     },
@@ -85,7 +87,7 @@ async def root() -> dict[str, Any]:
     """
     return {
         "name": "NPS Trails API",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "description": "Query National Park trail data from OpenStreetMap and The National Map",
         "documentation": {
             "swagger_ui": "/docs",
@@ -96,6 +98,7 @@ async def root() -> dict[str, Any]:
             "query": "/query",
             "parks": "/parks",
             "trails": "/trails",
+            "hiked_points": "/trails/hiked-points",
             "stats": "/stats",
             "stats_parks": "/stats/parks",
             "park_summary": "/parks/{park_code}/summary",
@@ -118,14 +121,15 @@ async def root() -> dict[str, Any]:
     description="""
     Returns all National Parks with metadata and optional filtering.
 
-    By default, returns all parks. Use `visited=true` to get only visited parks,
+    By default, returns all parks. Use `park_code` to get a single park,
+    `state` to filter by state, `visited=true` to get only visited parks,
     or `visited=false` to get only unvisited parks.
     Use `visit_year` and/or `visit_month` to filter by when parks were visited.
-    Use `include_description=true` to include full park descriptions.
+    Use `description=true` to include full park descriptions.
     """,
 )
 async def get_all_parks(
-    include_description: bool = Query(
+    description: bool = Query(
         default=False,
         description="Include full park descriptions in the response (increases response size)",
     ),
@@ -149,6 +153,24 @@ async def get_all_parks(
             ),
         ),
     ] = None,
+    park_code: str | None = Query(
+        default=None,
+        description="Filter by 4-character park code (e.g., 'yose')",
+        min_length=4,
+        max_length=4,
+        pattern="^[a-z]{4}$",
+    ),
+    state: str | None = Query(
+        default=None,
+        description="Filter by state using 2-letter code (e.g., 'CA')",
+        min_length=2,
+        max_length=2,
+        pattern="^[A-Z]{2}$",
+    ),
+    boundary: bool = Query(
+        default=False,
+        description="Include simplified park boundary GeoJSON in the response",
+    ),
 ) -> dict[str, Any]:
     """
     Get all parks with metadata.
@@ -163,12 +185,14 @@ async def get_all_parks(
 
     **Example queries:**
     - All parks: `/parks`
+    - Single park: `/parks?park_code=yose`
+    - Parks in California: `/parks?state=CA`
     - Only visited parks: `/parks?visited=true`
     - Unvisited parks: `/parks?visited=false`
     - Parks visited in 2024: `/parks?visit_year=2024`
     - Parks visited in October: `/parks?visit_month=Oct`
     - Parks visited in summer: `/parks?visit_month=Jun&visit_month=Jul&visit_month=Aug`
-    - All parks with descriptions: `/parks?include_description=true`
+    - All parks with descriptions: `/parks?description=true`
 
     **Use cases:**
     - Get park codes for use in other endpoints (trails, visualizations)
@@ -178,10 +202,13 @@ async def get_all_parks(
     try:
         # Fetch parks from database
         result = fetch_all_parks(
-            include_description=include_description,
+            description=description,
             visited=visited,
             visit_year=visit_year,
             visit_month=visit_month,
+            park_code=park_code,
+            state=state,
+            boundary=boundary,
         )
         return result
 
@@ -205,6 +232,7 @@ async def get_all_parks(
 @app.get(
     "/trails",
     response_model=TrailsResponse,
+    response_model_exclude_none=True,
     tags=["Trails"],
     summary="Get trails",
     description="""
@@ -281,6 +309,10 @@ async def get_trails(
         ge=1,
         le=1000,
     ),
+    geojson: bool = Query(
+        default=False,
+        description="Include trail geometry GeoJSON in the response",
+    ),
 ) -> dict[str, Any]:
     """
     Get trails with optional filters.
@@ -336,6 +368,7 @@ async def get_trails(
             viz_3d=viz_3d,
             limit=actual_limit,
             offset=actual_offset,
+            geojson=geojson,
         )
 
         return result
@@ -354,6 +387,58 @@ async def get_trails(
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving trails: {e!s}",
+        ) from e
+
+
+@app.get(
+    "/trails/hiked-points",
+    response_model=HikedPointsResponse,
+    response_model_exclude_none=True,
+    tags=["Trails"],
+    summary="Get hiked location points",
+    description="""
+    Returns GPS marker points from Google My Maps representing actual hikes.
+
+    Each point includes the location name, coordinates, park info, and
+    optionally the matched trail name and data source.
+
+    Use `park_code` to filter by a single park.
+    """,
+)
+async def get_hiked_points(
+    park_code: str | None = Query(
+        default=None,
+        description="Filter by 4-character park code (e.g., 'yose')",
+        min_length=4,
+        max_length=4,
+        pattern="^[a-z]{4}$",
+    ),
+) -> dict[str, Any]:
+    """
+    Get hiked location points from Google My Maps.
+
+    **Example queries:**
+    - All hiked points: `/trails/hiked-points`
+    - Yosemite points: `/trails/hiked-points?park_code=yose`
+    """
+    try:
+        result = fetch_hiked_points(park_code=park_code)
+        return result
+
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable: {e!s}",
+        ) from e
+    except NpsHikesError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving hiked points: {e!s}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving hiked points: {e!s}",
         ) from e
 
 

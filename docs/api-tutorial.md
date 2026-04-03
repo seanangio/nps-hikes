@@ -34,7 +34,7 @@ curl http://localhost:8000/ | python3 -m json.tool
 ```json
 {
     "name": "NPS Trails API",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Query National Park trail data from OpenStreetMap and The National Map",
     "documentation": {
         "swagger_ui": "/docs",
@@ -45,6 +45,7 @@ curl http://localhost:8000/ | python3 -m json.tool
         "query": "/query",
         "parks": "/parks",
         "trails": "/trails",
+        "hiked_points": "/trails/hiked-points",
         "stats": "/stats",
         "stats_parks": "/stats/parks",
         "park_summary": "/parks/{park_code}/summary",
@@ -102,10 +103,10 @@ Visited parks include `visit_month` and `visit_year` from your visit log. Flip t
 curl "http://localhost:8000/parks?visited=false" | python3 -m json.tool
 ```
 
-For richer responses, add `include_description=true` to include the full NPS description for each park:
+For richer responses, add `description=true` to include the full NPS description for each park:
 
 ```bash
-curl "http://localhost:8000/parks?visited=true&include_description=true" | python3 -m json.tool
+curl "http://localhost:8000/parks?visited=true&description=true" | python3 -m json.tool
 ```
 
 ## See the big picture

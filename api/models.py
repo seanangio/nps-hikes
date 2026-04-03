@@ -133,6 +133,10 @@ class Trail(BaseModel):
         description="URL-safe trail slug for 3D visualization endpoint (only present if viz_3d_available is true)",
         examples=["mono_pass_trail"],
     )
+    geometry: dict | None = Field(
+        None,
+        description="Trail geometry as GeoJSON (only included when geojson=true)",
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -297,10 +301,14 @@ class Park(BaseModel):
     )
     description: str | None = Field(
         None,
-        description="Park description (only included when include_description=true)",
+        description="Park description (only included when description=true)",
         examples=[
             "Not just a great valley, but a shrine to human foresight, the strength of granite..."
         ],
+    )
+    boundary: dict | None = Field(
+        None,
+        description="Simplified park boundary as GeoJSON geometry (only included when boundary=true)",
     )
 
     model_config = {
@@ -728,6 +736,71 @@ class ParkSummaryResponse(BaseModel):
             ]
         }
     }
+
+
+class HikedPoint(BaseModel):
+    """Individual hiked location point from Google My Maps."""
+
+    id: int = Field(
+        ...,
+        description="Unique identifier for the hiking location",
+        examples=[1],
+    )
+    park_code: str = Field(
+        ...,
+        description="4-character lowercase park code",
+        pattern="^[a-z]{4}$",
+        examples=["yose"],
+    )
+    park_name: str | None = Field(
+        None,
+        description="Short park name",
+        examples=["Yosemite"],
+    )
+    location_name: str = Field(
+        ...,
+        description="Name of the hiking location",
+        examples=["Vernal Fall"],
+    )
+    latitude: float | None = Field(
+        None,
+        description="Latitude coordinate",
+        ge=-90,
+        le=90,
+        examples=[37.7268],
+    )
+    longitude: float | None = Field(
+        None,
+        description="Longitude coordinate",
+        ge=-180,
+        le=180,
+        examples=[-119.5428],
+    )
+    matched_trail_name: str | None = Field(
+        None,
+        description="Name of the matched trail (if matched)",
+        examples=["Mist Trail"],
+    )
+    source: str | None = Field(
+        None,
+        description="Data source of the matched trail ('TNM' or 'OSM')",
+        examples=["TNM"],
+    )
+
+
+class HikedPointsResponse(BaseModel):
+    """Response model for hiked points endpoint."""
+
+    count: int = Field(
+        ...,
+        description="Number of hiked points returned",
+        ge=0,
+        examples=[299],
+    )
+    hiked_points: list[HikedPoint] = Field(
+        ...,
+        description="List of hiked location points",
+    )
 
 
 class NlqRequest(BaseModel):
