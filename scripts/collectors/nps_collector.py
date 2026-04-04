@@ -518,6 +518,57 @@ class NPSDataCollector:
 
         return results
 
+    def _refresh_visit_dates(
+        self, existing_data: pd.DataFrame, csv_path: str
+    ) -> pd.DataFrame:
+        """
+        Refresh visit dates in previously-collected park data from the visit log.
+
+        When using incremental processing, parks collected before being added to
+        the visit log will have NULL visit dates. This method updates those dates
+        so downstream collectors (which filter on visit_year IS NOT NULL) include
+        newly-visited parks without requiring a full API re-fetch.
+
+        Args:
+            existing_data: DataFrame of previously-collected parks
+            csv_path: Path to the visit log CSV
+
+        Returns:
+            pd.DataFrame: Updated DataFrame with refreshed visit dates
+        """
+        if existing_data.empty or not os.path.exists(csv_path):
+            return existing_data
+
+        try:
+            visit_df = self.load_parks_from_csv(csv_path)
+        except (FileNotFoundError, ValueError) as e:
+            logger.warning(f"Could not load visit log for date refresh: {e}")
+            return existing_data
+
+        # Build lookup: lowercased park_name -> (month, year)
+        visit_lookup: dict[str, tuple] = {}
+        for _, row in visit_df.iterrows():
+            visit_lookup[row["park_name"].strip().lower()] = (
+                row["month"],
+                row["year"],
+            )
+
+        updated = 0
+        for idx, row in existing_data.iterrows():
+            park_name = str(row.get("park_name", "")).strip().lower()
+            if park_name not in visit_lookup:
+                continue
+            month, year = visit_lookup[park_name]
+            if pd.isna(row.get("visit_month")) or pd.isna(row.get("visit_year")):
+                existing_data.at[idx, "visit_month"] = month
+                existing_data.at[idx, "visit_year"] = year
+                updated += 1
+
+        if updated > 0:
+            logger.info(f"Refreshed visit dates for {updated} park(s) from visit log")
+
+        return existing_data
+
     def process_park_data(
         self,
         csv_path: str,
@@ -559,6 +610,9 @@ class NPSDataCollector:
                 if not existing_data.empty and "park_code" in existing_data.columns:
                     existing_park_codes = set(existing_data["park_code"].tolist())
                 logger.info(f"Found existing data with {len(existing_data)} records")
+                # Refresh visit dates so newly-visited parks get picked up
+                # by downstream collectors without a full API re-fetch
+                existing_data = self._refresh_visit_dates(existing_data, csv_path)
             except Exception as e:
                 logger.warning(f"Could not load existing data from {output_path}: {e}")
                 logger.info("Proceeding with full processing")

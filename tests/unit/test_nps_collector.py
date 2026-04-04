@@ -303,6 +303,97 @@ class TestNPSDataCollector:
         assert "Zion" in result["park_name"].values
         assert "Grand Canyon" in result["park_name"].values
 
+    def test_refresh_visit_dates_updates_null_dates(self, collector):
+        """Test that parks with NULL visit dates get updated from the visit log."""
+        existing = pd.DataFrame(
+            {
+                "park_code": ["cong", "zion"],
+                "park_name": ["Congaree", "Zion"],
+                "visit_month": [None, "June"],
+                "visit_year": [None, 2024],
+            }
+        )
+        visit_df = pd.DataFrame(
+            {
+                "park_name": ["Congaree", "Zion"],
+                "month": ["Mar", "June"],
+                "year": [2026, 2024],
+            }
+        )
+        with (
+            patch("os.path.exists", return_value=True),
+            patch.object(collector, "load_parks_from_csv", return_value=visit_df),
+        ):
+            result = collector._refresh_visit_dates(existing, "dummy.csv")
+
+        cong = result[result["park_code"] == "cong"].iloc[0]
+        assert cong["visit_month"] == "Mar"
+        assert cong["visit_year"] == 2026
+
+    def test_refresh_visit_dates_leaves_visited_parks_unchanged(self, collector):
+        """Test that parks already having visit dates are not modified."""
+        existing = pd.DataFrame(
+            {
+                "park_code": ["zion"],
+                "park_name": ["Zion"],
+                "visit_month": ["June"],
+                "visit_year": [2024],
+            }
+        )
+        visit_df = pd.DataFrame(
+            {
+                "park_name": ["Zion"],
+                "month": ["June"],
+                "year": [2024],
+            }
+        )
+        with (
+            patch("os.path.exists", return_value=True),
+            patch.object(collector, "load_parks_from_csv", return_value=visit_df),
+        ):
+            result = collector._refresh_visit_dates(existing, "dummy.csv")
+
+        row = result.iloc[0]
+        assert row["visit_month"] == "June"
+        assert row["visit_year"] == 2024
+
+    def test_refresh_visit_dates_ignores_parks_not_in_visit_log(self, collector):
+        """Test that unvisited parks not in the visit log stay NULL."""
+        existing = pd.DataFrame(
+            {
+                "park_code": ["dena", "cong"],
+                "park_name": ["Denali", "Congaree"],
+                "visit_month": [None, None],
+                "visit_year": [None, None],
+            }
+        )
+        visit_df = pd.DataFrame(
+            {
+                "park_name": ["Congaree"],
+                "month": ["Mar"],
+                "year": [2026],
+            }
+        )
+        with (
+            patch("os.path.exists", return_value=True),
+            patch.object(collector, "load_parks_from_csv", return_value=visit_df),
+        ):
+            result = collector._refresh_visit_dates(existing, "dummy.csv")
+
+        dena = result[result["park_code"] == "dena"].iloc[0]
+        assert pd.isna(dena["visit_month"])
+        assert pd.isna(dena["visit_year"])
+
+        cong = result[result["park_code"] == "cong"].iloc[0]
+        assert cong["visit_month"] == "Mar"
+        assert cong["visit_year"] == 2026
+
+    def test_refresh_visit_dates_empty_dataframe(self, collector):
+        """Test that empty existing data is returned as-is."""
+        existing = pd.DataFrame()
+        result = collector._refresh_visit_dates(existing, "dummy.csv")
+        assert result.empty
+
     def test_calculate_bounding_box_valid_geometry(self, collector):
         """Test bounding box calculation with valid geometry."""
         # Create a simple polygon geometry
