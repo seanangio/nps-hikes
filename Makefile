@@ -4,7 +4,7 @@
 -include .env
 
 # Source directories for linting / type-checking
-SRC_DIRS = scripts/ api/ config/ profiling/
+SRC_DIRS = scripts/ api/ config/ profiling/ streamlit_app/
 
 # ---------- Help ----------
 
@@ -57,6 +57,10 @@ dev: ## Start API dev server with auto-reload
 docs: ## Serve documentation locally
 	mkdocs serve
 
+.PHONY: streamlit
+streamlit: ## Run the Streamlit web app (requires API on localhost:8001)
+	streamlit run streamlit_app/app.py
+
 # ---------- Docker ----------
 
 .PHONY: up
@@ -103,6 +107,7 @@ pipeline-test: ## Run pipeline with --test-limit 1
 audit: ## Run pip-audit on dependencies
 	pip-audit -r requirements.txt --desc
 	pip-audit -r requirements-dev.txt --desc
+	pip-audit -r streamlit_app/requirements.txt --desc
 
 # ---------- Cleanup ----------
 
