@@ -9,6 +9,7 @@ from typing import Any
 
 import streamlit as st
 
+from streamlit_app.components.nlq import render_nlq_form
 from streamlit_app.utils.formatting import format_miles, format_park_name
 
 
@@ -58,6 +59,14 @@ def render_sidebar(
         Dict containing all filter values and selection changes
     """
     st.sidebar.title("🏞️ NPS Hikes Explorer")
+
+    # === NATURAL LANGUAGE QUERY ===
+    # Rendered first so it sits at the very top of the sidebar.
+    # Submission sets ``nlq_pending`` which is processed at the top
+    # of main() on the subsequent rerun.
+    render_nlq_form()
+
+    st.sidebar.divider()
 
     # === PARK SELECTION SECTION ===
     st.sidebar.header("📍 Select Parks")
@@ -124,13 +133,24 @@ def render_sidebar(
     park_options = {p["park_code"]: format_park_name(p) for p in filtered_parks}
 
     if park_options:
+        # Drop any stale session_state values that aren't in the current
+        # filtered options (e.g. the user narrowed by state and the
+        # previously-selected park is no longer visible). This must
+        # happen BEFORE the widget instantiates so we can safely mutate
+        # session state.
+        current_selection = st.session_state.get("park_multiselect", [])
+        valid_selection = [c for c in current_selection if c in park_options]
+        if valid_selection != current_selection:
+            st.session_state["park_multiselect"] = valid_selection
+
+        # Note: no ``default=`` argument — the widget is driven entirely
+        # by ``st.session_state["park_multiselect"]``. Mixing ``default=``
+        # with session-state writes (which the NLQ flow does) triggers
+        # a Streamlit warning.
         selected_park_codes = st.sidebar.multiselect(
             "Select Park(s)",
             options=list(park_options.keys()),
             format_func=lambda code: park_options.get(code, code),
-            default=selected_parks
-            if all(p in park_options for p in selected_parks)
-            else [],
             key="park_multiselect",
             help="Select one or more parks to view trails",
         )
@@ -190,11 +210,16 @@ def render_sidebar(
         filter_hiked = None
 
     # Trail length slider
+    # Seed session state before instantiating the widget so we can
+    # drop the ``value=`` argument (which conflicts with the NLQ flow
+    # writing to the same session state key). Passing a tuple here
+    # ensures Streamlit infers range-slider mode on first render.
+    if "filter_length_slider" not in st.session_state:
+        st.session_state["filter_length_slider"] = (0.0, 20.0)
     filter_min_length, filter_max_length = st.sidebar.slider(
         "Trail Length (miles)",
         min_value=0.0,
         max_value=20.0,
-        value=(0.0, 20.0),
         step=0.5,
         key="filter_length_slider",
         help="Filter by trail length range",

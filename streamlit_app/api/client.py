@@ -16,9 +16,16 @@ API_BASE_URL = os.getenv("NPS_API_URL", "http://localhost:8001")
 
 
 class APIError(Exception):
-    """Exception raised when API requests fail."""
+    """Exception raised when API requests fail.
 
-    pass
+    The ``status_code`` attribute carries the HTTP status when available,
+    so callers can distinguish e.g. 503 (service down) from 422 (bad input).
+    It is ``None`` for connection errors or other non-HTTP failures.
+    """
+
+    def __init__(self, message: str, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
 
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
@@ -201,6 +208,48 @@ def fetch_park_summary(park_code: str) -> dict[str, Any]:
         return response.json()
     except requests.exceptions.RequestException as e:
         raise APIError(f"Failed to fetch park summary: {e!s}") from e
+
+
+def post_nlq_query(query: str) -> dict[str, Any]:
+    """
+    Submit a natural language query to the API and return the parsed response.
+
+    The endpoint is intentionally NOT cached: each user query should be a
+    fresh LLM call, and the response is small enough that caching provides
+    no meaningful benefit.
+
+    Args:
+        query: The user's natural language query string.
+
+    Returns:
+        API response dict with keys: original_query, interpreted_as,
+        function_called, results.
+
+    Raises:
+        APIError: If the request fails. The ``status_code`` attribute is
+            populated when the server returned an HTTP error, allowing
+            callers to render tailored messages for 503/429/422/404.
+    """
+    url = f"{API_BASE_URL}/query"
+
+    try:
+        response = requests.post(url, json={"query": query}, timeout=60)
+    except requests.exceptions.RequestException as e:
+        # Connection error, timeout, DNS failure, etc. — no status code.
+        raise APIError(f"Could not reach the API: {e!s}") from e
+
+    if response.status_code >= 400:
+        # Try to extract the FastAPI `detail` field for a useful message.
+        try:
+            detail = response.json().get("detail", response.text)
+        except ValueError:
+            detail = response.text or f"HTTP {response.status_code}"
+        raise APIError(str(detail), status_code=response.status_code)
+
+    try:
+        return response.json()
+    except ValueError as e:
+        raise APIError(f"Invalid JSON response from /query: {e!s}") from e
 
 
 def test_api_connection() -> bool:

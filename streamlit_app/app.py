@@ -41,6 +41,11 @@ from streamlit_app.components.data_table import (
     render_trail_table,
 )
 from streamlit_app.components.map import render_map
+from streamlit_app.components.nlq import (
+    initialize_nlq_state,
+    process_pending_nlq_query,
+    render_nlq_chips_and_results,
+)
 from streamlit_app.components.sidebar import render_sidebar
 from streamlit_app.utils.formatting import compute_bounds
 from streamlit_app.utils.state import (
@@ -63,6 +68,7 @@ def main() -> None:
 
     # Initialize session state
     initialize_session_state()
+    initialize_nlq_state()
 
     # Check API connection
     if not test_api_connection():
@@ -89,6 +95,15 @@ def main() -> None:
 
     # === HEADER ===
     st.title("NPS Hikes Interactive Explorer")
+
+    # === PROCESS PENDING NLQ QUERY ===
+    # Runs before any sidebar widgets are instantiated so that widget
+    # state keys can still be safely mutated by the translation layer.
+    # If the call to /query succeeds, this function issues st.rerun()
+    # internally so the sidebar renders with the updated state. On
+    # failure it stashes the error for display beneath the NLQ form
+    # and returns normally.
+    process_pending_nlq_query(all_parks)
 
     # === FETCH PARK SUMMARIES FOR THE CURRENT SELECTION ===
     # Read the multiselect widget's session state directly so we pick up
@@ -216,6 +231,9 @@ def main() -> None:
     else:
         # Default to US center
         center, zoom = [39.8283, -98.5795], 4
+
+    # === RENDER NLQ CHIPS + STATS CARD (above the map) ===
+    render_nlq_chips_and_results(all_parks)
 
     # === RENDER MAP ===
     render_map(
