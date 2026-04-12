@@ -58,8 +58,6 @@ def render_sidebar(
     Returns:
         Dict containing all filter values and selection changes
     """
-    st.sidebar.title("🏞️ NPS Hikes Explorer")
-
     # === NATURAL LANGUAGE QUERY ===
     # Rendered first so it sits at the very top of the sidebar.
     # Submission sets ``nlq_pending`` which is processed at the top
@@ -167,6 +165,51 @@ def render_sidebar(
         on_click=_clear_park_selection,
     )
 
+    # === PARK SUMMARIES SECTION ===
+    # Rendered between park selection and trail filters so the user sees
+    # park context before narrowing trails.
+    summary_errors = summary_errors or {}
+    if selected_park_codes and (park_summaries or summary_errors):
+        st.sidebar.divider()
+        st.sidebar.header("📊 Selected Parks Summary")
+
+        # Surface any failed summary fetches so the user knows the section
+        # isn't silently broken.
+        for failed_code, err_msg in summary_errors.items():
+            st.sidebar.warning(f"Could not load summary for `{failed_code}`: {err_msg}")
+
+        for park_code in selected_park_codes:
+            summary = park_summaries.get(park_code)
+            if not summary:
+                continue
+
+            park_name = summary.get("park_name", park_code)
+
+            with st.sidebar.expander(f"📍 {park_name}", expanded=False):
+                st.write(f"**Total Trails:** {summary.get('total_trails', 0)}")
+                st.write(
+                    f"**Total Miles:** {format_miles(summary.get('total_miles', 0))}"
+                )
+                st.write(f"**Hiked Trails:** {summary.get('hiked_trails', 0)}")
+                st.write(
+                    f"**Hiked Miles:** {format_miles(summary.get('hiked_miles', 0))}"
+                )
+                st.write(f"**3D Viz Trails:** {summary.get('viz_3d_count', 0)}")
+
+                source_breakdown = summary.get("source_breakdown", {})
+                st.write(
+                    f"**Sources:** {source_breakdown.get('tnm', 0)} TNM, "
+                    f"{source_breakdown.get('osm', 0)} OSM"
+                )
+
+                # Look up the NPS description from the full parks list
+                park_obj = next(
+                    (p for p in all_parks if p["park_code"] == park_code), None
+                )
+                description = park_obj.get("description", "") if park_obj else ""
+                if description:
+                    st.write(f"**NPS Description:** {description}")
+
     st.sidebar.divider()
 
     # === TRAIL FILTERS SECTION ===
@@ -250,41 +293,6 @@ def render_sidebar(
         filter_viz_3d = False
     else:
         filter_viz_3d = None
-
-    st.sidebar.divider()
-
-    # === PARK SUMMARIES SECTION ===
-    summary_errors = summary_errors or {}
-    if selected_park_codes and (park_summaries or summary_errors):
-        st.sidebar.header("📊 Selected Parks Summary")
-
-        # Surface any failed summary fetches so the user knows the section
-        # isn't silently broken.
-        for failed_code, err_msg in summary_errors.items():
-            st.sidebar.warning(f"Could not load summary for `{failed_code}`: {err_msg}")
-
-        for park_code in selected_park_codes:
-            summary = park_summaries.get(park_code)
-            if not summary:
-                continue
-
-            park_name = summary.get("park_name", park_code)
-
-            with st.sidebar.expander(f"📍 {park_name}", expanded=False):
-                st.write(f"**Total Trails:** {summary.get('total_trails', 0)}")
-                st.write(
-                    f"**Total Miles:** {format_miles(summary.get('total_miles', 0))}"
-                )
-                st.write(f"**Hiked Trails:** {summary.get('hiked_trails', 0)}")
-                st.write(
-                    f"**Hiked Miles:** {format_miles(summary.get('hiked_miles', 0))}"
-                )
-                st.write(f"**3D Viz Trails:** {summary.get('viz_3d_count', 0)}")
-
-                source_breakdown = summary.get("source_breakdown", {})
-                st.write(
-                    f"**Sources:** {source_breakdown.get('tnm', 0)} TNM, {source_breakdown.get('osm', 0)} OSM"
-                )
 
     # Return all filter values and actions
     return {

@@ -6,14 +6,11 @@ Provides a form for submitting natural-language queries to the API's
 parameters, and helpers to translate those parameters into GUI widget
 state so the sidebar filters stay in sync with the LLM's understanding.
 
-The control flow uses a two-rerun pattern to work around the fact that
-``st.spinner`` cannot be shown inside ``on_click`` callbacks and that
-widget session-state cannot be modified after a widget has been
-instantiated in the current run:
+The control flow uses a two-rerun pattern:
 
-    Rerun 1  user submits the form
+    Rerun 1  user submits via chat_input (Enter or send icon)
              -> ``nlq_pending`` is set to the query string
-             -> form submit triggers automatic rerun
+             -> explicit st.rerun()
     Rerun 2  ``process_pending_nlq_query()`` runs at the top of main()
              -> displays spinner, calls POST /query, translates params
                 into widget state keys, explicitly calls st.rerun()
@@ -23,7 +20,7 @@ instantiated in the current run:
 
 On error during rerun 2, the error is stashed in ``nlq_error`` and the
 script continues without a rerun so the user sees the error beneath the
-form in the sidebar.
+input in the sidebar.
 """
 
 from __future__ import annotations
@@ -82,45 +79,32 @@ def initialize_nlq_state() -> None:
 
 
 def render_nlq_form() -> None:
-    """Render the NLQ input form at the top of the sidebar.
+    """Render the NLQ chat input at the top of the sidebar.
 
-    The form uses ``st.form`` so pressing Enter in the text input or
-    clicking Submit triggers a single rerun. On submit the query is
-    stashed in ``nlq_pending`` and the rest of the pipeline runs on
-    the next rerun.
+    Uses ``st.chat_input`` which provides a compact text field with a
+    built-in send icon. Pressing Enter or clicking the icon submits.
+    On submit the query is stashed in ``nlq_pending`` and the rest of
+    the pipeline runs on the next rerun.
     """
-    st.sidebar.header("💬 Ask a Question")
+    st.sidebar.header(
+        "💬 Ask a Question",
+        help=(
+            "Requires Ollama running locally. The API interprets queries "
+            "via a local LLM, so this feature is unavailable in the hosted demo."
+        ),
+    )
 
-    with st.sidebar.form("nlq_form", clear_on_submit=False):
-        query = st.text_input(
-            "Natural language query",
-            key="nlq_input",
-            placeholder="e.g. long trails I haven't hiked in Utah",
-            label_visibility="collapsed",
-            help=(
-                "Ask in plain English. Examples:\n"
-                "- 'Show me trails in Yosemite'\n"
-                "- 'Long hikes in California'\n"
-                "- 'How many miles have I hiked?'\n"
-                "- 'Tell me about Zion'"
-            ),
-        )
-        submitted = st.form_submit_button("Ask", use_container_width=True)
+    query = st.sidebar.chat_input(
+        placeholder="e.g. long trails I haven't hiked in Utah",
+        key="nlq_chat_input",
+    )
 
-    if submitted and query and query.strip():
-        # Flag the pending query for ``process_pending_nlq_query`` to
-        # handle on the next rerun. A form submit only triggers a single
-        # rerun, and that rerun has already advanced past the top of
-        # main() by the time the sidebar renders — so we must explicitly
-        # kick off another rerun now, otherwise the pending flag would
-        # sit unprocessed until the user interacted again.
+    if query and query.strip():
         st.session_state[_PENDING_KEY] = query.strip()
-        # Clear any previous error so stale error text doesn't linger
-        # next to the spinner on the next run.
         st.session_state[_ERROR_KEY] = None
         st.rerun()
 
-    # Render the last error (if any) beneath the form so the user sees
+    # Render the last error (if any) beneath the input so the user sees
     # why their previous submission failed.
     error = st.session_state.get(_ERROR_KEY)
     if error:
@@ -341,10 +325,10 @@ def _apply_park_summary_params(
 def render_nlq_chips_and_results(all_parks: list[dict[str, Any]]) -> None:
     """Render the chips + optional stats card above the map.
 
-    Shows what the LLM interpreted from the user's query. Also detects
-    whether the user has since modified any filter from the LLM's
-    interpretation, and if so renders a small warning icon with a
-    tooltip explaining that the chips are historical.
+    Shows what the LLM interpreted from the user's query. Chips are
+    rendered as colored HTML spans: green-tinted when the current
+    filters still match the LLM interpretation, grey when the user
+    has since changed any filter (with an updated caption).
     """
     params: dict[str, Any] | None = st.session_state.get(_LAST_PARAMS_KEY)
     query: str | None = st.session_state.get(_LAST_QUERY_KEY)
@@ -354,28 +338,15 @@ def render_nlq_chips_and_results(all_parks: list[dict[str, Any]]) -> None:
         return
 
     chip_texts = _build_chip_texts(function_called, params or {}, all_parks)
+    diverged = _nlq_params_diverged(function_called, params or {})
 
-    # A query that maps to zero chips (e.g. a bare ``search_stats``
-    # with no params) should still show a header so the user sees
-    # that the query was processed.
-    header_col, icon_col, clear_col = st.columns([10, 1, 1])
+    # Header + dismiss button
+    header_col, clear_col = st.columns([11, 1])
     with header_col:
-        st.caption(f'Interpreted from: "{query}"  — tool: `{function_called}`')
-    with icon_col:
-        if _nlq_params_diverged(function_called, params or {}):
-            # Inline HTML ``title`` attribute gives a true native browser
-            # hover tooltip — exactly the unobtrusive affordance the user
-            # asked for (icon visible, message on hover).
-            tooltip = (
-                "Filters have been modified since this query — the chips "
-                "below still show the original LLM interpretation, not "
-                "the currently active filters."
-            )
-            st.markdown(
-                f'<span title="{tooltip}" '
-                'style="cursor: help; font-size: 1.2em;">⚠️</span>',
-                unsafe_allow_html=True,
-            )
+        if diverged:
+            st.caption(f'⚠️ Interpreted from: "{query}" — filters have changed')
+        else:
+            st.caption(f'Interpreted from: "{query}"')
     with clear_col:
         st.button(
             "✕",
@@ -385,12 +356,21 @@ def render_nlq_chips_and_results(all_parks: list[dict[str, Any]]) -> None:
         )
 
     if chip_texts:
-        # Render the chips as a single row of small code-styled tags.
-        # Using a markdown line is the simplest way to get a compact
-        # horizontal layout; Streamlit doesn't have a native pill/tag
-        # component.
-        chips_md = "  ".join(f"`{text}`" for text in chip_texts)
-        st.markdown(chips_md)
+        if diverged:
+            # Stale: grey background, muted text
+            bg = "rgba(128, 128, 128, 0.15)"
+            color = "rgba(128, 128, 128, 0.7)"
+        else:
+            # Active: green-tinted background
+            bg = "rgba(76, 175, 80, 0.15)"
+            color = "inherit"
+        chips_html = " ".join(
+            f'<span style="background:{bg}; color:{color}; '
+            f"padding:2px 8px; border-radius:4px; font-size:0.85em; "
+            f'display:inline-block; margin:2px 2px;">{text}</span>'
+            for text in chip_texts
+        )
+        st.markdown(chips_html, unsafe_allow_html=True)
 
     # For search_stats, also render the results payload as an info card
     # since the stats query doesn't change the map/table view.

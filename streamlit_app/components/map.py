@@ -11,16 +11,87 @@ Renders a multi-layer map with:
 from typing import Any
 
 import folium
+from folium import MacroElement
+from jinja2 import Template
 from streamlit_folium import st_folium
 
 from streamlit_app.utils.formatting import (
     format_miles,
-    format_park_name,
+    format_park_visit_line,
     format_trail_name,
     get_trail_color,
     get_trail_weight,
     get_visit_status_color,
 )
+
+# Default US center and zoom for the initial map view
+_US_CENTER = [39.8283, -98.5795]
+_US_ZOOM = 4
+
+
+class _HomeButton(MacroElement):
+    """Leaflet control that resets the map to its initial center and zoom."""
+
+    _template = Template("""
+        {% macro script(this, kwargs) %}
+            (function() {
+                var HomeControl = L.Control.extend({
+                    options: { position: 'topleft' },
+                    onAdd: function(map) {
+                        var btn = L.DomUtil.create('div',
+                            'leaflet-bar leaflet-control');
+                        var a = L.DomUtil.create('a', '', btn);
+                        a.href = '#';
+                        a.title = 'Reset view';
+                        a.role = 'button';
+                        a.innerHTML = '&#x1F3E0;';
+                        a.style.fontSize = '18px';
+                        a.style.lineHeight = '30px';
+                        a.style.width = '30px';
+                        a.style.height = '30px';
+                        a.style.textAlign = 'center';
+                        a.style.textDecoration = 'none';
+                        a.style.display = 'block';
+                        L.DomEvent.on(a, 'click', function(e) {
+                            L.DomEvent.stop(e);
+                            map.setView(
+                                [{{ this.center[0] }}, {{ this.center[1] }}],
+                                {{ this.zoom }});
+                        });
+                        return btn;
+                    }
+                });
+                new HomeControl().addTo({{ this._parent.get_name() }});
+            })();
+        {% endmacro %}
+    """)
+
+    def __init__(self, center: list[float], zoom: int) -> None:
+        super().__init__()
+        self.center = center
+        self.zoom = zoom
+
+
+def _extract_boundary_line(boundary: dict[str, Any]) -> dict[str, Any] | None:
+    """Extract exterior ring(s) from a Polygon/MultiPolygon as a line geometry.
+
+    Returns a LineString (for Polygon) or MultiLineString (for MultiPolygon)
+    so that tooltips can be attached to the boundary stroke only,
+    not the entire filled polygon area.
+    """
+    geom_type = boundary.get("type")
+    coords = boundary.get("coordinates")
+    if not coords:
+        return None
+
+    if geom_type == "Polygon":
+        return {"type": "LineString", "coordinates": coords[0]}
+    if geom_type == "MultiPolygon":
+        return {
+            "type": "MultiLineString",
+            "coordinates": [polygon[0] for polygon in coords],
+        }
+    return None
 
 
 def render_map(
@@ -49,9 +120,20 @@ def render_map(
     m = folium.Map(
         location=center,
         zoom_start=zoom,
-        tiles="OpenStreetMap",
+        tiles="CartoDB Positron",
         control_scale=True,
     )
+
+    # Override Leaflet's default white-space: nowrap on tooltips so that
+    # long park names wrap instead of overflowing.
+    m.get_root().html.add_child(
+        folium.Element(
+            "<style>.leaflet-tooltip { white-space: normal; min-width: 200px; max-width: 350px; }</style>"
+        )
+    )
+
+    # Home button resets to the default US overview
+    m.add_child(_HomeButton(center=_US_CENTER, zoom=_US_ZOOM))
 
     # Layer 1: All park center markers (always visible)
     for park in all_parks:
@@ -62,36 +144,29 @@ def render_map(
         is_selected = park_code in selected_parks
         color = get_visit_status_color(park)
 
-        # Create popup content
-        popup_html = f"""
-        <div style="font-family: sans-serif; min-width: 200px;">
-            <h4 style="margin: 0 0 8px 0;">{park.get("full_name", park.get("park_name", "Unknown"))}</h4>
-            <p style="margin: 4px 0;"><strong>Code:</strong> {park_code}</p>
-            <p style="margin: 4px 0;"><strong>States:</strong> {park.get("states", "N/A")}</p>
-        """
+        # Create tooltip content (shown on hover)
+        full_name = park.get("full_name", park.get("park_name", "Unknown"))
+        visit_line = format_park_visit_line(park)
 
-        if park.get("visit_month") and park.get("visit_year"):
-            popup_html += f"""
-            <p style="margin: 4px 0;"><strong>Visited:</strong> {park["visit_month"]} {park["visit_year"]}</p>
-            """
+        tooltip_html = f"""
+        <div style="font-family: sans-serif;">
+            <h4 style="margin: 0 0 4px 0;">{full_name}</h4>
+            <p style="margin: 4px 0; color: #555;">{visit_line}</p>
+        </div>"""
+
+        # Determine icon style based on visit and selection status
+        if is_selected:
+            icon = folium.Icon(color="darkgreen", icon="ok-sign")
+        elif color == "green":
+            icon = folium.Icon(color="green", icon="info-sign")
         else:
-            popup_html += """
-            <p style="margin: 4px 0; color: #888;">Not yet visited</p>
-            """
+            icon = folium.Icon(color="lightgray", icon="info-sign")
 
-        popup_html += "</div>"
-
-        # Add marker
-        folium.CircleMarker(
+        # Add teardrop pin marker (tooltip on hover, no popup)
+        folium.Marker(
             location=[park["latitude"], park["longitude"]],
-            radius=8 if is_selected else 6,
-            color="black" if is_selected else color,
-            fill=True,
-            fillColor=color,
-            fillOpacity=0.7 if is_selected else 0.5,
-            popup=folium.Popup(popup_html, max_width=300),
-            tooltip=format_park_name(park),
-            weight=2 if is_selected else 1,
+            tooltip=folium.Tooltip(tooltip_html, sticky=False),
+            icon=icon,
         ).add_to(m)
 
     # Layer 2 & 3: Selected parks' boundaries and trails
@@ -106,18 +181,32 @@ def render_map(
         park_name = park.get("park_name", park_code) if park else park_code
 
         # Draw boundary (if available)
+        # Split into two layers: a filled polygon (no tooltip) and a
+        # boundary line (with tooltip) so the tooltip only appears when
+        # hovering over the actual border, not anywhere inside the park.
         boundary = data.get("boundary")
         if boundary:
             folium.GeoJson(
                 boundary,
                 style_function=lambda x: {
                     "fillColor": "lightblue",
-                    "color": "blue",
-                    "weight": 2,
+                    "color": "transparent",
+                    "weight": 0,
                     "fillOpacity": 0.2,
                 },
-                tooltip=f"{park_name} boundary",
             ).add_to(m)
+
+            boundary_line = _extract_boundary_line(boundary)
+            if boundary_line:
+                folium.GeoJson(
+                    boundary_line,
+                    style_function=lambda x: {
+                        "color": "blue",
+                        "weight": 2,
+                        "opacity": 1,
+                    },
+                    tooltip=f"{park_name} boundary",
+                ).add_to(m)
 
         # Draw trails (if available)
         trails_data = data.get("trails")
@@ -133,9 +222,13 @@ def render_map(
                 hiked = trail.get("hiked", False)
 
                 # Determine styling
-                color = get_trail_color(trail)
+                color = get_trail_color(trail, highlighted_trail_id)
                 weight = get_trail_weight(trail, highlighted_trail_id)
-                dash_array = None if hiked else "10, 5"
+                is_highlighted = (
+                    highlighted_trail_id
+                    and trail.get("trail_id") == highlighted_trail_id
+                )
+                dash_array = None if (hiked or is_highlighted) else "10, 5"
 
                 # Create popup
                 popup_html = f"""

@@ -1020,8 +1020,23 @@ async def natural_language_query(
         # Call LLM
         response = await call_ollama(messages, TOOLS)
 
-        # Parse and validate
-        function_name, raw_params = parse_tool_call(response)
+        # Parse tool call, retrying once if the model returned plain text
+        try:
+            function_name, raw_params = parse_tool_call(response)
+        except LlmResponseError:
+            content = response.get("message", {}).get("content", "")
+            messages.append({"role": "assistant", "content": content})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "Please respond with a function call using one of "
+                        "the available tools, not plain text."
+                    ),
+                }
+            )
+            response = await call_ollama(messages, TOOLS)
+            function_name, raw_params = parse_tool_call(response)
         function_name, params = validate_and_normalize(
             function_name, raw_params, park_lookup, query=request.query
         )

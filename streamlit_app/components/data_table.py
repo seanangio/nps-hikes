@@ -17,7 +17,7 @@ def render_trail_table(
     trails: list[dict[str, Any]],
     api_base_url: str,
     all_parks: list[dict[str, Any]] | None = None,
-) -> str | None:
+) -> dict[str, Any] | None:
     """
     Render an interactive table of trails.
 
@@ -28,7 +28,7 @@ def render_trail_table(
             reactive Parks/States counts above the table.
 
     Returns:
-        Trail ID of clicked trail (if any), or None
+        Full trail dict of clicked trail (if any), or None
     """
     if not trails:
         st.info("No trails to display. Select a park and apply filters.")
@@ -114,8 +114,8 @@ def render_trail_table(
     # Create DataFrame
     df = pd.DataFrame(rows)
 
-    # Display table using st.dataframe with column configuration
-    st.dataframe(
+    # Display table using st.dataframe with column configuration and row selection
+    event = st.dataframe(
         df,
         column_config={
             "Trail": st.column_config.TextColumn("Trail", width="medium"),
@@ -136,6 +136,9 @@ def render_trail_table(
         hide_index=True,
         use_container_width=True,
         height=400,
+        on_select="rerun",
+        selection_mode="single-row",
+        key="trail_table",
     )
 
     # Reactive summary statistics below table — these update with filters.
@@ -146,7 +149,14 @@ def render_trail_table(
     col4.metric("Hiked", f"{hiked_count} / {len(trails)}")
     col5.metric("With 3D Viz", viz_3d_count)
 
-    return None  # Click handling not implemented in Phase 1
+    # Return selected trail if a row was clicked
+    selected_rows = event.selection.rows
+    if selected_rows:
+        row_idx = selected_rows[0]
+        if 0 <= row_idx < len(trails):
+            return trails[row_idx]
+
+    return None
 
 
 def render_empty_table_placeholder() -> None:

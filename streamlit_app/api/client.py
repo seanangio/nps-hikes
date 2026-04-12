@@ -34,6 +34,7 @@ def fetch_parks(
     state: str | None = None,
     visited: bool | None = None,
     boundary: bool = False,
+    description: bool = False,
 ) -> dict[str, Any]:
     """
     Fetch parks from the API.
@@ -43,6 +44,7 @@ def fetch_parks(
         state: Optional 2-letter state code filter
         visited: Optional visited status filter
         boundary: Include simplified boundary GeoJSON
+        description: Include full park descriptions
 
     Returns:
         API response dict with keys: park_count, visited_count, parks
@@ -61,6 +63,8 @@ def fetch_parks(
         params["visited"] = visited
     if boundary:
         params["boundary"] = boundary
+    if description:
+        params["description"] = description
 
     try:
         response = requests.get(url, params=params, timeout=10)

@@ -39,6 +39,30 @@ def format_park_name(park: dict[str, Any]) -> str:
     return name
 
 
+def format_park_visit_line(park: dict[str, Any]) -> str:
+    """
+    Format states and visit info into a single line.
+
+    Args:
+        park: Park dict from API
+
+    Returns:
+        Formatted string like "CA (June 2023)" or "CA, NV (Not visited)"
+    """
+    states = park.get("states", "")
+    visit_month = park.get("visit_month")
+    visit_year = park.get("visit_year")
+
+    if visit_month and visit_year:
+        visit_info = f"{visit_month} {visit_year}"
+    else:
+        visit_info = "Not visited"
+
+    if states:
+        return f"{states} ({visit_info})"
+    return f"({visit_info})"
+
+
 def format_trail_name(trail: dict[str, Any]) -> str:
     """
     Format trail name for display, handling unnamed trails.
@@ -128,16 +152,22 @@ def get_visit_status_color(park: dict[str, Any]) -> str:
     return "gray"
 
 
-def get_trail_color(trail: dict[str, Any]) -> str:
+def get_trail_color(
+    trail: dict[str, Any], highlighted_trail_id: str | None = None
+) -> str:
     """
-    Get trail line color based on hiking status.
+    Get trail line color based on hiking and highlight status.
 
     Args:
         trail: Trail dict from API
+        highlighted_trail_id: ID of currently highlighted trail (or None)
 
     Returns:
-        CSS color string ('green' for hiked, 'gray' for not hiked)
+        CSS color string ('gold' for highlighted, 'green' for hiked, 'gray' for not hiked)
     """
+    trail_id = trail.get("trail_id")
+    if highlighted_trail_id and trail_id == highlighted_trail_id:
+        return "#FFD700"  # Gold for highlighted trail
     return "green" if trail.get("hiked") else "gray"
 
 
@@ -159,27 +189,35 @@ def get_trail_weight(trail: dict[str, Any], highlighted_trail_id: str | None) ->
     return 3 if trail.get("hiked") else 2  # Normal trails
 
 
-def trails_to_dataframe_rows(trails: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def compute_trail_center(geometry: dict[str, Any]) -> tuple[list[float], int]:
     """
-    Convert trails list to rows suitable for st.dataframe.
+    Compute center point and zoom level from a trail GeoJSON geometry.
+
+    Extracts all coordinates from a LineString or MultiLineString and
+    returns the mean lat/lon as the center with a zoom level of 14.
 
     Args:
-        trails: List of trail dicts from API
+        geometry: GeoJSON geometry dict with 'type' and 'coordinates'
 
     Returns:
-        List of dicts with formatted display values
+        Tuple of ([lat, lon], zoom_level)
     """
-    rows = []
-    for trail in trails:
-        rows.append(
-            {
-                "Trail": format_trail_name(trail),
-                "Park": trail.get("park_name", ""),
-                "Length": format_miles(trail.get("length_miles", 0)),
-                "Source": trail.get("source", ""),
-                "Hiked": "✓" if trail.get("hiked") else "✗",
-                "3D Viz": "✓" if trail.get("viz_3d_available") else "—",
-                "_trail_id": trail.get("trail_id"),  # Hidden column for interaction
-            }
-        )
-    return rows
+    coords: list[tuple[float, float]] = []
+    geom_type = geometry.get("type", "")
+
+    if geom_type == "LineString":
+        coords = geometry.get("coordinates", [])
+    elif geom_type == "MultiLineString":
+        for line in geometry.get("coordinates", []):
+            coords.extend(line)
+
+    if not coords:
+        return [39.8283, -98.5795], 4  # Fallback to US center
+
+    # GeoJSON coordinates are [lon, lat]
+    lons = [c[0] for c in coords]
+    lats = [c[1] for c in coords]
+    center_lat = sum(lats) / len(lats)
+    center_lon = sum(lons) / len(lons)
+
+    return [center_lat, center_lon], 14

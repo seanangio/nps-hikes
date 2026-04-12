@@ -4,12 +4,13 @@ NPS Hikes Streamlit Web Application
 An interactive map-based web app for exploring National Park hiking trails.
 Provides dual-mode interaction: GUI filters and natural language queries.
 
-Phase 1 MVP Features:
-- Interactive map with park markers
-- Park selection and state filtering
-- Trail visualization with boundaries
-- Data table with sortable columns
-- Trail filtering (hiked, length, source, type, 3D viz)
+Features:
+- Interactive Folium map with park markers, boundaries, trails, and hiked points
+- Sidebar filters: state, visit status, park multi-select, trail name search,
+  hiked status, length range, data source, 3D viz availability
+- Natural language queries via Ollama (interpreted parameter chips, auto-set GUI)
+- Sortable trail data table with row-click highlighting and CSV/GeoJSON export
+- Park summary cards with NPS descriptions
 
 Usage:
     streamlit run streamlit_app/app.py
@@ -19,6 +20,7 @@ Environment Variables:
 """
 
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -47,7 +49,10 @@ from streamlit_app.components.nlq import (
     render_nlq_chips_and_results,
 )
 from streamlit_app.components.sidebar import render_sidebar
-from streamlit_app.utils.formatting import compute_bounds
+from streamlit_app.utils.formatting import (
+    compute_bounds,
+    compute_trail_center,
+)
 from streamlit_app.utils.state import (
     cache_park_data,
     get_cached_park_data,
@@ -60,6 +65,12 @@ st.set_page_config(
     page_icon="🏞️",
     layout="wide",
     initial_sidebar_state="expanded",
+    menu_items={
+        "Get help": "https://github.com/seanangio/nps-hikes",
+        "Report a bug": "https://github.com/seanangio/nps-hikes/issues",
+        "About": "NPS Hikes Interactive Explorer\n\n"
+        "[Documentation](https://seanangio.github.io/nps-hikes/)",
+    },
 )
 
 
@@ -70,23 +81,32 @@ def main() -> None:
     initialize_session_state()
     initialize_nlq_state()
 
-    # Check API connection
+    # Check API connection (with retries for free-tier cold starts)
     if not test_api_connection():
-        st.error(
-            f"⚠️ Cannot connect to the NPS Hikes API at `{API_BASE_URL}`. "
-            f"Please ensure the API server is running.\n\n"
-            f"To start the API:\n"
-            f"```bash\n"
-            f"docker compose up -d\n"
-            f"# OR\n"
-            f"uvicorn api.main:app --reload --port 8001\n"
-            f"```"
-        )
-        st.stop()
+        connected = False
+        with st.spinner(
+            "The API is starting up — free-tier hosting may take up to 60 seconds..."
+        ):
+            for _ in range(6):
+                time.sleep(5)
+                if test_api_connection():
+                    connected = True
+                    break
+        if not connected:
+            st.error(
+                f"Cannot connect to the NPS Hikes API at `{API_BASE_URL}`. "
+                f"Please try refreshing the page. If running locally:\n\n"
+                f"```bash\n"
+                f"docker compose up -d\n"
+                f"# OR\n"
+                f"uvicorn api.main:app --reload --port 8001\n"
+                f"```"
+            )
+            st.stop()
 
     # Fetch all parks (cached)
     try:
-        all_parks_response = fetch_parks()
+        all_parks_response = fetch_parks(description=True)
         all_parks = all_parks_response["parks"]
         st.session_state.all_parks_data = all_parks_response
     except APIError as e:
@@ -95,6 +115,17 @@ def main() -> None:
 
     # === HEADER ===
     st.title("NPS Hikes Interactive Explorer")
+
+    # === PROCESS PENDING MAP CLICK (park selection) ===
+    # Must run BEFORE sidebar widgets are instantiated so we can safely
+    # mutate ``park_multiselect`` session state.
+    pending_park = st.session_state.pop("pending_park_click", None)
+    if pending_park:
+        current_parks = list(st.session_state.get("park_multiselect", []))
+        if pending_park not in current_parks:
+            current_parks.append(pending_park)
+            st.session_state["park_multiselect"] = current_parks
+            st.session_state["selected_parks"] = current_parks
 
     # === PROCESS PENDING NLQ QUERY ===
     # Runs before any sidebar widgets are instantiated so that widget
@@ -225,7 +256,16 @@ def main() -> None:
                 }
 
     # === COMPUTE MAP CENTER AND ZOOM ===
-    if selected_parks:
+    # If a trail is highlighted, center on it; otherwise use park bounds.
+    highlighted_trail_id = st.session_state.get("highlighted_trail")
+    if (
+        highlighted_trail_id
+        and st.session_state.get("highlighted_trail_center")
+        and st.session_state.get("highlighted_trail_zoom")
+    ):
+        center = st.session_state.highlighted_trail_center
+        zoom = st.session_state.highlighted_trail_zoom
+    elif selected_parks:
         selected_park_objs = [p for p in all_parks if p["park_code"] in selected_parks]
         center, zoom = compute_bounds(selected_park_objs)
     else:
@@ -236,14 +276,42 @@ def main() -> None:
     render_nlq_chips_and_results(all_parks)
 
     # === RENDER MAP ===
-    render_map(
+    map_output = render_map(
         all_parks=all_parks,
         selected_parks=selected_parks,
         park_data=park_data,
         center=center,
         zoom=zoom,
-        highlighted_trail_id=None,  # Phase 1: no highlighting yet
+        highlighted_trail_id=highlighted_trail_id,
     )
+
+    # === HANDLE PARK MARKER CLICK → SELECT PARK ===
+    # Stash the clicked park code and rerun. The actual widget state
+    # mutation happens at the top of main() on the next rerun (before
+    # the multiselect widget is instantiated), avoiding the
+    # StreamlitAPIException.
+    if map_output:
+        clicked_obj = map_output.get("last_object_clicked")
+        if clicked_obj:
+            clicked_coords = (clicked_obj.get("lat"), clicked_obj.get("lng"))
+            last_coords = st.session_state.get("last_processed_click")
+            if clicked_coords != last_coords:
+                # Match coordinates to a park
+                coord_to_park = {
+                    (p["latitude"], p["longitude"]): p["park_code"]
+                    for p in all_parks
+                    if p.get("latitude") and p.get("longitude")
+                }
+                matched_park_code = coord_to_park.get(clicked_coords)
+                if matched_park_code:
+                    st.session_state["last_processed_click"] = clicked_coords
+                    # Clear any trail highlight when selecting a new park
+                    st.session_state["highlighted_trail"] = None
+                    st.session_state["highlighted_trail_center"] = None
+                    st.session_state["highlighted_trail_zoom"] = None
+                    # Stash for processing on next rerun
+                    st.session_state["pending_park_click"] = matched_park_code
+                    st.rerun()
 
     st.divider()
 
@@ -264,10 +332,32 @@ def main() -> None:
             if search_term in trail.get("trail_name", "").lower()
         ]
 
+    selected_trail = None
     if all_trails:
-        render_trail_table(all_trails, api_base_url=API_BASE_URL, all_parks=all_parks)
+        selected_trail = render_trail_table(
+            all_trails, api_base_url=API_BASE_URL, all_parks=all_parks
+        )
     else:
         render_empty_table_placeholder()
+
+    # === HANDLE TRAIL TABLE CLICK → HIGHLIGHT + REPOSITION MAP ===
+    if selected_trail:
+        trail_id = selected_trail.get("trail_id")
+        if trail_id and trail_id != highlighted_trail_id:
+            geometry = selected_trail.get("geometry")
+            if geometry:
+                trail_center, trail_zoom = compute_trail_center(geometry)
+                st.session_state["highlighted_trail"] = trail_id
+                st.session_state["highlighted_trail_center"] = trail_center
+                st.session_state["highlighted_trail_zoom"] = trail_zoom
+                st.rerun()
+    elif highlighted_trail_id and not selected_trail:
+        # Clear highlight when no row is selected (user deselected)
+        # But only if the dataframe is visible (all_trails is non-empty)
+        if all_trails:
+            st.session_state["highlighted_trail"] = None
+            st.session_state["highlighted_trail_center"] = None
+            st.session_state["highlighted_trail_zoom"] = None
 
 
 if __name__ == "__main__":

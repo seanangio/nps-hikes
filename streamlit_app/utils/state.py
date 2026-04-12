@@ -67,6 +67,10 @@ def initialize_session_state() -> None:
     if "map_zoom" not in st.session_state:
         st.session_state.map_zoom = 4  # US-level zoom
 
+    # Track last processed map click to avoid infinite rerun loops
+    if "last_processed_tooltip" not in st.session_state:
+        st.session_state.last_processed_tooltip = None
+
 
 def add_selected_park(park_code: str) -> None:
     """

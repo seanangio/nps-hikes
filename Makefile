@@ -50,8 +50,8 @@ check: lint typecheck ## Run all code quality checks
 # ---------- Dev Server ----------
 
 .PHONY: dev
-dev: ## Start API dev server with auto-reload
-	uvicorn api.main:app --reload
+dev: ## Start API dev server with auto-reload (connects to Docker DB on :5433)
+	POSTGRES_HOST=localhost POSTGRES_PORT=5433 uvicorn api.main:app --reload --port 8001
 
 .PHONY: docs
 docs: ## Serve documentation locally

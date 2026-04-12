@@ -28,11 +28,11 @@ def trails_to_csv(trails: list[dict[str, Any]]) -> str:
         "trail_name",
         "park_code",
         "park_name",
-        "length_mi",
+        "length_miles",
         "source",
         "trail_type",
         "hiked",
-        "viz_3d",
+        "viz_3d_available",
     ]
 
     output = StringIO()
@@ -40,11 +40,10 @@ def trails_to_csv(trails: list[dict[str, Any]]) -> str:
     writer.writeheader()
 
     for trail in trails:
-        # Convert boolean values to strings
         row = {
             **trail,
             "hiked": "Yes" if trail.get("hiked") else "No",
-            "viz_3d": "Yes" if trail.get("viz_3d") else "No",
+            "viz_3d_available": "Yes" if trail.get("viz_3d_available") else "No",
         }
         writer.writerow(row)
 
@@ -78,11 +77,11 @@ def trails_to_geojson(trails: list[dict[str, Any]]) -> str:
                 "trail_name": trail.get("trail_name"),
                 "park_code": trail.get("park_code"),
                 "park_name": trail.get("park_name"),
-                "length_mi": trail.get("length_mi"),
+                "length_miles": trail.get("length_miles"),
                 "source": trail.get("source"),
                 "trail_type": trail.get("trail_type"),
                 "hiked": trail.get("hiked", False),
-                "viz_3d": trail.get("viz_3d", False),
+                "viz_3d_available": trail.get("viz_3d_available", False),
             },
         }
         features.append(feature)
