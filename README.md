@@ -2,7 +2,7 @@
 
 [![Unit Tests](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml) [![Integration Tests](https://github.com/seanangio/nps-hikes/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/seanangio/nps-hikes/actions/workflows/integration-tests.yml) [![Python](https://img.shields.io/badge/python-3.12%2B-blue)]() [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
-A Python project for collecting, validating, and analyzing hiking trail data from U.S. National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API with natural language search.
+A Python project for collecting, validating, and analyzing hiking trail data from U.S. National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API and an interactive [Streamlit web app](https://seanangio-nps-hikes.streamlit.app) with natural language search.
 
 > **Tip**: See [https://seanangio.github.io/nps-hikes/](https://seanangio.github.io/nps-hikes/) for the full documentation, including live demo details.
 
@@ -11,6 +11,8 @@ A Python project for collecting, validating, and analyzing hiking trail data fro
 - Collect park metadata and boundaries from the NPS API.
 - Extract hiking trails from OpenStreetMap and The National Map.
 - Match personal hiking locations stored in Google My Maps to trail geometries.
+- Explore parks and trails through a FastAPI REST API.
+- Browse an interactive map, filter trails, and export data via a [Streamlit web app](https://seanangio-nps-hikes.streamlit.app).
 - Query the API in natural language via a local LLM.
 
 ## Prerequisites
@@ -31,7 +33,7 @@ docker compose up --build -d      # start the database and API
 POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db --test-limit 1
 ```
 
-Then open http://localhost:8000/docs to explore the API.
+Then open http://localhost:8000/docs to explore the API, or try the [live web app](https://seanangio-nps-hikes.streamlit.app) and [live API demo](https://seanangio-nps-hikes.onrender.com/docs).
 
 ## Development
 

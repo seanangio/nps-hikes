@@ -1,12 +1,13 @@
 # NPS Hikes
 
-A Python project for collecting, validating, and analyzing hiking trail data from US National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API with natural language search.
+A Python project for collecting, validating, and analyzing hiking trail data from US National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API and an interactive Streamlit web app with natural language search.
 
-## Live demo
+## Live demos
 
-You can find a live instance of the API at [seanangio-nps-hikes.onrender.com](https://seanangio-nps-hikes.onrender.com/docs). There you can browse the interactive Swagger UI and query park and trail data without any local setup.
+- **[Web app](https://seanangio-nps-hikes.streamlit.app)** --- Interactive map-based explorer with park selection, trail filters, data table, and CSV/GeoJSON export. Built with Streamlit and Folium.
+- **[API Swagger UI](https://seanangio-nps-hikes.onrender.com/docs)** --- Browse the interactive API docs and query park and trail data directly.
 
-> **Note:** The live demo runs on a free tier and may take 30-60 seconds to respond on the first request while the server wakes up. Visualization endpoints (maps, elevation charts, 3D trails) and the natural language query endpoint (`/query`) are only available with a [local deployment](getting-started.md).
+> **Note:** Both demos run on free tiers and may take 30-60 seconds to respond on the first request while the servers wake up. Visualization endpoints (maps, elevation charts, 3D trails) and the natural language query endpoint (`/query`) are only available with a [local deployment](getting-started.md).
 
 ## Project overview
 
@@ -14,6 +15,7 @@ You can find a live instance of the API at [seanangio-nps-hikes.onrender.com](ht
 - Extract hiking trails from OpenStreetMap and The National Map (USGS).
 - Match personal hiking locations stored in Google My Maps to trail geometries.
 - Explore parks and trails through a FastAPI REST API.
+- Browse an interactive map, filter trails, and export data via a Streamlit web app.
 - Query the API in natural language via a local LLM.
 
 ## Project structure
@@ -31,6 +33,7 @@ nps-hikes/
 │   ├── processors/            # Data processing and analysis
 │   ├── database/              # Database management utilities
 │   └── orchestrator.py        # Complete pipeline orchestration
+├── streamlit_app/             # Interactive Streamlit web app (API client)
 ├── config/                    # Configuration and settings
 ├── profiling/                 # Data quality analysis modules
 ├── tests/                     # Test suite
