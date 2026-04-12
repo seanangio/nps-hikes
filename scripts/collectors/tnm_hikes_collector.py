@@ -349,6 +349,48 @@ class TNMHikesCollector:
                         }
                     )
 
+            # Drop columns not in the DB schema to handle new API fields gracefully
+            db_columns = {
+                "permanent_identifier",
+                "park_code",
+                "object_id",
+                "name",
+                "name_alternate",
+                "trail_number",
+                "trail_number_alternate",
+                "source_feature_id",
+                "source_dataset_id",
+                "source_originator",
+                "load_date",
+                "trail_type",
+                "hiker_pedestrian",
+                "bicycle",
+                "pack_saddle",
+                "atv",
+                "motorcycle",
+                "ohv_over_50_inches",
+                "snowshoe",
+                "cross_country_ski",
+                "dogsled",
+                "snowmobile",
+                "non_motorized_watercraft",
+                "motorized_watercraft",
+                "primary_trail_maintainer",
+                "national_trail_designation",
+                "length_miles",
+                "network_length",
+                "shape_length",
+                "source_data_description",
+                "global_id",
+                "collected_at",
+                "geometry_type",
+                "geometry",
+            }
+            extra_cols = set(gdf.columns) - db_columns
+            if extra_cols:
+                self.logger.debug(f"Dropping columns not in DB schema: {extra_cols}")
+                gdf = gdf.drop(columns=list(extra_cols))
+
         return gdf
 
     def filter_named_trails(

@@ -2,7 +2,7 @@
 
 This guide walks through locally setting up your own NPS hiking project from scratch. By the end, you'll have a PostGIS database with parks you've visited, queryable through an interactive API.
 
-> **Tip:** Instead of a local setup, you can also explore a live demo of the Swagger UI docs at [seanangio-nps-hikes.onrender.com/docs](https://seanangio-nps-hikes.onrender.com/docs). Visualization endpoints and the natural language query endpoint (`/query`) require a local setup.
+> **Tip:** Instead of a local setup, you can explore the [live web app](https://seanangio-nps-hikes.streamlit.app) or the [API Swagger UI](https://seanangio-nps-hikes.onrender.com/docs). Visualization endpoints and the natural language query endpoint (`/query`) require a local setup.
 
 ## Step 0: Prerequisites
 
