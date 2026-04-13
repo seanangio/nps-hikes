@@ -13,7 +13,7 @@ The [NPS API](https://www.nps.gov/subjects/developer/) requires a free API key, 
 
 ### OpenStreetMap
 
-The pipeline collects trail geometries from [OpenStreetMap](https://www.openstreetmap.org/) via the Overpass API using the `osmnx` library. Note that the collector:
+The pipeline collects trail geometries from [OpenStreetMap](https://www.openstreetmap.org/) via the Overpass API using the `osmnx` library. The collector:
 
 - Queries for paths and footways (`highway=path|footway`) within each park's boundary polygon.
 - Retains named trails only.
@@ -27,7 +27,7 @@ The pipeline collects trail geometries from [OpenStreetMap](https://www.openstre
 
 ### USGS Elevation Point Query Service
 
-The [USGS EPQS](https://apps.nationalmap.gov/epqs/) returns elevation in meters for individual latitude/longitude coordinates. The collector samples points along matched trail geometries at regular intervals (default 50 meters) and queries the service for each point. The collector caches results locally to avoid redundant API calls. A three-stage validation pipeline checks API responses, individual point values, and the complete elevation profile. It treates the USGS sentinel value of `-1,000,000` as missing data.
+The [USGS EPQS](https://apps.nationalmap.gov/epqs/) returns elevation in meters for individual latitude/longitude coordinates. The collector samples points along matched trail geometries at regular intervals (default 50 meters) and queries the service for each point. The collector caches results locally to avoid redundant API calls. A three-stage validation pipeline checks API responses, individual point values, and the complete elevation profile. It treats the USGS sentinel value of `-1,000,000` as missing data.
 
 > **Note:** All geographic data uses `EPSG:4326 (WGS84)`. Length calculations use `EPSG:5070 (NAD83/Conus Albers)` for accurate distance measurements in meters.
 

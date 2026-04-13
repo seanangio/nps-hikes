@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide walks through locally setting up your own NPS hiking project from scratch. By the end, you'll have a PostGIS database with parks you've visited, queryable through an interactive API.
+This guide walks you through setting up your own NPS hiking project from scratch. By the end, you'll have a PostGIS database with parks you've visited, queryable through an interactive API.
 
 > **Tip:** Instead of a local setup, you can explore the [live web app](https://seanangio-nps-hikes.streamlit.app) or the [API Swagger UI](https://seanangio-nps-hikes.onrender.com/docs). Visualization endpoints and the natural language query endpoint (`/query`) require a local setup.
 

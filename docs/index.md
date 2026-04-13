@@ -5,7 +5,7 @@ A Python project for collecting, validating, and analyzing hiking trail data fro
 ## Live demos
 
 - **[Web app](https://seanangio-nps-hikes.streamlit.app)** --- Interactive map-based explorer with park selection, trail filters, data table, and CSV/GeoJSON export. Built with Streamlit and Folium.
-- **[API Swagger UI](https://seanangio-nps-hikes.onrender.com/docs)** --- Browse the interactive API docs and query park and trail data directly.
+- **[API Swagger UI](https://seanangio-nps-hikes.onrender.com/docs)** --- Browse the API docs and query park and trail data directly.
 
 > **Note:** Both demos run on free tiers and may take 30-60 seconds to respond on the first request while the servers wake up. Visualization endpoints (maps, elevation charts, 3D trails) and the natural language query endpoint (`/query`) are only available with a [local deployment](getting-started.md).
 

@@ -1,10 +1,10 @@
 # Using the API
 
-This tutorial walks through the API's capabilities, starting with a broad overview of your parks and progressively narrowing down to individual trail visualizations. By the end, you'll know how to query parks and trails, generate visualizations, build a 3D elevation profile for a specific trail, and use natural language search.
+This tutorial walks through the API's capabilities, starting with a broad overview of your parks and narrowing to individual trail visualizations. By the end, you'll know how to query parks and trails, generate visualizations, build a 3D elevation profile for a specific trail, and use natural language search.
 
 The tutorial assumes you've completed the [Getting Started](getting-started.md) guide, run the full data collection pipeline, and have both Docker services running.
 
-The examples below use `curl` with `python3 -m json.tool` for pretty-printed output. You can also paste the URLs directly into your browser, which is especially useful for the visualization endpoints that return images and interactive HTML.
+The examples below use `curl` with `python3 -m json.tool` for pretty-printed output. You can also paste the URLs directly into your browser, which is particularly useful for the visualization endpoints that return images and interactive HTML.
 
 > **Tip:** Don't want to set up locally? You can query the data endpoints on the [live API demo](https://seanangio-nps-hikes.onrender.com/docs), or explore the data through the [Streamlit web app](https://seanangio-nps-hikes.streamlit.app), which is a client of this API. In the examples below, replace `http://localhost:8000` with `https://seanangio-nps-hikes.onrender.com`. Note that visualization endpoints and the natural language query endpoint (`/query`) are only available locally.
 
@@ -133,7 +133,7 @@ For an interactive version with hover tooltips and park boundaries, open:
 http://localhost:8000/parks/viz/us-interactive-park-map
 ```
 
-This returns an HTML page with a zoomable Plotly map. Hover over any park to see its name, state, and visit status. You can zoom in to see (rough) park boundary outlines.
+You'll get an HTML page with a zoomable Plotly map. Hover over any park to see its name, state, and visit status. You can zoom in to see (rough) park boundary outlines.
 
 ## Park-level visualizations
 
@@ -153,7 +153,7 @@ Open a trail map for a specific park using its 4-letter code:
 http://localhost:8000/parks/acad/viz/static-map
 ```
 
-This returns a PNG image showing the park boundary and all collected trails. Trails are color-coded by data source: blue for OpenStreetMap, orange for The National Map. Purple points mark hiking locations imported from your KML files.
+The response is a PNG image showing the park boundary and all collected trails. Trails are color-coded by data source: blue for OpenStreetMap, orange for The National Map. Purple points mark hiking locations imported from your KML files.
 
 ![Acadia trail map showing OSM and TNM trails](_img/acad-trails.png)
 
