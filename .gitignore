@@ -1,6 +1,9 @@
 # database dumps
 *.dump
 
+# AI writing reviews
+reviews/
+
 # artifacts
 artifacts/*
 !artifacts/.gitkeep
