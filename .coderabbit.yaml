@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-US
+
+reviews:
+  auto_review:
+    enabled: false
+    labels:
+      - "review-ready"
+
+  poem: false
+
+  path_instructions:
+    - path: "docs/**/*.md"
+      instructions: |
+        Review documentation changes for the issues below. Do NOT flag issues
+        already covered by the project's Vale linter (prose quality, passive
+        voice, weasel words, clichés, terminology like "PostgreSQL" vs
+        "Postgres"). Focus on what an LLM can catch that a rule-based linter
+        cannot.
+
+        Accuracy:
+        - Flag instructions, commands, or URLs that may be outdated or
+          inconsistent with code changes in the same PR.
+        - Flag example output (JSON, shell output) that no longer matches the
+          current API or CLI behavior based on other files in the PR.
+        - Flag references to endpoints, parameters, or environment variables
+          that don't exist or have been renamed.
+
+        Completeness:
+        - If the PR adds a new feature, endpoint, or configuration option, flag
+          missing or incomplete documentation for it.
+        - Flag missing prerequisites or steps that a reader would need to follow
+          the guide.
+
+        Clarity and structure:
+        - Flag explanations that assume knowledge not established earlier in the
+          document.
+        - Flag inconsistent heading hierarchy or document structure compared to
+          sibling pages.
+        - Flag code blocks missing a language identifier.
+
+        Style:
+        - Use second person ("you") to address the reader, not third person
+          ("the user").
+        - Use active voice and direct imperatives ("Run the command", not "The
+          command should be run").
+        - Keep sentences concise. Flag sentences longer than ~30 words that
+          could be split.
+        - Prefer plain language over jargon. If a technical term is necessary,
+          it should be defined on first use or be widely known to the target
+          audience (developers familiar with Python, Docker, and GIS basics).
+
+    - path: "**/*.py"
+      instructions: |
+        Review Python code changes for the issues below. Do NOT flag issues
+        already covered by the project's Ruff linter (formatting, import order,
+        unused imports) or mypy (type errors). Focus on what an LLM can catch
+        that static analysis cannot.
+
+        Correctness:
+        - Flag logic errors, off-by-one mistakes, or unhandled edge cases.
+        - Flag SQL queries that may be vulnerable to injection (all queries
+          should use parameterized inputs via SQLAlchemy text() with :param
+          syntax).
+        - Flag potential runtime errors (e.g., accessing a key that may not
+          exist, dividing by zero without a guard).
+
+        API consistency:
+        - New endpoints should follow existing patterns: SQLAlchemy text()
+          queries in api/queries.py, Pydantic response models with Field
+          descriptions and examples, router functions in the appropriate
+          api/routers/ file.
+        - Query parameters should use consistent naming conventions (snake_case)
+          and include sensible defaults where appropriate.
+
+        Test coverage:
+        - If the PR adds new functionality, flag if corresponding tests are
+          missing.
+        - Tests should use unittest.mock.patch on api.queries.get_db_engine with
+          namedtuple fixtures, consistent with existing tests.
