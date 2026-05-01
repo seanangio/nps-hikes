@@ -8,9 +8,29 @@ The examples below use `curl` with `python3 -m json.tool` for pretty-printed out
 
 > **Tip:** Don't want to set up locally? You can query the data endpoints on the [live API demo](https://seanangio-nps-hikes.onrender.com/docs), or explore the data through the [Streamlit web app](https://seanangio-nps-hikes.streamlit.app), which is a client of this API. In the examples below, replace `http://localhost:8000` with `https://seanangio-nps-hikes.onrender.com`. Note that visualization endpoints and the natural language query endpoint (`/query`) are only available locally.
 
+## Python SDK
+
+If you prefer working with Python objects instead of raw JSON, there is a [Python SDK](https://github.com/seanangio/nps-hikes-python-sdk) that wraps the 6 data endpoints. It gives you typed Pydantic models with IDE autocomplete, meaningful exceptions like `ParkNotFoundError`, and no need to construct URLs or parse JSON yourself.
+
+```bash
+pip install git+https://github.com/seanangio/nps-hikes-python-sdk.git
+```
+
+```python
+from nps_hikes import Client
+
+client = Client()
+
+trails = client.get_trails(park_code="yose", min_length_mi=5.0)
+for trail in trails.trails:
+    print(f"{trail.trail_name}: {trail.length_miles} mi")
+```
+
+See the [SDK README](https://github.com/seanangio/nps-hikes-python-sdk#readme) for the full method reference, error handling, and configuration options.
+
 ## Orient yourself
 
-First, confirm that the API is running and that the database is connected:
+To get started with the API, first confirm that the API is running and that the database is connected:
 
 ```bash
 curl http://localhost:8000/health | python3 -m json.tool
