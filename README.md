@@ -11,9 +11,10 @@ A Python project for collecting, validating, and analyzing hiking trail data fro
 - Collect park metadata and boundaries from the NPS API.
 - Extract hiking trails from OpenStreetMap and The National Map.
 - Match personal hiking locations stored in Google My Maps to trail geometries.
-- Explore parks and trails through a FastAPI REST API.
+- Explore parks and trails through a [FastAPI REST API](https://seanangio-nps-hikes.onrender.com/docs).
 - Browse an interactive map, filter trails, and export data via a [Streamlit web app](https://seanangio-nps-hikes.streamlit.app).
 - Query the API in natural language via a local LLM.
+- Access the API data via a [Python SDK](https://github.com/seanangio/nps-hikes-python-sdk).
 
 ## Prerequisites
 
