@@ -384,5 +384,80 @@
         </Point>
       </Placemark>
     </Folder>
+    <Folder>
+      <name>chis</name>
+      <Placemark>
+        <name>Pinniped Point Hike</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.3660568,34.0137525,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cathedral Cove Hike</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.367932,34.0155721,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Lighthouse Hike</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.3634519,34.0153898,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>East Anacapa Island - Inspiration Point</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.3741369,34.0128403,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Historic Scorpion Ranch Hike</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5566409,34.0491166,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cavern Point Loop Hike</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5582873,34.0488704,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Potato Harbor Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5773188,34.0494388,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Scorpion Canyon Loop Hike</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -119.5670729,34.0462489,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
   </Document>
 </kml>
