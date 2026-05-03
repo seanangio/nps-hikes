@@ -14,17 +14,19 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build Docker image
         run: docker build -t nps-hikes .
 
       - name: Run data pipeline
         run: |
+          mkdir -p logs artifacts
           docker run --rm \
             --user root \
             -v ${{ github.workspace }}/raw_data:/app/raw_data:ro \
             -v ${{ github.workspace }}/logs:/app/logs \
+            -v ${{ github.workspace }}/artifacts:/app/artifacts \
             -e NPS_API_KEY=${{ secrets.NPS_API_KEY }} \
             -e POSTGRES_HOST=${{ secrets.NEON_POSTGRES_HOST }} \
             -e POSTGRES_PORT=5432 \
@@ -37,7 +39,7 @@ jobs:
 
       - name: Upload logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: deploy-data-logs
           path: logs/
