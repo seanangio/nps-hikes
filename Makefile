@@ -101,6 +101,10 @@ pipeline: ## Run full data pipeline
 pipeline-test: ## Run pipeline with --test-limit 1
 	POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db --test-limit 1
 
+.PHONY: deploy-data
+deploy-data: ## Run pipeline against production Neon database
+	env $$(grep -v '^#' .env.neon | xargs) python scripts/orchestrator.py --write-db
+
 # ---------- Security ----------
 
 .PHONY: audit
