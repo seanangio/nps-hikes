@@ -154,6 +154,43 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_park_content",
+            "description": (
+                "Search park content (things to do, places, descriptions) using "
+                "semantic similarity. Use this for descriptive or thematic questions "
+                "like 'waterfalls', 'winter activities', 'kid-friendly things to do', "
+                "'scenic viewpoints', 'wildlife viewing', or any question about what "
+                "a park offers beyond trail data."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": (
+                            "The search query describing what the user is looking for. "
+                            "Use descriptive terms from the user's question."
+                        ),
+                    },
+                    "park_code": {
+                        "type": "string",
+                        "description": (
+                            "4-character lowercase park code to limit search to a specific park. "
+                            "Use the park lookup table to find the correct code."
+                        ),
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results (1-50, default 10)",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
 ]
 
 _SYSTEM_MESSAGE_TEMPLATE = """\
@@ -180,6 +217,7 @@ Rules:
 - If the user asks about overall statistics (total miles, trail counts, park counts, averages, longest/shortest), use search_stats.
 - If the user asks for a per-park breakdown of stats, use search_stats with per_park=true.
 - If the user asks about a specific park's details, summary, or overview, use search_park_summary.
+- If the user asks about activities, things to do, places to visit, scenic features, wildlife, or thematic/descriptive questions (e.g., "waterfalls", "slot canyons", "winter activities", "kid-friendly"), use search_park_content. This searches rich text content, not structured trail data.
 - Only include parameters that the user's question implies. Do not add extra filters.\
 """
 

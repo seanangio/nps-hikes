@@ -126,7 +126,7 @@ def render_map(
 
     # Override Leaflet's default white-space: nowrap on tooltips so that
     # long park names wrap instead of overflowing.
-    m.get_root().html.add_child(
+    m.get_root().html.add_child(  # type: ignore[attr-defined]
         folium.Element(
             "<style>.leaflet-tooltip { white-space: normal; min-width: 200px; max-width: 350px; }</style>"
         )
@@ -177,8 +177,10 @@ def render_map(
         data = park_data[park_code]
 
         # Get park info for metadata
-        park = next((p for p in all_parks if p["park_code"] == park_code), None)
-        park_name = park.get("park_name", park_code) if park else park_code
+        park_info: dict[str, Any] | None = next(
+            (p for p in all_parks if p["park_code"] == park_code), None
+        )
+        park_name = park_info.get("park_name", park_code) if park_info else park_code
 
         # Draw boundary (if available)
         # Split into two layers: a filled polygon (no tooltip) and a
@@ -250,7 +252,7 @@ def render_map(
                         "opacity": 0.8,
                         "dashArray": d,
                     },
-                    popup=folium.Popup(popup_html, max_width=250),
+                    popup=folium.Popup(popup_html, max_width=250),  # type: ignore[arg-type]
                     tooltip=f"{trail_name} ({format_miles(length)})",
                 ).add_to(m)
 

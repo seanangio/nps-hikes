@@ -792,3 +792,63 @@ def temp_viz_files(tmp_path):
         "elevation_matrix": elevation_matrix_path,
         "park_code": "yose",
     }
+
+
+# RAG / Content Collection Fixtures
+
+
+@pytest.fixture
+def sample_thingstodo_api_response():
+    """Provide a sample NPS /thingstodo API response item."""
+    return {
+        "id": "ABC123",
+        "title": "Hike to Vernal Fall",
+        "shortDescription": "A <b>stunning</b> waterfall hike.",
+        "longDescription": "<p>Follow the Mist Trail to see the 317-foot waterfall.</p>",
+        "tags": ["hiking", "waterfall"],
+        "relatedParks": [{"parkCode": "yose", "fullName": "Yosemite National Park"}],
+        "activities": [{"id": "1", "name": "Hiking"}],
+        "topics": [{"id": "2", "name": "Waterfalls"}],
+        "season": ["Spring", "Summer"],
+        "duration": "2-3 Hours",
+        "petsDescription": "Pets are not allowed on this trail.",
+        "arePetsPermitted": "false",
+        "feeDescription": "",
+        "isReservationRequired": "false",
+        "doFeesApply": "false",
+        "accessibilityInformation": "<p>Not wheelchair accessible.</p>",
+        "latitude": "37.7268",
+        "longitude": "-119.5428",
+        "url": "https://www.nps.gov/yose/planyourvisit/vernalfall.htm",
+    }
+
+
+@pytest.fixture
+def sample_places_api_response():
+    """Provide a sample NPS /places API response item."""
+    return {
+        "id": "DEF456",
+        "title": "Glacier Point",
+        "listingDescription": "A <em>panoramic</em> viewpoint.",
+        "bodyText": "<p>Glacier Point offers sweeping views of Yosemite Valley.</p>",
+        "audioDescription": "An overlook with views of Half Dome and waterfalls.",
+        "tags": ["viewpoint", "scenic"],
+        "relatedParks": [{"parkCode": "yose", "fullName": "Yosemite National Park"}],
+        "latitude": "37.7306",
+        "longitude": "-119.5736",
+        "url": "https://www.nps.gov/yose/planyourvisit/glacierpoint.htm",
+    }
+
+
+@pytest.fixture
+def sample_embedding_vector():
+    """Provide a sample 768-dimensional embedding vector."""
+    return [0.01] * 768
+
+
+@pytest.fixture
+def content_collector(test_api_key):
+    """Create a test NPSContentCollector instance (no DB)."""
+    from scripts.collectors.nps_content_collector import NPSContentCollector
+
+    return NPSContentCollector(api_key=test_api_key)

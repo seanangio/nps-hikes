@@ -243,6 +243,7 @@ def main() -> None:
         for park_code in park_data:
             if park_data[park_code].get("trails"):
                 trails_data = park_data[park_code]["trails"]
+                assert isinstance(trails_data, dict)
                 filtered_trails = [
                     trail
                     for trail in trails_data.get("trails", [])
@@ -319,8 +320,8 @@ def main() -> None:
     # Combine trails from all selected parks
     all_trails = []
     for park_code in selected_parks:
-        trails_data = park_data.get(park_code, {}).get("trails", {})
-        trails = trails_data.get("trails", [])
+        trails_resp = park_data.get(park_code, {}).get("trails") or {}
+        trails = trails_resp.get("trails", [])  # type: ignore[union-attr]
         all_trails.extend(trails)
 
     # Apply client-side trail name search filter

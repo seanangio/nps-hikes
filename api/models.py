@@ -803,6 +803,71 @@ class HikedPointsResponse(BaseModel):
     )
 
 
+class SearchResult(BaseModel):
+    """Individual search result from semantic search."""
+
+    chunk_text: str = Field(
+        ...,
+        description="The text content that matched the query",
+    )
+    title: str | None = Field(
+        None,
+        description="Title of the source content",
+        examples=["Mist Trail"],
+    )
+    park_code: str = Field(
+        ...,
+        description="4-character lowercase park code",
+        pattern="^[a-z]{4}$",
+        examples=["yose"],
+    )
+    park_name: str | None = Field(
+        None,
+        description="Full park name",
+        examples=["Yosemite National Park"],
+    )
+    source_type: str = Field(
+        ...,
+        description="Content source: thingstodo, places, or park_description",
+        examples=["thingstodo"],
+    )
+    source_id: str | None = Field(
+        None,
+        description="ID of the source record",
+    )
+    similarity_score: float = Field(
+        ...,
+        description="Cosine similarity score (0-1, higher is more similar)",
+        ge=0,
+        le=1,
+        examples=[0.8542],
+    )
+    metadata: dict[str, Any] | None = Field(
+        None,
+        description="Additional metadata (tags, season, duration, etc.)",
+    )
+
+
+class SearchResponse(BaseModel):
+    """Response model for semantic search endpoint."""
+
+    query: str = Field(
+        ...,
+        description="The original search query",
+        examples=["waterfalls in Yosemite"],
+    )
+    result_count: int = Field(
+        ...,
+        description="Number of results returned",
+        ge=0,
+        examples=[10],
+    )
+    results: list[SearchResult] = Field(
+        ...,
+        description="List of search results ordered by similarity",
+    )
+
+
 class NlqRequest(BaseModel):
     """Request model for natural language trail/park queries."""
 

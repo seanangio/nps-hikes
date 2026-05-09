@@ -11,6 +11,7 @@ echo "Creating PostgreSQL extensions..."
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     CREATE EXTENSION IF NOT EXISTS postgis;
     CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    CREATE EXTENSION IF NOT EXISTS vector;
 EOSQL
 
 echo "Creating database tables..."
@@ -25,7 +26,8 @@ for schema_file in \
     "$SCHEMA_DIR/tnm_hikes.sql" \
     "$SCHEMA_DIR/gmaps_hiking_locations.sql" \
     "$SCHEMA_DIR/gmaps_hiking_locations_matched.sql" \
-    "$SCHEMA_DIR/usgs_trail_elevations.sql"
+    "$SCHEMA_DIR/usgs_trail_elevations.sql" \
+    "$SCHEMA_DIR/nps_content.sql"
 do
     if [ -f "$schema_file" ]; then
         echo "Running $(basename "$schema_file")..."

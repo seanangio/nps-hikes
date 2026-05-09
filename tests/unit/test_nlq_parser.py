@@ -531,6 +531,65 @@ class TestValidateAndNormalize:
         )
         assert params["visited"] is True
 
+    # --- search_park_content ---
+
+    def test_search_park_content_valid_query(self, park_lookup):
+        name, params = validate_and_normalize(
+            "search_park_content",
+            {"query": "waterfalls"},
+            park_lookup,
+        )
+        assert name == "search_park_content"
+        assert params["query"] == "waterfalls"
+
+    def test_search_park_content_missing_query_raises(self, park_lookup):
+        with pytest.raises(LlmResponseError, match="requires a query"):
+            validate_and_normalize(
+                "search_park_content",
+                {},
+                park_lookup,
+            )
+
+    def test_search_park_content_empty_query_raises(self, park_lookup):
+        with pytest.raises(LlmResponseError, match="requires a query"):
+            validate_and_normalize(
+                "search_park_content",
+                {"query": "   "},
+                park_lookup,
+            )
+
+    def test_search_park_content_park_code_resolved(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_park_content",
+            {"query": "waterfalls", "park_code": "Yosemite"},
+            park_lookup,
+        )
+        assert params["park_code"] == "yose"
+
+    def test_search_park_content_unknown_park_code_dropped(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_park_content",
+            {"query": "waterfalls", "park_code": "xyzxyzxyz"},
+            park_lookup,
+        )
+        assert "park_code" not in params
+
+    def test_search_park_content_limit_clamped(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_park_content",
+            {"query": "waterfalls", "limit": 100},
+            park_lookup,
+        )
+        assert params["limit"] == 50
+
+    def test_search_park_content_limit_min(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_park_content",
+            {"query": "waterfalls", "limit": 0},
+            park_lookup,
+        )
+        assert params["limit"] == 1
+
     def test_no_negation_hiked_preserves_true(self, park_lookup):
         """Queries without negation should not flip hiked."""
         _, params = validate_and_normalize(

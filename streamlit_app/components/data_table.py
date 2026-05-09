@@ -150,11 +150,12 @@ def render_trail_table(
     col5.metric("With 3D Viz", viz_3d_count)
 
     # Return selected trail if a row was clicked
-    selected_rows = event.selection.rows
+    selected_rows = event.selection.rows  # type: ignore[attr-defined]
     if selected_rows:
         row_idx = selected_rows[0]
         if 0 <= row_idx < len(trails):
-            return trails[row_idx]
+            selected: dict[str, Any] = trails[row_idx]
+            return selected
 
     return None
 

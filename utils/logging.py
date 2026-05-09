@@ -26,6 +26,8 @@ class _FallbackConfig:
     NPS_LOG_FILE = "logs/nps_collector.log"
     OSM_LOG_FILE = "logs/osm_collector.log"
     TNM_LOG_FILE = "logs/tnm_collector.log"
+    NPS_CONTENT_LOG_FILE = "logs/nps_content_collector.log"
+    EMBEDDING_INDEXER_LOG_FILE = "logs/embedding_indexer.log"
 
 
 # Type annotation tells mypy this can be either Config or _FallbackConfig
@@ -173,4 +175,40 @@ def setup_tnm_collector_logging(log_level: str | None = None) -> logging.Logger:
     """
     return setup_logging(
         log_level=log_level, log_file=config.TNM_LOG_FILE, logger_name="tnm_collector"
+    )
+
+
+def setup_nps_content_collector_logging(
+    log_level: str | None = None,
+) -> logging.Logger:
+    """
+    Convenience function to set up logging specifically for nps_content_collector.py
+
+    Args:
+        log_level (str, optional): Logging level. If None, uses config default
+
+    Returns:
+        logging.Logger: Configured logger for NPS content collector
+    """
+    return setup_logging(
+        log_level=log_level,
+        log_file=config.NPS_CONTENT_LOG_FILE,
+        logger_name="nps_content_collector",
+    )
+
+
+def setup_embedding_indexer_logging(log_level: str | None = None) -> logging.Logger:
+    """
+    Convenience function to set up logging specifically for embedding_indexer.py
+
+    Args:
+        log_level (str, optional): Logging level. If None, uses config default
+
+    Returns:
+        logging.Logger: Configured logger for embedding indexer
+    """
+    return setup_logging(
+        log_level=log_level,
+        log_file=config.EMBEDDING_INDEXER_LOG_FILE,
+        logger_name="embedding_indexer",
     )

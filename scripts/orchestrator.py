@@ -95,6 +95,11 @@ class DataCollectionOrchestrator:
         steps = [
             ("NPS Data Collection", "scripts/collectors/nps_collector.py", True),
             (
+                "NPS Content Collection",
+                "scripts/collectors/nps_content_collector.py",
+                True,
+            ),
+            (
                 "OSM Trails Collection",
                 "scripts/collectors/osm_hikes_collector.py",
                 True,
@@ -114,6 +119,11 @@ class DataCollectionOrchestrator:
                 "Elevation Collection",
                 "scripts/collectors/usgs_elevation_collector.py",
                 True,
+            ),
+            (
+                "Content Embedding",
+                "scripts/processors/embedding_indexer.py",
+                False,
             ),
         ]
 

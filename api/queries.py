@@ -780,6 +780,84 @@ def fetch_park_summary(park_code: str) -> dict[str, Any] | None:
     }
 
 
+def fetch_semantic_search(
+    query_embedding: list[float],
+    park_code: str | None = None,
+    source_type: str | None = None,
+    limit: int = 10,
+) -> dict[str, Any]:
+    """
+    Search content embeddings using cosine similarity.
+
+    Args:
+        query_embedding: The embedding vector for the search query.
+        park_code: Optional filter by park code.
+        source_type: Optional filter by source type (thingstodo/places/park_description).
+        limit: Maximum number of results (default: 10).
+
+    Returns:
+        Dictionary containing:
+            - result_count: int
+            - results: list of search result dictionaries
+    """
+    engine = get_db_engine()
+
+    embedding_str = json.dumps(query_embedding)
+
+    query = """
+    SELECT
+        ce.chunk_text, ce.title, ce.park_code,
+        p.full_name AS park_name, ce.source_type, ce.source_id,
+        1 - (ce.embedding <=> CAST(:query_embedding AS vector)) AS similarity_score,
+        ce.metadata
+    FROM content_embeddings ce
+    JOIN parks p ON ce.park_code = p.park_code
+    WHERE 1=1
+    """
+
+    params: dict[str, Any] = {"query_embedding": embedding_str}
+
+    if park_code is not None:
+        query += " AND ce.park_code = :park_code"
+        params["park_code"] = park_code
+
+    if source_type is not None:
+        query += " AND ce.source_type = :source_type"
+        params["source_type"] = source_type
+
+    query += " ORDER BY ce.embedding <=> CAST(:query_embedding AS vector) ASC"
+    query += " LIMIT :limit"
+    params["limit"] = limit
+
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        rows = result.fetchall()
+
+    results = []
+    for row in rows:
+        metadata = row.metadata if row.metadata else None
+        if isinstance(metadata, str):
+            metadata = json.loads(metadata)
+
+        results.append(
+            {
+                "chunk_text": row.chunk_text,
+                "title": row.title,
+                "park_code": row.park_code,
+                "park_name": row.park_name,
+                "source_type": row.source_type,
+                "source_id": row.source_id,
+                "similarity_score": round(float(row.similarity_score), 4),
+                "metadata": metadata,
+            }
+        )
+
+    return {
+        "result_count": len(results),
+        "results": results,
+    }
+
+
 def fetch_hiked_points(park_code: str | None = None) -> dict[str, Any]:
     """
     Fetch hiked location points from Google My Maps.

@@ -12,7 +12,9 @@
 
 services:
   db:
-    image: imresamu/postgis:16-3.4-bookworm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.db
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nps_hikes_db}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}

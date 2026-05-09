@@ -6,8 +6,8 @@ from api.nlq.prompt import TOOLS, build_chat_messages, build_system_message
 class TestToolDefinitions:
     """Tests for the TOOLS constant."""
 
-    def test_four_tools_defined(self):
-        assert len(TOOLS) == 4
+    def test_five_tools_defined(self):
+        assert len(TOOLS) == 5
 
     def test_search_trails_tool_exists(self):
         names = [t["function"]["name"] for t in TOOLS]
@@ -64,12 +64,31 @@ class TestToolDefinitions:
         required = summary_tool["function"]["parameters"].get("required", [])
         assert "park_code" in required
 
+    def test_search_park_content_tool_exists(self):
+        names = [t["function"]["name"] for t in TOOLS]
+        assert "search_park_content" in names
+
+    def test_search_park_content_has_expected_params(self):
+        content_tool = next(
+            t for t in TOOLS if t["function"]["name"] == "search_park_content"
+        )
+        props = content_tool["function"]["parameters"]["properties"]
+        assert set(props.keys()) == {"query", "park_code", "limit"}
+
+    def test_search_park_content_query_required(self):
+        content_tool = next(
+            t for t in TOOLS if t["function"]["name"] == "search_park_content"
+        )
+        required = content_tool["function"]["parameters"].get("required", [])
+        assert "query" in required
+
     def test_optional_params_for_other_tools(self):
-        """All tools except search_park_summary have no required fields."""
+        """Tools besides search_park_summary and search_park_content have no required fields."""
+        tools_with_required = {"search_park_summary", "search_park_content"}
         for tool in TOOLS:
             name = tool["function"]["name"]
             required = tool["function"]["parameters"].get("required", [])
-            if name == "search_park_summary":
+            if name in tools_with_required:
                 continue
             assert required == [], f"{name} should have no required params"
 

@@ -10,7 +10,9 @@
 
 services:
   test-db:
-    image: imresamu/postgis:16-3.4-bookworm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.db
     container_name: nps-hikes-test-db
     environment:
       POSTGRES_DB: ${POSTGRES_TEST_DB:-nps_hikes_test}
@@ -19,8 +21,9 @@ services:
     ports:
       - "5434:5432"   # Use port 5434 to avoid conflicts with dev database (5433)
     volumes:
-      # Mount init script to set up PostGIS extensions
+      # Mount init script to set up extensions and schema files
       - ./docker/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh
+      - ./sql/schema:/docker-entrypoint-initdb.d/schema
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_TEST_USER:-postgres} -d ${POSTGRES_TEST_DB:-nps_hikes_test}"]
       interval: 5s

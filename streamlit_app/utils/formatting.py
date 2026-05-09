@@ -31,8 +31,8 @@ def format_park_name(park: dict[str, Any]) -> str:
     Returns:
         Formatted string like "Yosemite (CA)" or "Yellowstone (WY, MT, ID)"
     """
-    name = park.get("park_name", park.get("full_name", "Unknown"))
-    states = park.get("states", "")
+    name: str = park.get("park_name", park.get("full_name", "Unknown"))
+    states: str = park.get("states", "")
 
     if states:
         return f"{name} ({states})"

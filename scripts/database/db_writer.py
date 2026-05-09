@@ -167,6 +167,9 @@ class DatabaseWriter:
             "gmaps_hiking_locations": ["parks"],
             "gmaps_hiking_locations_matched": ["gmaps_hiking_locations"],
             "usgs_trail_elevations": ["gmaps_hiking_locations_matched"],
+            "nps_thingstodo": ["parks"],
+            "nps_places": ["parks"],
+            "content_embeddings": ["parks"],
         }
 
         # NPS table schemas - defined once and reused
@@ -349,7 +352,7 @@ class DatabaseWriter:
 
                 # Check if all dependencies are met
                 if all(dep in created_tables for dep in dependencies):
-                    self._create_table_from_sql(table_name)
+                    self.ensure_table_exists(table_name)
                     created_tables.add(table_name)
                     progress_made = True
 
@@ -371,6 +374,9 @@ class DatabaseWriter:
         """
         # Tables in reverse dependency order
         tables_to_drop = [
+            "content_embeddings",
+            "nps_places",
+            "nps_thingstodo",
             "usgs_trail_elevations",
             "gmaps_hiking_locations_matched",
             "gmaps_hiking_locations",
@@ -605,6 +611,14 @@ class DatabaseWriter:
                 f"Failed to ensure gmaps_hiking_locations_matched constraints: {e}"
             )
 
+    def _create_nps_content_tables(self) -> None:
+        """
+        Create the nps_thingstodo, nps_places, and content_embeddings tables.
+
+        These tables are all defined in a single SQL schema file (nps_content.sql).
+        """
+        self._create_table_from_sql("nps_content")
+
     def ensure_table_exists(self, table_name: str) -> None:
         """
         Ensure that the specified table exists in the database.
@@ -635,14 +649,10 @@ class DatabaseWriter:
             self._create_gmaps_hiking_locations_matched_table()
         elif table_name == "usgs_trail_elevations":
             self._create_usgs_trail_elevations_table()
-        elif table_name in ["parks", "park_boundaries"]:
-            # Use SQLAlchemy table definitions
-            self.metadata.create_all(
-                self.engine,
-                tables=[getattr(self, f"{table_name}_table")],
-                checkfirst=True,
-            )
-            self.logger.info(f"Ensured {table_name} table exists in database")
+        elif table_name in ("nps_thingstodo", "nps_places", "content_embeddings"):
+            self._create_nps_content_tables()
+        elif table_name in ("parks", "park_boundaries"):
+            self._create_table_from_sql(table_name)
         else:
             raise ValueError(f"Unknown table name: {table_name}")
 
@@ -1168,6 +1178,171 @@ class DatabaseWriter:
                         f"Failed to truncate table '{table}': {e}",
                         context={"table_name": table},
                     ) from e
+
+    def write_thingstodo(
+        self, df: pd.DataFrame, table_name: str = "nps_thingstodo"
+    ) -> None:
+        """
+        Write things-to-do content to the nps_thingstodo table using upsert.
+
+        Args:
+            df: DataFrame with thingstodo data including 'id' as primary key.
+            table_name: Target table name.
+        """
+        if df.empty:
+            self.logger.warning("No thingstodo data to save")
+            return
+
+        self.ensure_table_exists(table_name)
+
+        try:
+            with self.engine.begin() as conn:
+                for _, row in df.iterrows():
+                    row_dict: dict[str, Any] = {}
+                    for k, v in row.to_dict().items():
+                        if isinstance(v, (list, dict)):
+                            row_dict[k] = v
+                        elif pd.isna(v):
+                            row_dict[k] = None
+                        else:
+                            row_dict[k] = v
+                    # Convert list/dict values to JSON strings for JSONB columns
+                    for col in ("activities", "topics", "tags", "season"):
+                        if col in row_dict and row_dict[col] is not None:
+                            import json
+
+                            if isinstance(row_dict[col], (list, dict)):
+                                row_dict[col] = json.dumps(row_dict[col])
+
+                    columns = ", ".join(row_dict.keys())
+                    placeholders = ", ".join(f":{k}" for k in row_dict)
+                    update_cols = ", ".join(
+                        f"{k} = EXCLUDED.{k}" for k in row_dict if k != "id"
+                    )
+
+                    sql = f"""
+                        INSERT INTO {table_name} ({columns})
+                        VALUES ({placeholders})
+                        ON CONFLICT (id) DO UPDATE SET {update_cols}
+                    """
+                    conn.execute(text(sql), row_dict)
+
+            self.logger.info(f"Upserted {len(df)} thingstodo records to {table_name}")
+        except Exception as e:
+            raise DatabaseWriteError(
+                f"Failed to write thingstodo data: {e}",
+                context={"table_name": table_name, "row_count": len(df)},
+            ) from e
+
+    def write_places(self, df: pd.DataFrame, table_name: str = "nps_places") -> None:
+        """
+        Write places content to the nps_places table using upsert.
+
+        Args:
+            df: DataFrame with places data including 'id' as primary key.
+            table_name: Target table name.
+        """
+        if df.empty:
+            self.logger.warning("No places data to save")
+            return
+
+        self.ensure_table_exists(table_name)
+
+        try:
+            with self.engine.begin() as conn:
+                for _, row in df.iterrows():
+                    row_dict: dict[str, Any] = {}
+                    for k, v in row.to_dict().items():
+                        if isinstance(v, (list, dict)):
+                            row_dict[k] = v
+                        elif pd.isna(v):
+                            row_dict[k] = None
+                        else:
+                            row_dict[k] = v
+                    # Convert list/dict values to JSON strings for JSONB columns
+                    for col in ("tags",):
+                        if col in row_dict and row_dict[col] is not None:
+                            import json
+
+                            if isinstance(row_dict[col], (list, dict)):
+                                row_dict[col] = json.dumps(row_dict[col])
+
+                    columns = ", ".join(row_dict.keys())
+                    placeholders = ", ".join(f":{k}" for k in row_dict)
+                    update_cols = ", ".join(
+                        f"{k} = EXCLUDED.{k}" for k in row_dict if k != "id"
+                    )
+
+                    sql = f"""
+                        INSERT INTO {table_name} ({columns})
+                        VALUES ({placeholders})
+                        ON CONFLICT (id) DO UPDATE SET {update_cols}
+                    """
+                    conn.execute(text(sql), row_dict)
+
+            self.logger.info(f"Upserted {len(df)} places records to {table_name}")
+        except Exception as e:
+            raise DatabaseWriteError(
+                f"Failed to write places data: {e}",
+                context={"table_name": table_name, "row_count": len(df)},
+            ) from e
+
+    def write_embeddings(
+        self,
+        chunks: list[dict],
+        table_name: str = "content_embeddings",
+    ) -> None:
+        """
+        Write embedding chunks to the content_embeddings table.
+
+        Uses raw SQL with ::vector cast for the embedding column to avoid
+        needing the pgvector Python package.
+
+        Args:
+            chunks: List of dicts with keys: park_code, source_type, source_id,
+                    title, chunk_text, embedding, metadata.
+            table_name: Target table name.
+        """
+        if not chunks:
+            self.logger.warning("No embedding data to save")
+            return
+
+        self.ensure_table_exists(table_name)
+
+        try:
+            with self.engine.begin() as conn:
+                for chunk in chunks:
+                    import json
+
+                    embedding_str = json.dumps(chunk["embedding"])
+                    metadata_str = json.dumps(chunk.get("metadata") or {})
+
+                    sql = f"""
+                        INSERT INTO {table_name}
+                            (park_code, source_type, source_id, title, chunk_text, embedding, metadata)
+                        VALUES
+                            (:park_code, :source_type, :source_id, :title,
+                             :chunk_text, CAST(:embedding AS vector), CAST(:metadata AS jsonb))
+                    """
+                    conn.execute(
+                        text(sql),
+                        {
+                            "park_code": chunk["park_code"],
+                            "source_type": chunk["source_type"],
+                            "source_id": chunk.get("source_id"),
+                            "title": chunk.get("title"),
+                            "chunk_text": chunk["chunk_text"],
+                            "embedding": embedding_str,
+                            "metadata": metadata_str,
+                        },
+                    )
+
+            self.logger.info(f"Wrote {len(chunks)} embedding records to {table_name}")
+        except Exception as e:
+            raise DatabaseWriteError(
+                f"Failed to write embeddings: {e}",
+                context={"table_name": table_name, "chunk_count": len(chunks)},
+            ) from e
 
     def get_table_info(self, table_name: str) -> dict[str, Any]:
         """

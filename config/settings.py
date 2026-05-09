@@ -150,6 +150,21 @@ class Config:
     ORCHESTRATOR_STEP_TIMEOUT: int = 3600  # 1 hour max per step
     ORCHESTRATOR_ELEVATION_TIMEOUT: int = 86400  # 24 hours for elevation collection
 
+    # NPS Content Collection Settings
+    NPS_CONTENT_DEFAULT_OUTPUT_CSV: str = "artifacts/nps_content_collected.csv"
+    NPS_CONTENT_LOG_FILE: str = "logs/nps_content_collector.log"
+    NPS_CONTENT_THINGSTODO_ENDPOINT: str = "/thingstodo"
+    NPS_CONTENT_PLACES_ENDPOINT: str = "/places"
+    NPS_CONTENT_PAGE_SIZE: int = 50
+    NPS_CONTENT_MAX_RETRIES: int = 2
+    NPS_CONTENT_RETRY_DELAY: float = 3.0
+
+    # Embedding Settings
+    OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
+    EMBEDDING_INDEXER_LOG_FILE: str = "logs/embedding_indexer.log"
+    EMBEDDING_BATCH_SIZE: int = 50
+    EMBEDDING_DIMENSION: int = 768
+
     # Ollama LLM Configuration (for natural language queries)
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.1:8b"

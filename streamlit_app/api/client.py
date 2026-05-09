@@ -53,7 +53,7 @@ def fetch_parks(
         APIError: If the API request fails
     """
     url = f"{API_BASE_URL}/parks"
-    params = {}
+    params: dict[str, Any] = {}
 
     if park_code:
         params["park_code"] = park_code
@@ -69,7 +69,8 @@ def fetch_parks(
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
     except requests.exceptions.RequestException as e:
         raise APIError(f"Failed to fetch parks: {e!s}") from e
 
@@ -107,7 +108,7 @@ def fetch_trails(
         APIError: If the API request fails
     """
     url = f"{API_BASE_URL}/trails"
-    params = {"limit": limit}
+    params: dict[str, Any] = {"limit": limit}
 
     if park_code:
         params["park_code"] = park_code
@@ -129,7 +130,8 @@ def fetch_trails(
     try:
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
     except requests.exceptions.RequestException as e:
         raise APIError(f"Failed to fetch trails: {e!s}") from e
 
@@ -149,7 +151,7 @@ def fetch_hiked_points(park_code: str | None = None) -> dict[str, Any]:
         APIError: If the API request fails
     """
     url = f"{API_BASE_URL}/trails/hiked-points"
-    params = {}
+    params: dict[str, Any] = {}
 
     if park_code:
         params["park_code"] = park_code
@@ -157,7 +159,8 @@ def fetch_hiked_points(park_code: str | None = None) -> dict[str, Any]:
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
     except requests.exceptions.RequestException as e:
         raise APIError(f"Failed to fetch hiked points: {e!s}") from e
 
@@ -177,7 +180,7 @@ def fetch_stats(hiked: bool | None = None) -> dict[str, Any]:
         APIError: If the API request fails
     """
     url = f"{API_BASE_URL}/stats"
-    params = {}
+    params: dict[str, Any] = {}
 
     if hiked is not None:
         params["hiked"] = hiked
@@ -185,7 +188,8 @@ def fetch_stats(hiked: bool | None = None) -> dict[str, Any]:
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
     except requests.exceptions.RequestException as e:
         raise APIError(f"Failed to fetch stats: {e!s}") from e
 
@@ -209,7 +213,8 @@ def fetch_park_summary(park_code: str) -> dict[str, Any]:
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
     except requests.exceptions.RequestException as e:
         raise APIError(f"Failed to fetch park summary: {e!s}") from e
 
@@ -251,7 +256,8 @@ def post_nlq_query(query: str) -> dict[str, Any]:
         raise APIError(str(detail), status_code=response.status_code)
 
     try:
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
     except ValueError as e:
         raise APIError(f"Invalid JSON response from /query: {e!s}") from e
 

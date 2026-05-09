@@ -36,6 +36,7 @@ from api.models import (
     ParksResponse,
     ParkStatsResponse,
     ParkSummaryResponse,
+    SearchResponse,
     StatsResponse,
     TrailsResponse,
 )
@@ -49,9 +50,11 @@ from api.queries import (
     fetch_hiked_points,
     fetch_park_stats,
     fetch_park_summary,
+    fetch_semantic_search,
     fetch_stats,
     fetch_trails,
 )
+from utils.embedding_client import get_embeddings
 from utils.exceptions import (
     DatabaseError,
     LlmConnectionError,
@@ -95,6 +98,7 @@ async def root() -> dict[str, Any]:
             "openapi_json": "/openapi.json",
         },
         "endpoints": {
+            "search": "/search",
             "query": "/query",
             "parks": "/parks",
             "trails": "/trails",
@@ -975,6 +979,102 @@ async def get_trail_3d_visualization(
         ) from e
 
 
+@app.get(
+    "/search",
+    response_model=SearchResponse,
+    response_model_exclude_none=True,
+    tags=["Search"],
+    summary="Semantic search over park content",
+    description="""
+    Search park content (things to do, places, descriptions) using semantic similarity.
+
+    Embeds the query text and finds the most similar content chunks using cosine similarity.
+    Requires Ollama to be running with the nomic-embed-text model.
+
+    Optionally filter by park_code or source_type (thingstodo, places, park_description).
+    """,
+    responses={
+        503: {"description": "Ollama or database unavailable"},
+    },
+)
+async def semantic_search(
+    q: str = Query(
+        ...,
+        min_length=3,
+        max_length=500,
+        description="Search query text",
+    ),
+    park_code: str | None = Query(
+        default=None,
+        description="Filter by 4-character park code (e.g., 'yose')",
+        min_length=4,
+        max_length=4,
+        pattern="^[a-z]{4}$",
+    ),
+    source_type: str | None = Query(
+        default=None,
+        description="Filter by content source: thingstodo, places, or park_description",
+        pattern="^(thingstodo|places|park_description)$",
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=50,
+        description="Maximum number of results (default: 10)",
+    ),
+) -> dict[str, Any]:
+    """
+    Search park content using semantic similarity.
+
+    **Example queries:**
+    - `/search?q=waterfalls`
+    - `/search?q=winter activities&park_code=yose`
+    - `/search?q=kid friendly hikes&source_type=thingstodo`
+    """
+    try:
+        query_embedding = await get_embeddings([q])
+        if not query_embedding or not query_embedding[0]:
+            raise HTTPException(
+                status_code=422,
+                detail="Failed to generate embedding for query text",
+            )
+
+        results = fetch_semantic_search(
+            query_embedding=query_embedding[0],
+            park_code=park_code,
+            source_type=source_type,
+            limit=limit,
+        )
+
+        return {
+            "query": q,
+            **results,
+        }
+
+    except LlmConnectionError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Embedding service unavailable: {e!s}",
+        ) from e
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable: {e!s}",
+        ) from e
+    except NpsHikesError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error performing search: {e!s}",
+        ) from e
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error performing search: {e!s}",
+        ) from e
+
+
 @app.post(
     "/query",
     response_model=NlqResponse,
@@ -1049,6 +1149,19 @@ async def natural_language_query(
         elif function_name == "search_stats":
             per_park = params.pop("per_park", False)
             results = fetch_park_stats(**params) if per_park else fetch_stats(**params)
+        elif function_name == "search_park_content":
+            query_text = params.pop("query")
+            query_embedding = await get_embeddings([query_text])
+            if not query_embedding or not query_embedding[0]:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Failed to generate embedding for search query",
+                )
+            results = fetch_semantic_search(
+                query_embedding=query_embedding[0],
+                park_code=params.get("park_code"),
+                limit=params.get("limit", 10),
+            )
         elif function_name == "search_park_summary":
             summary = fetch_park_summary(**params)
             if summary is None:

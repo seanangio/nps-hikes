@@ -226,26 +226,38 @@ class TestTableCreation:
     def test_ensure_table_exists_parks(self):
         """Test ensuring parks table exists."""
         mock_engine = Mock(spec=Engine)
+        mock_connection = Mock()
+        mock_context = Mock()
+        mock_context.__enter__ = Mock(return_value=mock_connection)
+        mock_context.__exit__ = Mock(return_value=None)
+        mock_engine.begin.return_value = mock_context
+
         writer = DatabaseWriter(mock_engine)
 
-        with patch.object(writer.metadata, "create_all") as mock_create_all:
+        with patch.object(
+            writer, "_load_sql_schema", return_value="CREATE TABLE parks ..."
+        ):
             writer.ensure_table_exists("parks")
 
-            mock_create_all.assert_called_once_with(
-                mock_engine, tables=[writer.parks_table], checkfirst=True
-            )
+        mock_connection.execute.assert_called_once()
 
     def test_ensure_table_exists_park_boundaries(self):
         """Test ensuring park_boundaries table exists."""
         mock_engine = Mock(spec=Engine)
+        mock_connection = Mock()
+        mock_context = Mock()
+        mock_context.__enter__ = Mock(return_value=mock_connection)
+        mock_context.__exit__ = Mock(return_value=None)
+        mock_engine.begin.return_value = mock_context
+
         writer = DatabaseWriter(mock_engine)
 
-        with patch.object(writer.metadata, "create_all") as mock_create_all:
+        with patch.object(
+            writer, "_load_sql_schema", return_value="CREATE TABLE park_boundaries ..."
+        ):
             writer.ensure_table_exists("park_boundaries")
 
-            mock_create_all.assert_called_once_with(
-                mock_engine, tables=[writer.park_boundaries_table], checkfirst=True
-            )
+        mock_connection.execute.assert_called_once()
 
     def test_ensure_table_exists_osm_hikes(self):
         """Test ensuring osm_hikes table exists."""

@@ -79,7 +79,7 @@ def render_sidebar(
         # Split by comma and strip whitespace
         states = [s.strip() for s in states_str.split(",")]
         all_states.update(states)
-    all_states = sorted(all_states)
+    all_states = sorted(all_states)  # type: ignore[assignment]
 
     filter_state = st.sidebar.selectbox(
         "Filter by State",
@@ -259,7 +259,9 @@ def render_sidebar(
     # ensures Streamlit infers range-slider mode on first render.
     if "filter_length_slider" not in st.session_state:
         st.session_state["filter_length_slider"] = (0.0, 20.0)
-    filter_min_length, filter_max_length = st.sidebar.slider(
+    filter_min_length: float
+    filter_max_length: float
+    filter_min_length, filter_max_length = st.sidebar.slider(  # type: ignore[misc]
         "Trail Length (miles)",
         min_value=0.0,
         max_value=20.0,
@@ -269,14 +271,16 @@ def render_sidebar(
     )
 
     # Source filter
-    filter_source = st.sidebar.selectbox(
+    filter_source_raw = st.sidebar.selectbox(
         "Data Source",
         options=["All Sources", "TNM", "OSM"],
         index=0,
         key="filter_source_select",
         help="Filter by data source (The National Map or OpenStreetMap)",
     )
-    filter_source = None if filter_source == "All Sources" else filter_source
+    filter_source: str | None = (
+        None if filter_source_raw == "All Sources" else filter_source_raw
+    )
 
     # 3D viz filter
     filter_viz_3d_options = ["All Trails", "With 3D Viz", "Without 3D Viz"]
