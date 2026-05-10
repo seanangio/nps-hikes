@@ -166,7 +166,7 @@ class Config:
     EMBEDDING_DIMENSION: int = 768
 
     # Content-Trail Linking Settings
-    CONTENT_TRAIL_LINKING_THRESHOLD: float = 0.5
+    CONTENT_TRAIL_LINKING_THRESHOLD: float = 0.7
     CONTENT_TRAIL_LINKING_LOG_FILE: str = "logs/content_trail_linker.log"
 
     # Ollama LLM Configuration (for natural language queries)
