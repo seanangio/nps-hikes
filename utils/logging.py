@@ -28,6 +28,7 @@ class _FallbackConfig:
     TNM_LOG_FILE = "logs/tnm_collector.log"
     NPS_CONTENT_LOG_FILE = "logs/nps_content_collector.log"
     EMBEDDING_INDEXER_LOG_FILE = "logs/embedding_indexer.log"
+    CONTENT_TRAIL_LINKING_LOG_FILE = "logs/content_trail_linker.log"
 
 
 # Type annotation tells mypy this can be either Config or _FallbackConfig
@@ -211,4 +212,23 @@ def setup_embedding_indexer_logging(log_level: str | None = None) -> logging.Log
         log_level=log_level,
         log_file=config.EMBEDDING_INDEXER_LOG_FILE,
         logger_name="embedding_indexer",
+    )
+
+
+def setup_content_trail_linker_logging(
+    log_level: str | None = None,
+) -> logging.Logger:
+    """
+    Convenience function to set up logging specifically for content_trail_linker.py
+
+    Args:
+        log_level (str, optional): Logging level. If None, uses config default
+
+    Returns:
+        logging.Logger: Configured logger for content-trail linker
+    """
+    return setup_logging(
+        log_level=log_level,
+        log_file=config.CONTENT_TRAIL_LINKING_LOG_FILE,
+        logger_name="content_trail_linker",
     )

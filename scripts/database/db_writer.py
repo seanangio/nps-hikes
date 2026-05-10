@@ -170,6 +170,7 @@ class DatabaseWriter:
             "nps_thingstodo": ["parks"],
             "nps_places": ["parks"],
             "content_embeddings": ["parks"],
+            "content_trail_mapping": ["content_embeddings"],
         }
 
         # NPS table schemas - defined once and reused
@@ -374,6 +375,7 @@ class DatabaseWriter:
         """
         # Tables in reverse dependency order
         tables_to_drop = [
+            "content_trail_mapping",
             "content_embeddings",
             "nps_places",
             "nps_thingstodo",
@@ -651,6 +653,8 @@ class DatabaseWriter:
             self._create_usgs_trail_elevations_table()
         elif table_name in ("nps_thingstodo", "nps_places", "content_embeddings"):
             self._create_nps_content_tables()
+        elif table_name == "content_trail_mapping":
+            self._create_table_from_sql("content_trail_mapping")
         elif table_name in ("parks", "park_boundaries"):
             self._create_table_from_sql(table_name)
         else:

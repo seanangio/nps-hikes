@@ -27,7 +27,8 @@ for schema_file in \
     "$SCHEMA_DIR/gmaps_hiking_locations.sql" \
     "$SCHEMA_DIR/gmaps_hiking_locations_matched.sql" \
     "$SCHEMA_DIR/usgs_trail_elevations.sql" \
-    "$SCHEMA_DIR/nps_content.sql"
+    "$SCHEMA_DIR/nps_content.sql" \
+    "$SCHEMA_DIR/content_trail_mapping.sql"
 do
     if [ -f "$schema_file" ]; then
         echo "Running $(basename "$schema_file")..."

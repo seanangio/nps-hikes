@@ -125,6 +125,11 @@ class DataCollectionOrchestrator:
                 "scripts/processors/embedding_indexer.py",
                 False,
             ),
+            (
+                "Content-Trail Linking",
+                "scripts/processors/content_trail_linker.py",
+                False,
+            ),
         ]
 
         # Execute steps sequentially

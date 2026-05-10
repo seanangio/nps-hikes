@@ -165,6 +165,10 @@ class Config:
     EMBEDDING_BATCH_SIZE: int = 50
     EMBEDDING_DIMENSION: int = 768
 
+    # Content-Trail Linking Settings
+    CONTENT_TRAIL_LINKING_THRESHOLD: float = 0.5
+    CONTENT_TRAIL_LINKING_LOG_FILE: str = "logs/content_trail_linker.log"
+
     # Ollama LLM Configuration (for natural language queries)
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.1:8b"
