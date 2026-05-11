@@ -915,3 +915,247 @@ def fetch_hiked_points(park_code: str | None = None) -> dict[str, Any]:
         "count": len(hiked_points),
         "hiked_points": hiked_points,
     }
+
+
+def fetch_topic_trails(
+    query_embedding: list[float],
+    park_code: str | None = None,
+    state: str | None = None,
+    limit: int = 20,
+    geojson: bool = True,
+) -> dict[str, Any]:
+    """
+    Semantic search bridging content to structured trail data.
+
+    Performs vector similarity search on content embeddings, joins through
+    the pre-computed content_trail_mapping to trail tables (TNM/OSM),
+    deduplicates (TNM preferred via pg_trgm similarity), and returns
+    structured trail data with topic context.
+
+    When no trails match, populates fallback_chunks with unmatched
+    semantic results for prose generation.
+
+    Args:
+        query_embedding: The embedding vector for the search query.
+        park_code: Optional filter by park code.
+        state: Optional filter by state abbreviation (e.g., 'CA').
+        limit: Maximum number of trail results (default: 20).
+        geojson: Whether to include GeoJSON geometry (default: True).
+
+    Returns:
+        Dictionary containing:
+            - trail_count: int
+            - total_miles: float
+            - trails: list (same shape as fetch_trails)
+            - topic_context: list of dicts with trail_id, trail_name,
+              content_title, chunk_text_preview per matched content
+            - fallback_chunks: list of unmatched semantic results
+              (populated only when no trails match)
+    """
+    engine = get_db_engine()
+    embedding_str = json.dumps(query_embedding)
+
+    # Conditional GeoJSON columns
+    geojson_tnm = ", ST_AsGeoJSON(t.geometry) as geojson" if geojson else ""
+    geojson_osm = ", ST_AsGeoJSON(o.geometry) as geojson" if geojson else ""
+    geojson_ref = ", geojson" if geojson else ""
+    geojson_final = ", r.geojson" if geojson else ""
+
+    # Build filter clauses shared by trail and fallback queries
+    where_clauses = ""
+    params: dict[str, Any] = {"query_embedding": embedding_str}
+
+    if park_code is not None:
+        where_clauses += " AND ce.park_code = :park_code"
+        params["park_code"] = park_code
+
+    if state is not None:
+        where_clauses += " AND p.states LIKE :state"
+        params["state"] = f"%{state}%"
+
+    # Trail query: semantic search → mapping → trail tables → dedup
+    trail_query = f"""
+    WITH semantic_hits AS (
+        SELECT ce.id as embedding_id, ce.title as content_title,
+               ce.chunk_text, ce.park_code,
+               1 - (ce.embedding <=> CAST(:query_embedding AS vector))
+                   AS similarity_score
+        FROM content_embeddings ce
+        JOIN parks p ON ce.park_code = p.park_code
+        WHERE 1=1{where_clauses}
+        ORDER BY ce.embedding <=> CAST(:query_embedding AS vector) ASC
+        LIMIT 50
+    ),
+    mapped AS (
+        SELECT sh.embedding_id, sh.content_title, sh.chunk_text,
+               sh.similarity_score,
+               ctm.trail_name, ctm.trail_source, ctm.trail_id, ctm.park_code
+        FROM semantic_hits sh
+        JOIN content_trail_mapping ctm
+            ON sh.embedding_id = ctm.content_embedding_id
+    ),
+    tnm_data AS (
+        SELECT mp.trail_id, mp.trail_name, mp.park_code, 'TNM' as source,
+               t.length_miles, t.geometry_type,
+               CAST(NULL AS VARCHAR) as highway_type,
+               mp.content_title, mp.chunk_text,
+               mp.similarity_score{geojson_tnm}
+        FROM mapped mp
+        JOIN tnm_hikes t ON mp.trail_id = t.permanent_identifier
+        WHERE mp.trail_source = 'TNM'
+    ),
+    osm_data AS (
+        SELECT mp.trail_id, mp.trail_name, mp.park_code, 'OSM' as source,
+               o.length_miles, o.geometry_type,
+               o.highway as highway_type,
+               mp.content_title, mp.chunk_text,
+               mp.similarity_score{geojson_osm}
+        FROM mapped mp
+        JOIN osm_hikes o ON mp.trail_id = o.osm_id::text
+        WHERE mp.trail_source = 'OSM'
+    ),
+    osm_unique AS (
+        SELECT o.*
+        FROM osm_data o
+        WHERE NOT EXISTS (
+            SELECT 1 FROM tnm_data t
+            WHERE t.park_code = o.park_code
+            AND similarity(lower(t.trail_name), lower(o.trail_name)) > 0.7
+        )
+    ),
+    all_trail_results AS (
+        SELECT trail_id, trail_name, park_code, source, length_miles,
+               geometry_type, highway_type, content_title, chunk_text,
+               similarity_score{geojson_ref}
+        FROM tnm_data
+        UNION ALL
+        SELECT * FROM osm_unique
+    )
+    SELECT
+        r.trail_id, r.trail_name, r.park_code,
+        p.park_name, p.states,
+        r.source, r.length_miles, r.geometry_type, r.highway_type,
+        r.content_title, r.chunk_text, r.similarity_score,
+        CASE WHEN m.gmaps_location_id IS NOT NULL THEN true
+             ELSE false END as hiked,
+        CASE WHEN ute.trail_slug IS NOT NULL THEN true
+             ELSE false END as viz_3d_available,
+        ute.trail_slug as viz_3d_slug{geojson_final}
+    FROM all_trail_results r
+    LEFT JOIN parks p ON r.park_code = p.park_code
+    LEFT JOIN gmaps_hiking_locations_matched m
+        ON r.park_code = m.park_code AND r.source = m.source
+        AND r.trail_name = m.matched_trail_name
+    LEFT JOIN usgs_trail_elevations ute
+        ON m.gmaps_location_id = ute.gmaps_location_id
+    ORDER BY r.similarity_score DESC
+    """
+
+    with engine.connect() as conn:
+        result = conn.execute(text(trail_query), params)
+        trail_rows = result.fetchall()
+
+    # Deduplicate trails by (trail_id, source), collecting context for each
+    seen: dict[tuple[str, str], dict] = {}
+    topic_context: list[dict] = []
+
+    for row in trail_rows:
+        key = (row.trail_id, row.source)
+
+        # Collect context for every content-trail match
+        topic_context.append(
+            {
+                "trail_id": row.trail_id,
+                "trail_name": row.trail_name,
+                "content_title": row.content_title,
+                "chunk_text_preview": (
+                    row.chunk_text[:200] if row.chunk_text else None
+                ),
+            }
+        )
+
+        if key in seen:
+            continue
+
+        trail = {
+            "trail_id": row.trail_id,
+            "trail_name": row.trail_name,
+            "park_code": row.park_code,
+            "park_name": row.park_name,
+            "states": row.states,
+            "source": row.source,
+            "length_miles": float(row.length_miles),
+            "geometry_type": row.geometry_type,
+            "highway_type": row.highway_type,
+            "hiked": row.hiked,
+            "viz_3d_available": row.viz_3d_available,
+            "viz_3d_slug": row.viz_3d_slug,
+        }
+
+        if geojson:
+            trail["geometry"] = json.loads(row.geojson) if row.geojson else None
+
+        seen[key] = trail
+
+    # Apply limit to unique trails
+    trails = list(seen.values())[:limit]
+    total_miles = sum(t["length_miles"] for t in trails)
+
+    # Filter topic_context to match limited trail set
+    if len(trails) < len(seen):
+        limited_trail_ids = {t["trail_id"] for t in trails}
+        topic_context = [
+            tc for tc in topic_context if tc["trail_id"] in limited_trail_ids
+        ]
+
+    # Fallback chunks: only query when no trails matched
+    fallback_chunks: list[dict] = []
+
+    if len(trails) == 0:
+        fallback_query = f"""
+        WITH semantic_hits AS (
+            SELECT ce.id as embedding_id, ce.title,
+                   ce.chunk_text, ce.park_code,
+                   p.full_name as park_name, ce.source_type,
+                   1 - (ce.embedding <=> CAST(:query_embedding AS vector))
+                       AS similarity_score
+            FROM content_embeddings ce
+            JOIN parks p ON ce.park_code = p.park_code
+            WHERE 1=1{where_clauses}
+            ORDER BY ce.embedding <=> CAST(:query_embedding AS vector) ASC
+            LIMIT 50
+        )
+        SELECT sh.title, sh.chunk_text, sh.park_code, sh.park_name,
+               sh.source_type, sh.similarity_score
+        FROM semantic_hits sh
+        WHERE NOT EXISTS (
+            SELECT 1 FROM content_trail_mapping ctm
+            WHERE ctm.content_embedding_id = sh.embedding_id
+        )
+        ORDER BY sh.similarity_score DESC
+        LIMIT 10
+        """
+
+        with engine.connect() as conn:
+            result = conn.execute(text(fallback_query), params)
+            fallback_rows = result.fetchall()
+
+        for row in fallback_rows:
+            fallback_chunks.append(
+                {
+                    "title": row.title,
+                    "chunk_text": row.chunk_text,
+                    "park_code": row.park_code,
+                    "park_name": row.park_name,
+                    "source_type": row.source_type,
+                    "similarity_score": round(float(row.similarity_score), 4),
+                }
+            )
+
+    return {
+        "trail_count": len(trails),
+        "total_miles": round(total_miles, 2),
+        "trails": trails,
+        "topic_context": topic_context,
+        "fallback_chunks": fallback_chunks,
+    }
