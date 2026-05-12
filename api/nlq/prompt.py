@@ -157,13 +157,12 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "search_park_content",
+            "name": "search_by_topic",
             "description": (
-                "Search park content (things to do, places, descriptions) using "
-                "semantic similarity. Use this for descriptive or thematic questions "
-                "like 'waterfalls', 'winter activities', 'kid-friendly things to do', "
-                "'scenic viewpoints', 'wildlife viewing', or any question about what "
-                "a park offers beyond trail data."
+                "Search for trails and park activities by topic or theme using "
+                "semantic similarity. Use for descriptive/thematic questions: "
+                "waterfalls, slot canyons, winter activities, kid-friendly hikes, "
+                "scenic viewpoints — anything not expressible as a column filter."
             ),
             "parameters": {
                 "type": "object",
@@ -182,9 +181,13 @@ TOOLS = [
                             "Use the park lookup table to find the correct code."
                         ),
                     },
+                    "state": {
+                        "type": "string",
+                        "description": "2-letter uppercase US state code (e.g., 'CA', 'UT')",
+                    },
                     "limit": {
                         "type": "integer",
-                        "description": "Maximum number of results (1-50, default 10)",
+                        "description": "Maximum number of results (1-50, default 20)",
                     },
                 },
                 "required": ["query"],
@@ -217,7 +220,7 @@ Rules:
 - If the user asks about overall statistics (total miles, trail counts, park counts, averages, longest/shortest), use search_stats.
 - If the user asks for a per-park breakdown of stats, use search_stats with per_park=true.
 - If the user asks about a specific park's details, summary, or overview, use search_park_summary.
-- If the user asks about activities, things to do, places to visit, scenic features, wildlife, or thematic/descriptive questions (e.g., "waterfalls", "slot canyons", "winter activities", "kid-friendly"), use search_park_content. This searches rich text content, not structured trail data.
+- If the user asks about trails or activities by theme, feature, or description — anything not expressible as a structured column filter (length, source, hiked status) — use search_by_topic. Examples: "waterfall hikes", "slot canyons", "winter activities", "kid-friendly things to do", "scenic viewpoints".
 - Only include parameters that the user's question implies. Do not add extra filters.\
 """
 

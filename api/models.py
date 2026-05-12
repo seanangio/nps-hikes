@@ -868,6 +868,138 @@ class SearchResponse(BaseModel):
     )
 
 
+class TopicTrailResult(BaseModel):
+    """A trail result from topic-based semantic search.
+
+    Extends standard trail data with the content context that matched the topic.
+    """
+
+    trail_id: str = Field(
+        ...,
+        description="Unique trail identifier",
+        examples=["550779"],
+    )
+    trail_name: str | None = Field(
+        None,
+        description="Trail name",
+        examples=["Mist Trail"],
+    )
+    park_code: str = Field(
+        ...,
+        description="4-character lowercase park code",
+        pattern="^[a-z]{4}$",
+        examples=["yose"],
+    )
+    park_name: str | None = Field(
+        None,
+        description="Short park name",
+        examples=["Yosemite"],
+    )
+    states: str | None = Field(
+        None,
+        description="States where parent park is located",
+        examples=["CA"],
+    )
+    source: str = Field(
+        ...,
+        description="Data source (TNM or OSM)",
+        examples=["TNM"],
+    )
+    length_miles: float = Field(
+        ...,
+        description="Trail length in miles",
+        ge=0,
+        examples=[5.4],
+    )
+    geometry_type: str = Field(
+        ...,
+        description="Geometry type (LineString or MultiLineString)",
+        examples=["LineString"],
+    )
+    highway_type: str | None = Field(
+        None,
+        description="OSM highway tag - only available for OSM trails",
+        examples=["path"],
+    )
+    hiked: bool = Field(
+        ...,
+        description="Whether this trail has been hiked",
+        examples=[True],
+    )
+    viz_3d_available: bool = Field(
+        ...,
+        description="Whether 3D visualization is available",
+        examples=[False],
+    )
+    viz_3d_slug: str | None = Field(
+        None,
+        description="URL-safe trail slug for 3D visualization endpoint",
+    )
+    geometry: dict | None = Field(
+        None,
+        description="Trail geometry as GeoJSON (only included when geojson=true)",
+    )
+    topic_context: str | None = Field(
+        None,
+        description="Content context explaining why this trail matched the topic",
+        examples=["Mist Trail: Hike to Vernal Fall and Nevada Fall..."],
+    )
+
+
+class TopicSearchResponse(BaseModel):
+    """Response when topic search finds matching trails."""
+
+    response_type: str = Field(
+        "trails",
+        description="Discriminator: 'trails' when structured trail data is returned",
+        examples=["trails"],
+    )
+    trail_count: int = Field(
+        ...,
+        description="Number of trails returned",
+        ge=0,
+        examples=[5],
+    )
+    total_miles: float = Field(
+        ...,
+        description="Total trail mileage",
+        ge=0,
+        examples=[23.4],
+    )
+    trails: list[TopicTrailResult] = Field(
+        ...,
+        description="Trails matching the topic",
+    )
+    topic_context: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Content context per matched trail (content_title + chunk_text preview)",
+    )
+
+
+class TopicContentResponse(BaseModel):
+    """Response when topic search finds no trails (fallback to raw content)."""
+
+    response_type: str = Field(
+        "content",
+        description="Discriminator: 'content' when raw content chunks are returned",
+        examples=["content"],
+    )
+    result_count: int = Field(
+        ...,
+        description="Number of content chunks returned",
+        ge=0,
+        examples=[5],
+    )
+    results: list[SearchResult] = Field(
+        ...,
+        description="Content chunks ordered by similarity",
+    )
+    generated_answer: str | None = Field(
+        None,
+        description="LLM-generated prose answer from the content (when available)",
+    )
+
+
 class NlqRequest(BaseModel):
     """Request model for natural language trail/park queries."""
 

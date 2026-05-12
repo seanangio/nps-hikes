@@ -131,7 +131,7 @@ VALID_FUNCTIONS = {
     "search_parks",
     "search_stats",
     "search_park_summary",
-    "search_park_content",
+    "search_by_topic",
 }
 
 
@@ -266,8 +266,8 @@ def validate_and_normalize(
         cleaned = _normalize_park_params(params)
     elif function_name == "search_stats":
         cleaned = _normalize_stats_params(params)
-    elif function_name == "search_park_content":
-        cleaned = _normalize_content_search_params(params, park_lookup)
+    elif function_name == "search_by_topic":
+        cleaned = _normalize_topic_search_params(params, park_lookup)
     else:
         cleaned = _normalize_park_summary_params(params, park_lookup)
 
@@ -459,16 +459,16 @@ def _normalize_park_summary_params(
     return cleaned
 
 
-def _normalize_content_search_params(
+def _normalize_topic_search_params(
     params: dict[str, Any], park_lookup: dict[str, str]
 ) -> dict[str, Any]:
-    """Normalize parameters for the search_park_content function."""
+    """Normalize parameters for the search_by_topic function."""
     cleaned: dict[str, Any] = {}
 
     raw_query = params.get("query")
     if not raw_query or not str(raw_query).strip():
         raise LlmResponseError(
-            "search_park_content requires a query parameter. "
+            "search_by_topic requires a query parameter. "
             "Try describing what you're looking for.",
             context={"params": params},
         )
@@ -479,6 +479,15 @@ def _normalize_content_search_params(
         resolved = resolve_park_code(raw, park_lookup)
         if resolved:
             cleaned["park_code"] = resolved
+
+    # State: convert names to codes, uppercase
+    if params.get("state"):
+        raw = str(params["state"]).strip()
+        state_code = _STATE_NAME_TO_CODE.get(raw.lower())
+        if state_code:
+            cleaned["state"] = state_code
+        elif re.match(r"^[A-Za-z]{2}$", raw):
+            cleaned["state"] = raw.upper()
 
     if "limit" in params and params["limit"] is not None:
         try:

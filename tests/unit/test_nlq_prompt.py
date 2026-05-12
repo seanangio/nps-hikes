@@ -64,27 +64,27 @@ class TestToolDefinitions:
         required = summary_tool["function"]["parameters"].get("required", [])
         assert "park_code" in required
 
-    def test_search_park_content_tool_exists(self):
+    def test_search_by_topic_tool_exists(self):
         names = [t["function"]["name"] for t in TOOLS]
-        assert "search_park_content" in names
+        assert "search_by_topic" in names
 
-    def test_search_park_content_has_expected_params(self):
-        content_tool = next(
-            t for t in TOOLS if t["function"]["name"] == "search_park_content"
+    def test_search_by_topic_has_expected_params(self):
+        topic_tool = next(
+            t for t in TOOLS if t["function"]["name"] == "search_by_topic"
         )
-        props = content_tool["function"]["parameters"]["properties"]
-        assert set(props.keys()) == {"query", "park_code", "limit"}
+        props = topic_tool["function"]["parameters"]["properties"]
+        assert set(props.keys()) == {"query", "park_code", "state", "limit"}
 
-    def test_search_park_content_query_required(self):
-        content_tool = next(
-            t for t in TOOLS if t["function"]["name"] == "search_park_content"
+    def test_search_by_topic_query_required(self):
+        topic_tool = next(
+            t for t in TOOLS if t["function"]["name"] == "search_by_topic"
         )
-        required = content_tool["function"]["parameters"].get("required", [])
+        required = topic_tool["function"]["parameters"].get("required", [])
         assert "query" in required
 
     def test_optional_params_for_other_tools(self):
-        """Tools besides search_park_summary and search_park_content have no required fields."""
-        tools_with_required = {"search_park_summary", "search_park_content"}
+        """Tools besides search_park_summary and search_by_topic have no required fields."""
+        tools_with_required = {"search_park_summary", "search_by_topic"}
         for tool in TOOLS:
             name = tool["function"]["name"]
             required = tool["function"]["parameters"].get("required", [])
@@ -106,6 +106,10 @@ class TestBuildSystemMessage:
         message = build_system_message("- test → test")
         assert "park_code" in message
         assert "4 lowercase letters" in message
+
+    def test_includes_topic_search_guidance(self):
+        message = build_system_message("- test → test")
+        assert "search_by_topic" in message
 
 
 class TestBuildChatMessages:

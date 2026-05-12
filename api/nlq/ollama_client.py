@@ -64,6 +64,58 @@ async def call_ollama(
         ) from e
 
 
+async def generate_completion(
+    messages: list[dict[str, str]],
+) -> str:
+    """Send a plain chat request (no tools) and return the response text.
+
+    Used for generating prose answers from context, where tool-calling
+    is not needed.
+
+    Args:
+        messages: Chat messages in Ollama format (role + content).
+
+    Returns:
+        The generated text content from the model.
+
+    Raises:
+        LlmConnectionError: If Ollama is unreachable or times out.
+    """
+    url = f"{config.OLLAMA_BASE_URL}/api/chat"
+    payload = {
+        "model": config.OLLAMA_MODEL,
+        "messages": messages,
+        "stream": False,
+    }
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(config.OLLAMA_TIMEOUT)
+        ) as client:
+            response = await client.post(url, json=payload)
+            response.raise_for_status()
+            result: dict[str, Any] = response.json()
+            content: str = result.get("message", {}).get("content", "")
+            return content
+    except httpx.ConnectError as e:
+        raise LlmConnectionError(
+            f"Cannot connect to Ollama at {config.OLLAMA_BASE_URL}. "
+            "Is Ollama running? Start it with: ollama serve",
+            context={"url": url},
+        ) from e
+    except httpx.TimeoutException as e:
+        raise LlmConnectionError(
+            f"Ollama request timed out after {config.OLLAMA_TIMEOUT}s. "
+            "The model may still be loading.",
+            context={"url": url, "timeout": config.OLLAMA_TIMEOUT},
+        ) from e
+    except httpx.HTTPStatusError as e:
+        raise LlmConnectionError(
+            f"Ollama returned HTTP {e.response.status_code}: {e.response.text}",
+            context={"url": url, "status_code": e.response.status_code},
+        ) from e
+
+
 async def check_ollama_health() -> bool:
     """Check if Ollama is running and reachable.
 

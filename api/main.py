@@ -40,6 +40,7 @@ from api.models import (
     StatsResponse,
     TrailsResponse,
 )
+from api.nlq.generator import generate_from_context
 from api.nlq.ollama_client import call_ollama
 from api.nlq.park_lookup import build_park_lookup_text, get_park_lookup
 from api.nlq.parser import parse_tool_call, validate_and_normalize
@@ -52,6 +53,7 @@ from api.queries import (
     fetch_park_summary,
     fetch_semantic_search,
     fetch_stats,
+    fetch_topic_trails,
     fetch_trails,
 )
 from utils.embedding_client import get_embeddings
@@ -1149,7 +1151,7 @@ async def natural_language_query(
         elif function_name == "search_stats":
             per_park = params.pop("per_park", False)
             results = fetch_park_stats(**params) if per_park else fetch_stats(**params)
-        elif function_name == "search_park_content":
+        elif function_name == "search_by_topic":
             query_text = params.pop("query")
             query_embedding = await get_embeddings([query_text])
             if not query_embedding or not query_embedding[0]:
@@ -1157,11 +1159,37 @@ async def natural_language_query(
                     status_code=422,
                     detail="Failed to generate embedding for search query",
                 )
-            results = fetch_semantic_search(
+
+            topic_results = fetch_topic_trails(
                 query_embedding=query_embedding[0],
                 park_code=params.get("park_code"),
-                limit=params.get("limit", 10),
+                state=params.get("state"),
+                limit=params.get("limit", 20),
+                geojson=True,
             )
+
+            if topic_results["trail_count"] > 0:
+                results = {
+                    "trail_count": topic_results["trail_count"],
+                    "total_miles": topic_results["total_miles"],
+                    "trails": topic_results["trails"],
+                    "topic_context": topic_results["topic_context"],
+                    "response_type": "trails",
+                }
+            else:
+                fallback = topic_results.get("fallback_chunks", [])
+                generated_answer = None
+                if fallback:
+                    generated_answer = await generate_from_context(
+                        user_query=query_text,
+                        context_chunks=fallback,
+                    )
+                results = {
+                    "result_count": len(fallback),
+                    "results": fallback,
+                    "response_type": "generated" if generated_answer else "content",
+                    "generated_answer": generated_answer,
+                }
         elif function_name == "search_park_summary":
             summary = fetch_park_summary(**params)
             if summary is None:
