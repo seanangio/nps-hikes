@@ -11,6 +11,7 @@ This module contains comprehensive tests for all FastAPI endpoints including:
 """
 
 from collections import namedtuple
+from typing import ClassVar
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -1652,3 +1653,155 @@ class TestParkSummaryQueryFunction:
         result = fetch_park_summary("fake")
 
         assert result is None
+
+
+class TestSearchEndpointResolveTrails:
+    """Tests for the /search endpoint with resolve_trails parameter."""
+
+    SAMPLE_EMBEDDING: ClassVar[list] = [[0.01] * 768]
+
+    SAMPLE_TOPIC_TRAILS: ClassVar[dict] = {
+        "trail_count": 2,
+        "total_miles": 10.5,
+        "trails": [
+            {
+                "trail_id": "550779",
+                "trail_name": "Mist Trail",
+                "park_code": "yose",
+                "park_name": "Yosemite National Park",
+                "states": "CA",
+                "source": "TNM",
+                "length_miles": 5.4,
+                "geometry_type": "LineString",
+                "highway_type": None,
+                "hiked": True,
+                "viz_3d_available": False,
+                "viz_3d_slug": None,
+            },
+            {
+                "trail_id": "550780",
+                "trail_name": "Vernal Fall Trail",
+                "park_code": "yose",
+                "park_name": "Yosemite National Park",
+                "states": "CA",
+                "source": "TNM",
+                "length_miles": 5.1,
+                "geometry_type": "LineString",
+                "highway_type": None,
+                "hiked": False,
+                "viz_3d_available": False,
+                "viz_3d_slug": None,
+            },
+        ],
+        "topic_context": [
+            {
+                "trail_id": "550779",
+                "trail_name": "Mist Trail",
+                "content_title": "Hike to Vernal Fall",
+                "chunk_text_preview": "Follow the Mist Trail to see the 317-foot waterfall...",
+            },
+        ],
+        "fallback_chunks": [],
+    }
+
+    SAMPLE_TOPIC_NO_TRAILS: ClassVar[dict] = {
+        "trail_count": 0,
+        "total_miles": 0.0,
+        "trails": [],
+        "topic_context": [],
+        "fallback_chunks": [
+            {
+                "title": "Junior Ranger Program",
+                "chunk_text": "Complete an activity booklet...",
+                "park_code": "yose",
+                "park_name": "Yosemite National Park",
+                "source_type": "thingstodo",
+                "similarity_score": 0.85,
+            },
+        ],
+    }
+
+    @patch("api.main.fetch_topic_trails")
+    @patch("api.main.get_embeddings")
+    def test_resolve_trails_returns_trail_data(
+        self, mock_embeddings, mock_topic_trails
+    ):
+        """When resolve_trails=true and trails match, returns trail data."""
+        mock_embeddings.return_value = self.SAMPLE_EMBEDDING
+        mock_topic_trails.return_value = self.SAMPLE_TOPIC_TRAILS
+
+        response = client.get("/search?q=waterfall+hikes&resolve_trails=true")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["response_type"] == "trails"
+        assert data["trail_count"] == 2
+        assert data["total_miles"] == 10.5
+        assert len(data["trails"]) == 2
+        assert data["trails"][0]["trail_name"] == "Mist Trail"
+        assert "topic_context" in data
+        assert data["query"] == "waterfall hikes"
+
+    @patch("api.main.fetch_topic_trails")
+    @patch("api.main.get_embeddings")
+    def test_resolve_trails_fallback_to_content(
+        self, mock_embeddings, mock_topic_trails
+    ):
+        """When resolve_trails=true but no trails match, returns content fallback."""
+        mock_embeddings.return_value = self.SAMPLE_EMBEDDING
+        mock_topic_trails.return_value = self.SAMPLE_TOPIC_NO_TRAILS
+
+        response = client.get("/search?q=ranger+programs&resolve_trails=true")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["response_type"] == "content"
+        assert data["result_count"] == 1
+        assert len(data["results"]) == 1
+        assert data["results"][0]["title"] == "Junior Ranger Program"
+        assert data["query"] == "ranger programs"
+
+    @patch("api.main.fetch_semantic_search")
+    @patch("api.main.get_embeddings")
+    def test_resolve_trails_false_default(self, mock_embeddings, mock_fetch_search):
+        """Default behavior (resolve_trails=false) returns raw chunks."""
+        mock_embeddings.return_value = self.SAMPLE_EMBEDDING
+        mock_fetch_search.return_value = {
+            "result_count": 1,
+            "results": [
+                {
+                    "title": "Waterfalls",
+                    "chunk_text": "Many waterfalls...",
+                    "park_code": "yose",
+                    "park_name": "Yosemite",
+                    "source_type": "places",
+                    "similarity_score": 0.9,
+                },
+            ],
+        }
+
+        response = client.get("/search?q=waterfalls")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["query"] == "waterfalls"
+        assert data["result_count"] == 1
+        assert "response_type" not in data
+
+    @patch("api.main.fetch_topic_trails")
+    @patch("api.main.get_embeddings")
+    def test_resolve_trails_with_state_param(self, mock_embeddings, mock_topic_trails):
+        """State param is passed through to fetch_topic_trails."""
+        mock_embeddings.return_value = self.SAMPLE_EMBEDDING
+        mock_topic_trails.return_value = self.SAMPLE_TOPIC_TRAILS
+
+        response = client.get("/search?q=slot+canyons&resolve_trails=true&state=UT")
+
+        assert response.status_code == 200
+        mock_topic_trails.assert_called_once_with(
+            query_embedding=self.SAMPLE_EMBEDDING[0],
+            park_code=None,
+            state="UT",
+            limit=10,
+            geojson=False,
+        )

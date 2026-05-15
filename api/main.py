@@ -36,7 +36,6 @@ from api.models import (
     ParksResponse,
     ParkStatsResponse,
     ParkSummaryResponse,
-    SearchResponse,
     StatsResponse,
     TrailsResponse,
 )
@@ -983,7 +982,7 @@ async def get_trail_3d_visualization(
 
 @app.get(
     "/search",
-    response_model=SearchResponse,
+    response_model=None,
     response_model_exclude_none=True,
     tags=["Search"],
     summary="Semantic search over park content",
@@ -994,6 +993,10 @@ async def get_trail_3d_visualization(
     Requires Ollama to be running with the nomic-embed-text model.
 
     Optionally filter by park_code or source_type (thingstodo, places, park_description).
+
+    When `resolve_trails=true`, resolves semantic matches to structured trail data
+    via the content-trail mapping. Returns trail data when matches exist, or raw
+    content chunks as fallback.
     """,
     responses={
         503: {"description": "Ollama or database unavailable"},
@@ -1024,6 +1027,17 @@ async def semantic_search(
         le=50,
         description="Maximum number of results (default: 10)",
     ),
+    resolve_trails: bool = Query(
+        default=False,
+        description="When true, resolve semantic matches to structured trail data via content-trail mapping",
+    ),
+    state: str | None = Query(
+        default=None,
+        description="Filter by 2-letter state code (e.g., 'CA'). Only used when resolve_trails=true",
+        min_length=2,
+        max_length=2,
+        pattern="^[A-Z]{2}$",
+    ),
 ) -> dict[str, Any]:
     """
     Search park content using semantic similarity.
@@ -1032,6 +1046,7 @@ async def semantic_search(
     - `/search?q=waterfalls`
     - `/search?q=winter activities&park_code=yose`
     - `/search?q=kid friendly hikes&source_type=thingstodo`
+    - `/search?q=waterfall hikes&resolve_trails=true&state=CA`
     """
     try:
         query_embedding = await get_embeddings([q])
@@ -1041,17 +1056,43 @@ async def semantic_search(
                 detail="Failed to generate embedding for query text",
             )
 
-        results = fetch_semantic_search(
-            query_embedding=query_embedding[0],
-            park_code=park_code,
-            source_type=source_type,
-            limit=limit,
-        )
+        if resolve_trails:
+            topic_results = fetch_topic_trails(
+                query_embedding=query_embedding[0],
+                park_code=park_code,
+                state=state,
+                limit=limit,
+                geojson=False,
+            )
+            if topic_results["trail_count"] > 0:
+                return {
+                    "query": q,
+                    "response_type": "trails",
+                    "trail_count": topic_results["trail_count"],
+                    "total_miles": topic_results["total_miles"],
+                    "trails": topic_results["trails"],
+                    "topic_context": topic_results["topic_context"],
+                }
+            else:
+                fallback = topic_results.get("fallback_chunks", [])
+                return {
+                    "query": q,
+                    "response_type": "content",
+                    "result_count": len(fallback),
+                    "results": fallback,
+                }
+        else:
+            results = fetch_semantic_search(
+                query_embedding=query_embedding[0],
+                park_code=park_code,
+                source_type=source_type,
+                limit=limit,
+            )
 
-        return {
-            "query": q,
-            **results,
-        }
+            return {
+                "query": q,
+                **results,
+            }
 
     except LlmConnectionError as e:
         raise HTTPException(
