@@ -1210,12 +1210,29 @@ async def natural_language_query(
             )
 
             if topic_results["trail_count"] > 0:
+                # Transform topic_context into the shape _format_context() expects
+                generation_chunks = [
+                    {
+                        "park_name": ctx.get("park_name") or ctx.get("park_code", ""),
+                        "title": ctx.get("content_title", ""),
+                        "chunk_text": ctx.get("chunk_text", ""),
+                    }
+                    for ctx in topic_results["topic_context"]
+                    if ctx.get("chunk_text")
+                ]
+                generated_answer = None
+                if generation_chunks:
+                    generated_answer = await generate_from_context(
+                        user_query=query_text,
+                        context_chunks=generation_chunks,
+                    )
                 results = {
                     "trail_count": topic_results["trail_count"],
                     "total_miles": topic_results["total_miles"],
                     "trails": topic_results["trails"],
                     "topic_context": topic_results["topic_context"],
                     "response_type": "trails",
+                    "generated_answer": generated_answer,
                 }
             else:
                 fallback = topic_results.get("fallback_chunks", [])

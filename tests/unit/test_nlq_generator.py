@@ -79,6 +79,27 @@ class TestFormatContext:
         result = _format_context(sample_chunks)
         assert "\n\n" in result
 
+    def test_formats_topic_context_shaped_chunks(self):
+        """_format_context should work with topic-context-shaped input
+        (transformed at the call site in main.py for always-generate)."""
+        chunks = [
+            {
+                "park_name": "Yosemite National Park",
+                "title": "Hike to Vernal Fall",
+                "chunk_text": "Follow the Mist Trail to see the 317-foot waterfall.",
+            },
+            {
+                "park_name": "Zion National Park",
+                "title": "Angels Landing",
+                "chunk_text": "A strenuous hike with chain-assisted switchbacks.",
+            },
+        ]
+        result = _format_context(chunks)
+        assert "[1] Yosemite National Park - Hike to Vernal Fall" in result
+        assert "317-foot waterfall" in result
+        assert "[2] Zion National Park - Angels Landing" in result
+        assert "chain-assisted switchbacks" in result
+
 
 class TestGenerateFromContext:
     """Tests for generate_from_context."""

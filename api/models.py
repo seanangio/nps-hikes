@@ -974,6 +974,10 @@ class TopicSearchResponse(BaseModel):
         default_factory=list,
         description="Content context per matched trail (content_title + chunk_text preview)",
     )
+    generated_answer: str | None = Field(
+        None,
+        description="LLM-generated prose summary from the matched content (when available)",
+    )
 
 
 class TopicContentResponse(BaseModel):

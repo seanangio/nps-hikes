@@ -1071,6 +1071,9 @@ def fetch_topic_trails(
                 "chunk_text_preview": (
                     row.chunk_text[:200] if row.chunk_text else None
                 ),
+                "park_code": row.park_code,
+                "park_name": row.park_name,
+                "chunk_text": row.chunk_text,
             }
         )
 

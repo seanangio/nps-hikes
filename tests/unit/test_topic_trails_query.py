@@ -379,6 +379,9 @@ class TestFetchTopicTrailsTopicContext:
         assert ctx["trail_name"] == "Mist Trail"
         assert ctx["content_title"] == "Hike to Vernal Fall"
         assert "waterfall" in ctx["chunk_text_preview"]
+        assert ctx["park_code"] == "yose"
+        assert ctx["park_name"] == "Yosemite National Park"
+        assert ctx["chunk_text"] == "Follow the Mist Trail to see the waterfall."
 
     @patch("api.queries.get_db_engine")
     def test_topic_context_multiple_chunks_per_trail(self, mock_get_engine):
@@ -426,6 +429,26 @@ class TestFetchTopicTrailsTopicContext:
         result = fetch_topic_trails(query_embedding=SAMPLE_EMBEDDING)
 
         assert result["topic_context"][0]["chunk_text_preview"] is None
+
+    @patch("api.queries.get_db_engine")
+    def test_topic_context_includes_park_and_full_text(self, mock_get_engine):
+        """Topic context should include park_code, park_name, and full chunk_text."""
+        long_text = "A" * 500
+        row = _make_trail_row(
+            park_code="zion",
+            park_name="Zion National Park",
+            chunk_text=long_text,
+        )
+        _setup_mock_engine(mock_get_engine, [row])
+
+        result = fetch_topic_trails(query_embedding=SAMPLE_EMBEDDING)
+
+        ctx = result["topic_context"][0]
+        assert ctx["park_code"] == "zion"
+        assert ctx["park_name"] == "Zion National Park"
+        # chunk_text is the full text, chunk_text_preview is truncated
+        assert len(ctx["chunk_text"]) == 500
+        assert len(ctx["chunk_text_preview"]) == 200
 
 
 class TestFetchTopicTrailsLimit:
