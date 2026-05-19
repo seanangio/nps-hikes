@@ -69,6 +69,21 @@ class TestResolveParkCode:
     def test_no_match_returns_none(self, sample_lookup):
         assert resolve_park_code("completely unknown park", sample_lookup) is None
 
+    def test_sentinel_none_rejected(self, sample_lookup):
+        """LLMs often emit 'none' instead of omitting the parameter."""
+        assert resolve_park_code("none", sample_lookup) is None
+        assert resolve_park_code("None", sample_lookup) is None
+        assert resolve_park_code("NONE", sample_lookup) is None
+
+    def test_sentinel_null_rejected(self, sample_lookup):
+        assert resolve_park_code("null", sample_lookup) is None
+
+    def test_sentinel_any_rejected(self, sample_lookup):
+        assert resolve_park_code("any", sample_lookup) is None
+
+    def test_sentinel_all_rejected(self, sample_lookup):
+        assert resolve_park_code("all", sample_lookup) is None
+
     def test_rocky_mountain(self, sample_lookup):
         assert resolve_park_code("Rocky Mountain", sample_lookup) == "romo"
 

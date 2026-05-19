@@ -90,6 +90,10 @@ def resolve_park_code(
 
     key = name_or_code.strip().lower()
 
+    # Reject sentinel values that LLMs emit instead of omitting the parameter
+    if key in ("none", "null", "any", "all"):
+        return None
+
     # Direct match
     if key in lookup:
         return lookup[key]
