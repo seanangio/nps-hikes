@@ -162,7 +162,8 @@ TOOLS = [
                 "Search for trails and park activities by topic or theme using "
                 "semantic similarity. Use for descriptive/thematic questions: "
                 "waterfalls, slot canyons, winter activities, kid-friendly hikes, "
-                "scenic viewpoints — anything not expressible as a column filter."
+                "scenic viewpoints — anything with a semantic/descriptive component. "
+                "Can be combined with structured filters (length, hiked status, etc.)."
             ),
             "parameters": {
                 "type": "object",
@@ -184,6 +185,28 @@ TOOLS = [
                     "state": {
                         "type": "string",
                         "description": "2-letter uppercase US state code (e.g., 'CA', 'UT')",
+                    },
+                    "hiked": {
+                        "type": "boolean",
+                        "description": "true = only trails the user has hiked, false = only unhiked trails",
+                    },
+                    "min_length": {
+                        "type": "number",
+                        "description": "Minimum trail length in miles",
+                    },
+                    "max_length": {
+                        "type": "number",
+                        "description": "Maximum trail length in miles",
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": ["TNM", "OSM"],
+                        "description": "Data source: TNM (USGS) or OSM (OpenStreetMap)",
+                    },
+                    "trail_type": {
+                        "type": "string",
+                        "enum": ["path", "footway", "track", "steps", "cycleway"],
+                        "description": "OSM highway type filter (only applies to OSM trails)",
                     },
                     "limit": {
                         "type": "integer",
@@ -212,7 +235,8 @@ Rules:
 - For "short" trails, use max_length=3. For "long" trails, use min_length=5.
 - "Under X miles", "less than X miles", "shorter than X miles" → use max_length=X.
 - "Over X miles", "more than X miles", "at least X miles", "longer than X miles" → use min_length=X.
-- If the user asks about trails or hikes, use search_trails.
+- If the user asks about trails or hikes WITH a semantic/descriptive component (waterfalls, slot canyons, kid-friendly, scenic views), use search_by_topic. You can include structured filters (hiked, length, source) as additional parameters.
+- If the user asks about trails or hikes with ONLY structured filters and no semantic component (e.g., "trails over 5 miles in Zion", "short trails I hiked"), use search_trails.
 - If the user asks about parks (not trails), use search_parks.
 - Words like "haven't", "not", "never", "unvisited" indicate negation. "Parks I haven't visited" → visited=false. "Trails I haven't hiked" → hiked=false.
 - If the user mentions a specific year for park visits, include visit_year in search_parks.
@@ -220,7 +244,6 @@ Rules:
 - If the user asks about overall statistics (total miles, trail counts, park counts, averages, longest/shortest), use search_stats.
 - If the user asks for a per-park breakdown of stats, use search_stats with per_park=true.
 - If the user asks about a specific park's details, summary, or overview, use search_park_summary.
-- If the user asks about trails or activities by theme, feature, or description — anything not expressible as a structured column filter (length, source, hiked status) — use search_by_topic. Examples: "waterfall hikes", "slot canyons", "winter activities", "kid-friendly things to do", "scenic viewpoints".
 - Only include parameters that the user's question implies. Do not add extra filters.\
 """
 

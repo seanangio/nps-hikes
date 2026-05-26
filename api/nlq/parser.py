@@ -292,7 +292,7 @@ def _apply_negation_correction(
     if function_name == "search_parks" and params.get("visited") is True:
         params["visited"] = False
     if (
-        function_name in ("search_trails", "search_stats")
+        function_name in ("search_trails", "search_stats", "search_by_topic")
         and params.get("hiked") is True
     ):
         params["hiked"] = False
@@ -488,6 +488,31 @@ def _normalize_topic_search_params(
             cleaned["state"] = state_code
         elif re.match(r"^[A-Za-z]{2}$", raw):
             cleaned["state"] = raw.upper()
+
+    # Source: uppercase
+    if params.get("source"):
+        raw = str(params["source"]).upper()
+        if raw in ("TNM", "OSM"):
+            cleaned["source"] = raw
+
+    # Hiked: coerce to bool
+    if "hiked" in params and params["hiked"] is not None:
+        cleaned["hiked"] = bool(params["hiked"])
+
+    # Length filters: clamp to valid range
+    for key in ("min_length", "max_length"):
+        if key in params and params[key] is not None:
+            try:
+                val = float(params[key])
+                cleaned[key] = max(0.0, min(val, 100.0))
+            except (ValueError, TypeError):
+                pass
+
+    # Trail type
+    if params.get("trail_type"):
+        raw = str(params["trail_type"]).lower()
+        if raw in ("path", "footway", "track", "steps", "cycleway"):
+            cleaned["trail_type"] = raw
 
     if "limit" in params and params["limit"] is not None:
         try:

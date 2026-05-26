@@ -1802,6 +1802,11 @@ class TestSearchEndpointResolveTrails:
             query_embedding=self.SAMPLE_EMBEDDING[0],
             park_code=None,
             state="UT",
+            hiked=None,
+            min_length=None,
+            max_length=None,
+            source=None,
+            trail_type=None,
             limit=10,
             geojson=False,
         )

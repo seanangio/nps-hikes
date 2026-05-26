@@ -1038,6 +1038,29 @@ async def semantic_search(
         max_length=2,
         pattern="^[A-Z]{2}$",
     ),
+    hiked: bool | None = Query(
+        default=None,
+        description="Filter by hiking status (true=hiked, false=unhiked). Only used when resolve_trails=true",
+    ),
+    min_length: float | None = Query(
+        default=None,
+        ge=0,
+        description="Minimum trail length in miles. Only used when resolve_trails=true",
+    ),
+    max_length: float | None = Query(
+        default=None,
+        ge=0,
+        description="Maximum trail length in miles. Only used when resolve_trails=true",
+    ),
+    source: str | None = Query(
+        default=None,
+        description="Data source filter ('TNM' or 'OSM'). Only used when resolve_trails=true",
+        pattern="^(TNM|OSM)$",
+    ),
+    trail_type: str | None = Query(
+        default=None,
+        description="OSM highway type (e.g., 'path', 'footway'). Only used when resolve_trails=true",
+    ),
 ) -> dict[str, Any]:
     """
     Search park content using semantic similarity.
@@ -1061,6 +1084,11 @@ async def semantic_search(
                 query_embedding=query_embedding[0],
                 park_code=park_code,
                 state=state,
+                hiked=hiked,
+                min_length=min_length,
+                max_length=max_length,
+                source=source,
+                trail_type=trail_type,
                 limit=limit,
                 geojson=False,
             )
@@ -1205,6 +1233,11 @@ async def natural_language_query(
                 query_embedding=query_embedding[0],
                 park_code=params.get("park_code"),
                 state=params.get("state"),
+                hiked=params.get("hiked"),
+                min_length=params.get("min_length"),
+                max_length=params.get("max_length"),
+                source=params.get("source"),
+                trail_type=params.get("trail_type"),
                 limit=params.get("limit", 20),
                 geojson=True,
             )

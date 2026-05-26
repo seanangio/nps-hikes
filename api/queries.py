@@ -921,6 +921,11 @@ def fetch_topic_trails(
     query_embedding: list[float],
     park_code: str | None = None,
     state: str | None = None,
+    hiked: bool | None = None,
+    min_length: float | None = None,
+    max_length: float | None = None,
+    source: str | None = None,
+    trail_type: str | None = None,
     limit: int = 20,
     geojson: bool = True,
 ) -> dict[str, Any]:
@@ -929,8 +934,8 @@ def fetch_topic_trails(
 
     Performs vector similarity search on content embeddings, joins through
     the pre-computed content_trail_mapping to trail tables (TNM/OSM),
-    deduplicates (TNM preferred via pg_trgm similarity), and returns
-    structured trail data with topic context.
+    applies optional structured filters, deduplicates (TNM preferred via
+    pg_trgm similarity), and returns structured trail data with topic context.
 
     When no trails match, populates fallback_chunks with unmatched
     semantic results for prose generation.
@@ -939,6 +944,11 @@ def fetch_topic_trails(
         query_embedding: The embedding vector for the search query.
         park_code: Optional filter by park code.
         state: Optional filter by state abbreviation (e.g., 'CA').
+        hiked: Optional filter by hiking status (True=hiked, False=unhiked).
+        min_length: Optional minimum trail length in miles.
+        max_length: Optional maximum trail length in miles.
+        source: Optional data source filter ('TNM' or 'OSM').
+        trail_type: Optional OSM highway type filter (e.g., 'path', 'footway').
         limit: Maximum number of trail results (default: 20).
         geojson: Whether to include GeoJSON geometry (default: True).
 
@@ -973,7 +983,35 @@ def fetch_topic_trails(
         where_clauses += " AND p.states LIKE :state"
         params["state"] = f"%{state}%"
 
-    # Trail query: semantic search → mapping → trail tables → dedup
+    # Build filter clauses for final trail filtering
+    trail_where_clauses = []
+
+    if hiked is True:
+        trail_where_clauses.append("m.gmaps_location_id IS NOT NULL")
+    elif hiked is False:
+        trail_where_clauses.append("m.gmaps_location_id IS NULL")
+
+    if min_length is not None:
+        trail_where_clauses.append("r.length_miles >= :min_length")
+        params["min_length"] = min_length
+
+    if max_length is not None:
+        trail_where_clauses.append("r.length_miles <= :max_length")
+        params["max_length"] = max_length
+
+    if source is not None:
+        trail_where_clauses.append("r.source = :source")
+        params["source"] = source
+
+    if trail_type is not None:
+        trail_where_clauses.append("r.highway_type = :trail_type")
+        params["trail_type"] = trail_type
+
+    trail_where_sql = ""
+    if trail_where_clauses:
+        trail_where_sql = " WHERE " + " AND ".join(trail_where_clauses)
+
+    # Trail query: semantic search → mapping → trail tables → dedup → filters
     trail_query = f"""
     WITH semantic_hits AS (
         SELECT ce.id as embedding_id, ce.title as content_title,
@@ -1048,6 +1086,7 @@ def fetch_topic_trails(
         AND r.trail_name = m.matched_trail_name
     LEFT JOIN usgs_trail_elevations ute
         ON m.gmaps_location_id = ute.gmaps_location_id
+    {trail_where_sql}
     ORDER BY r.similarity_score DESC
     """
 

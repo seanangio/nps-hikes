@@ -73,7 +73,17 @@ class TestToolDefinitions:
             t for t in TOOLS if t["function"]["name"] == "search_by_topic"
         )
         props = topic_tool["function"]["parameters"]["properties"]
-        assert set(props.keys()) == {"query", "park_code", "state", "limit"}
+        assert set(props.keys()) == {
+            "query",
+            "park_code",
+            "state",
+            "hiked",
+            "min_length",
+            "max_length",
+            "source",
+            "trail_type",
+            "limit",
+        }
 
     def test_search_by_topic_query_required(self):
         topic_tool = next(
