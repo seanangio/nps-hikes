@@ -630,3 +630,271 @@ class TestValidateAndNormalize:
             "search_parks", {"visited": True}, park_lookup
         )
         assert params["visited"] is True
+
+
+class TestHallucinationValidation:
+    """Tests for post-processing validation that removes hallucinated params.
+
+    These tests verify that _validate_extracted_params (called via
+    validate_and_normalize for search_by_topic) removes parameters
+    the LLM added without textual evidence in the query.
+    """
+
+    def test_removes_hallucinated_park_code(self, park_lookup):
+        """park_code removed when no park name in query."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "slot canyons", "park_code": "arch"},
+            park_lookup,
+            query="slot canyons",
+        )
+        assert "park_code" not in params
+        assert params["query"] == "slot canyons"
+
+    def test_keeps_park_code_when_park_mentioned(self, park_lookup):
+        """park_code kept when park name appears in query."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "waterfalls", "park_code": "yose"},
+            park_lookup,
+            query="waterfalls in yosemite",
+        )
+        assert params["park_code"] == "yose"
+
+    def test_removes_hallucinated_source(self, park_lookup):
+        """source removed when not mentioned in query."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "slot canyons", "source": "TNM"},
+            park_lookup,
+            query="slot canyons in Utah",
+        )
+        assert "source" not in params
+
+    def test_keeps_source_when_mentioned(self, park_lookup):
+        """source kept when explicitly mentioned."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "trails", "source": "OSM"},
+            park_lookup,
+            query="OSM trails with viewpoints",
+        )
+        assert params["source"] == "OSM"
+
+    def test_keeps_source_when_usgs_mentioned(self, park_lookup):
+        """source kept when USGS is mentioned (maps to TNM)."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "trails", "source": "TNM"},
+            park_lookup,
+            query="USGS trails with waterfalls",
+        )
+        assert params["source"] == "TNM"
+
+    def test_removes_hallucinated_hiked(self, park_lookup):
+        """hiked removed when no completion status in query."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "slot canyons", "hiked": True},
+            park_lookup,
+            query="slot canyons",
+        )
+        assert "hiked" not in params
+
+    def test_keeps_hiked_when_mentioned(self, park_lookup):
+        """hiked kept when user mentions hiking status."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "waterfalls", "hiked": True},
+            park_lookup,
+            query="waterfall hikes I completed",
+        )
+        assert params["hiked"] is True
+
+    def test_keeps_hiked_false_when_negation(self, park_lookup):
+        """hiked=False kept when user says 'haven't hiked'."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "slot canyons", "hiked": True},
+            park_lookup,
+            query="slot canyons I haven't hiked",
+        )
+        # hiked term present → kept by validation, then flipped by negation
+        assert params["hiked"] is False
+
+    def test_removes_zero_min_length(self, park_lookup):
+        """min_length=0 is nonsensical and removed."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "slot canyons", "min_length": 0.0},
+            park_lookup,
+            query="slot canyons",
+        )
+        assert "min_length" not in params
+
+    def test_removes_zero_max_length(self, park_lookup):
+        """max_length=0 is nonsensical and removed."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "slot canyons", "max_length": 0.0},
+            park_lookup,
+            query="slot canyons",
+        )
+        assert "max_length" not in params
+
+    def test_removes_length_when_not_mentioned(self, park_lookup):
+        """Length filters removed when no length terms in query."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "waterfalls", "min_length": 5.0},
+            park_lookup,
+            query="waterfalls in the park",
+        )
+        assert "min_length" not in params
+
+    def test_keeps_length_when_miles_mentioned(self, park_lookup):
+        """Length filters kept when 'miles' appears in query."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "waterfalls", "min_length": 5.0},
+            park_lookup,
+            query="waterfall hikes over 5 miles",
+        )
+        assert params["min_length"] == 5.0
+
+    def test_keeps_length_when_long_mentioned(self, park_lookup):
+        """Length filters kept when 'long' appears in query."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "slot canyons", "min_length": 5.0},
+            park_lookup,
+            query="long slot canyon trails",
+        )
+        assert params["min_length"] == 5.0
+
+    def test_swaps_max_to_min_for_long_query(self, park_lookup):
+        """max_length swapped to min_length when user said 'long'."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "slot canyons", "max_length": 100.0},
+            park_lookup,
+            query="long slot canyon trails",
+        )
+        assert "max_length" not in params
+        assert params["min_length"] == 100.0
+
+    def test_removes_multiple_hallucinations(self, park_lookup):
+        """Multiple hallucinated params removed at once."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {
+                "query": "slot canyons",
+                "state": "Utah",
+                "park_code": "arch",
+                "source": "OSM",
+                "hiked": False,
+                "min_length": 0.0,
+                "max_length": 0.0,
+            },
+            park_lookup,
+            query="slot canyons in Utah",
+        )
+        assert "park_code" not in params
+        assert "source" not in params
+        assert "hiked" not in params
+        assert "min_length" not in params
+        assert "max_length" not in params
+        assert params["query"] == "slot canyons"
+        assert params["state"] == "UT"
+
+    def test_no_filters_preserved(self, park_lookup):
+        """Query with no hallucinated params passes through unchanged."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "waterfalls"},
+            park_lookup,
+            query="waterfalls",
+        )
+        assert params == {"query": "waterfalls"}
+
+    def test_validation_only_applies_to_search_by_topic(self, park_lookup):
+        """search_trails does not get hallucination validation."""
+        _, params = validate_and_normalize(
+            "search_trails",
+            {"park_code": "arch", "source": "OSM"},
+            park_lookup,
+            query="slot canyons",
+        )
+        # search_trails doesn't run _validate_extracted_params,
+        # so these params are preserved even without query evidence
+        assert params.get("source") == "OSM"
+
+    def test_validation_skipped_without_query(self, park_lookup):
+        """Without a query string, validation is skipped entirely."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "waterfalls", "park_code": "yose", "source": "TNM"},
+            park_lookup,
+        )
+        # No query → no validation → params preserved
+        assert params["park_code"] == "yose"
+        assert params["source"] == "TNM"
+
+    def test_realistic_waterfall_hikes_completed_california(self, park_lookup):
+        """Realistic test: 'waterfall hikes I completed in California'."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {
+                "query": "waterfall hikes",
+                "park_code": "wica",
+                "state": "California",
+                "hiked": True,
+            },
+            park_lookup,
+            query="waterfall hikes I completed in California",
+        )
+        assert "park_code" not in params  # wica hallucinated
+        assert params["state"] == "CA"
+        assert params["hiked"] is True
+        assert params["query"] == "waterfall hikes"
+
+    def test_realistic_long_slot_canyons(self, park_lookup):
+        """Realistic test: 'long slot canyon trails'."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {
+                "query": "slot canyon trails",
+                "park_code": "arch",
+                "max_length": 100.0,
+                "source": "OSM",
+                "hiked": False,
+            },
+            park_lookup,
+            query="long slot canyon trails",
+        )
+        assert "park_code" not in params
+        assert "source" not in params
+        assert "hiked" not in params
+        assert "max_length" not in params  # swapped to min_length
+        assert params["min_length"] == 100.0
+
+    def test_realistic_slot_canyons_utah(self, park_lookup):
+        """Realistic test: 'slot canyons in Utah'."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {
+                "query": "slot canyons",
+                "state": "Utah",
+                "source": "TNM",
+                "hiked": True,
+                "min_length": 0.0,
+                "max_length": 0.0,
+            },
+            park_lookup,
+            query="slot canyons in Utah",
+        )
+        assert params["state"] == "UT"
+        assert "source" not in params
+        assert "hiked" not in params
+        assert "min_length" not in params
+        assert "max_length" not in params

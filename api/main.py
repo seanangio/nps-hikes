@@ -1275,6 +1275,12 @@ async def natural_language_query(
                         user_query=query_text,
                         context_chunks=fallback,
                     )
+                else:
+                    generated_answer = (
+                        f'No matching trails were found for "{request.query}". '
+                        "Try broadening your search by removing filters or "
+                        "using different search terms."
+                    )
                 results = {
                     "result_count": len(fallback),
                     "results": fallback,

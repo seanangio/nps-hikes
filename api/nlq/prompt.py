@@ -244,7 +244,12 @@ Rules:
 - If the user asks about overall statistics (total miles, trail counts, park counts, averages, longest/shortest), use search_stats.
 - If the user asks for a per-park breakdown of stats, use search_stats with per_park=true.
 - If the user asks about a specific park's details, summary, or overview, use search_park_summary.
-- Only include parameters that the user's question implies. Do not add extra filters.\
+- CRITICAL: Only include parameters that the user EXPLICITLY mentions or directly implies. Do not add extra filters.
+- DO NOT add park_code unless the user mentions a specific park by name. Semantic terms like "slot canyons" or "waterfalls" do NOT imply a specific park.
+- DO NOT add source (TNM/OSM) unless the user explicitly mentions "TNM", "USGS", "OSM", or "OpenStreetMap".
+- DO NOT add hiked unless the user mentions completion status (e.g., "I hiked", "I completed", "haven't hiked", "want to hike").
+- DO NOT add min_length or max_length unless the user mentions trail length, distance, or words like "short" or "long".
+- DO NOT set min_length or max_length to 0. Omit length parameters entirely when not mentioned.\
 """
 
 

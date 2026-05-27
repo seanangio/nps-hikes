@@ -35,6 +35,7 @@ async def call_ollama(
         "messages": messages,
         "tools": tools,
         "stream": False,
+        "options": {"temperature": 0},
     }
 
     try:

@@ -7,11 +7,14 @@ and validates them against expected types and ranges.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
 from api.nlq.park_lookup import resolve_park_code
 from utils.exceptions import LlmResponseError
+
+logger = logging.getLogger(__name__)
 
 # US state name -> 2-letter code mapping for normalization
 _STATE_NAME_TO_CODE: dict[str, str] = {
@@ -239,6 +242,7 @@ def validate_and_normalize(
     - Full state names → 2-letter codes
     - Park names in park_code → resolved to actual codes
     - Out-of-range values clamped
+    - Hallucinated parameters removed (search_by_topic only)
     - Negation in query with wrong boolean polarity
 
     Args:
@@ -271,6 +275,9 @@ def validate_and_normalize(
     else:
         cleaned = _normalize_park_summary_params(params, park_lookup)
 
+    if query and function_name == "search_by_topic":
+        cleaned = _validate_extracted_params(cleaned, query, park_lookup)
+
     if query:
         cleaned = _apply_negation_correction(query, function_name, cleaned)
 
@@ -298,6 +305,141 @@ def _apply_negation_correction(
         params["hiked"] = False
 
     return params
+
+
+# Terms that indicate the user is referring to hiking/completion status.
+_HIKED_TERMS = [
+    "hiked",
+    "completed",
+    "finished",
+    "done",
+    "haven't",
+    "haven't hiked",
+    "not hiked",
+    "never hiked",
+    "to do",
+    "want to hike",
+    "planning to",
+]
+
+# Terms that indicate the user is referring to a data source.
+_SOURCE_TERMS = ["tnm", "usgs", "osm", "openstreetmap"]
+
+# Terms that indicate length intent direction.
+_LONG_TERMS = ["long", "longer", "lengthy"]
+_SHORT_TERMS = ["short", "shorter", "brief"]
+
+# Terms that indicate trail length is mentioned.
+_LENGTH_TERMS = (
+    _LONG_TERMS
+    + _SHORT_TERMS
+    + [
+        "miles",
+        "mile",
+        "under",
+        "over",
+        "less than",
+        "more than",
+        "at least",
+        "longer than",
+        "shorter than",
+    ]
+)
+
+
+def _validate_extracted_params(
+    params: dict[str, Any],
+    query: str,
+    park_lookup: dict[str, str],
+) -> dict[str, Any]:
+    """Remove hallucinated parameters not supported by the query text.
+
+    Small LLMs often infer parameters from world knowledge (e.g., adding
+    park_code="arch" when the user asks about "slot canyons") even though
+    the user didn't mention a specific park. This function checks each
+    extracted parameter against the original query and removes those
+    without textual evidence.
+
+    Only applies to search_by_topic parameters. The ``query`` field
+    itself is never removed.
+
+    Args:
+        params: Normalized parameters from the LLM.
+        query: The original user query string.
+        park_lookup: The park name → code lookup dict.
+
+    Returns:
+        Cleaned parameters with unsupported values removed.
+    """
+    cleaned = params.copy()
+    query_lower = query.lower()
+
+    # --- park_code: remove if no park name mentioned in query ---
+    if "park_code" in cleaned:
+        park_name_mentioned = any(
+            name in query_lower
+            for name, code in park_lookup.items()
+            # Skip 4-letter codes to avoid false positives on common words
+            if name != code and len(name) > 4
+        )
+        if not park_name_mentioned:
+            logger.info(
+                "Removing unsupported park_code='%s' from query: %s",
+                cleaned["park_code"],
+                query,
+            )
+            del cleaned["park_code"]
+
+    # --- source: remove if not mentioned ---
+    if "source" in cleaned:
+        source_mentioned = any(term in query_lower for term in _SOURCE_TERMS)
+        if not source_mentioned:
+            logger.info(
+                "Removing unsupported source='%s' from query: %s",
+                cleaned["source"],
+                query,
+            )
+            del cleaned["source"]
+
+    # --- hiked: remove if completion status not mentioned ---
+    if "hiked" in cleaned:
+        hiked_mentioned = any(term in query_lower for term in _HIKED_TERMS)
+        if not hiked_mentioned:
+            logger.info(
+                "Removing unsupported hiked=%s from query: %s",
+                cleaned["hiked"],
+                query,
+            )
+            del cleaned["hiked"]
+
+    # --- length filters: remove zero values (nonsensical) ---
+    if cleaned.get("min_length") == 0 or cleaned.get("min_length") == 0.0:
+        del cleaned["min_length"]
+    if cleaned.get("max_length") == 0 or cleaned.get("max_length") == 0.0:
+        del cleaned["max_length"]
+
+    # --- length filters: remove if no length terms mentioned ---
+    if "min_length" in cleaned or "max_length" in cleaned:
+        length_mentioned = any(term in query_lower for term in _LENGTH_TERMS)
+        if not length_mentioned:
+            logger.info("Removing unsupported length filters from query: %s", query)
+            cleaned.pop("min_length", None)
+            cleaned.pop("max_length", None)
+
+    # --- length direction: swap if "long" gave max_length instead of min ---
+    if (
+        "min_length" not in cleaned
+        and "max_length" in cleaned
+        and any(term in query_lower for term in _LONG_TERMS)
+    ):
+        logger.info(
+            "Swapping max_length=%s to min_length for 'long' query: %s",
+            cleaned["max_length"],
+            query,
+        )
+        cleaned["min_length"] = cleaned.pop("max_length")
+
+    return cleaned
 
 
 def _normalize_trail_params(
