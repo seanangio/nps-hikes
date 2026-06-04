@@ -459,5 +459,233 @@
         </Point>
       </Placemark>
     </Folder>
+    <Folder>
+      <name>grsm</name>
+      <Placemark>
+        <name>Deep Creek Trail Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.4337031,35.4647325,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Twentymile Trail Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.8766361,35.4677501,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Kuwohi Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.4961655,35.5568982,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Charlies Bunion</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.3719761,35.6392099,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Andrews Bald</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.4932622,35.5419048,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Alum Cave Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.4509686,35.6288789,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mount Le Conte</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.4368267,35.6542611,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Look Rock Developed Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.9399535,35.6317808,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Elkmont Nature Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.5805553,35.6578011,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cucumber Gap Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.5655194,35.6400624,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Jakes Creek Trail Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.5811398,35.6518993,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Little River Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.541047,35.6280626,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Abrams Falls Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.8525691,35.5911173,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Porters Creek Trail Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.3879037,35.6969373,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Trillium Gap Trail Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.462573,35.6802327,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cove Hardwood Nature Trail Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.4921509,35.6364531,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Rainbow Falls Trail, Bullhead Trail Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.4856504,35.6757149,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>maca</name>
+      <Placemark>
+        <name>River Styx Spring Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -86.1052438,37.1879153,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>jeff</name>
+      <Placemark>
+        <name>Gateway Arch Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -90.1859322,38.6242746,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>indu</name>
+      <Placemark>
+        <name>Dune Succession Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -87.2058399,41.6225727,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Paul H. Douglas Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -87.2686403,41.6067837,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Calumet Trail Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -87.0866342,41.637066,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Dune Ridge Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -87.0089973,41.6774378,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Indiana Dunes National Park Great Marsh Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -86.9866317,41.6748286,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
   </Document>
 </kml>
