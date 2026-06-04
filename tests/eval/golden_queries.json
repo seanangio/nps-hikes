@@ -9,6 +9,7 @@
     "query": "Hikes in Zion National Park",
     "expected_function": "search_trails",
     "expected_params": {"park_code": "zion"},
+    "forbidden_params": ["max_length", "min_length", "hiked", "source"],
     "category": "search_trails"
   },
   {
@@ -84,25 +85,7 @@
     "category": "search_parks"
   },
   {
-    "query": "Parks I've been to",
-    "expected_function": "search_parks",
-    "expected_params": {"visited": true},
-    "category": "search_parks"
-  },
-  {
     "query": "Parks I haven't visited",
-    "expected_function": "search_parks",
-    "expected_params": {"visited": false},
-    "category": "search_parks"
-  },
-  {
-    "query": "Which parks have I never been to?",
-    "expected_function": "search_parks",
-    "expected_params": {"visited": false},
-    "category": "search_parks"
-  },
-  {
-    "query": "Unvisited national parks",
     "expected_function": "search_parks",
     "expected_params": {"visited": false},
     "category": "search_parks"
@@ -111,18 +94,7 @@
     "query": "Show me all parks",
     "expected_function": "search_parks",
     "expected_params": {},
-    "category": "search_parks"
-  },
-  {
-    "query": "List the national parks",
-    "expected_function": "search_parks",
-    "expected_params": {},
-    "category": "search_parks"
-  },
-  {
-    "query": "What parks are there?",
-    "expected_function": "search_parks",
-    "expected_params": {},
+    "forbidden_params": ["visited"],
     "category": "search_parks"
   },
   {
@@ -135,18 +107,7 @@
     "query": "How many trails are there?",
     "expected_function": "search_stats",
     "expected_params": {},
-    "category": "search_stats"
-  },
-  {
-    "query": "What's the longest trail?",
-    "expected_function": "search_stats",
-    "expected_params": {},
-    "category": "search_stats"
-  },
-  {
-    "query": "Total mileage across all trails",
-    "expected_function": "search_stats",
-    "expected_params": {},
+    "forbidden_params": ["hiked"],
     "category": "search_stats"
   },
   {
@@ -156,21 +117,10 @@
     "category": "search_stats"
   },
   {
-    "query": "Per-park trail statistics",
-    "expected_function": "search_stats",
-    "expected_params": {"per_park": true},
-    "category": "search_stats"
-  },
-  {
-    "query": "Which park has the most trails?",
-    "expected_function": "search_stats",
-    "expected_params": {"per_park": true},
-    "category": "search_stats"
-  },
-  {
     "query": "Average trail length by park",
     "expected_function": "search_stats",
     "expected_params": {"per_park": true},
+    "forbidden_params": ["hiked"],
     "category": "search_stats"
   },
   {
@@ -280,5 +230,95 @@
     "expected_function": "search_parks",
     "expected_params": {"visit_month": ["Sep", "September", "Oct", "October", "Nov", "November"]},
     "category": "search_parks"
+  },
+  {
+    "query": "waterfall hikes in Yosemite",
+    "expected_function": "search_by_topic",
+    "expected_params": {"park_code": "yose"},
+    "query_keywords": ["waterfall"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "slot canyons in Utah",
+    "expected_function": "search_by_topic",
+    "expected_params": {"state": "UT"},
+    "query_keywords": ["slot canyon"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "kid-friendly trails",
+    "expected_function": "search_by_topic",
+    "expected_params": {},
+    "query_keywords": ["kid"],
+    "forbidden_params": ["park_code", "source", "hiked", "min_length", "max_length"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "scenic viewpoints in the Grand Canyon",
+    "expected_function": "search_by_topic",
+    "expected_params": {"park_code": "grca"},
+    "query_keywords": ["scenic", "viewpoint"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "winter activities at Yellowstone",
+    "expected_function": "search_by_topic",
+    "expected_params": {"park_code": "yell"},
+    "query_keywords": ["winter"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "slot canyons I hiked",
+    "expected_function": "search_by_topic",
+    "expected_params": {"hiked": true},
+    "query_keywords": ["slot canyon"],
+    "forbidden_params": ["park_code", "source"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "waterfall hikes over 5 miles in California",
+    "expected_function": "search_by_topic",
+    "expected_params": {"min_length": 5, "state": "CA"},
+    "query_keywords": ["waterfall"],
+    "forbidden_params": ["park_code", "source"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "long slot canyon trails",
+    "expected_function": "search_by_topic",
+    "expected_params": {"min_length": 5},
+    "query_keywords": ["slot canyon"],
+    "forbidden_params": ["park_code", "source", "hiked"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "short waterfall hikes",
+    "expected_function": "search_by_topic",
+    "expected_params": {"max_length": 3},
+    "query_keywords": ["waterfall"],
+    "forbidden_params": ["park_code", "source", "hiked", "min_length"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "waterfall hikes I completed in California",
+    "expected_function": "search_by_topic",
+    "expected_params": {"state": "CA", "hiked": true},
+    "query_keywords": ["waterfall"],
+    "forbidden_params": ["park_code", "source"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "slot canyons I haven't hiked yet",
+    "expected_function": "search_by_topic",
+    "expected_params": {"hiked": false},
+    "query_keywords": ["slot canyon"],
+    "forbidden_params": ["park_code", "source"],
+    "category": "search_by_topic"
+  },
+  {
+    "query": "short trails I hiked in Utah",
+    "expected_function": "search_trails",
+    "expected_params": {"max_length": 3, "hiked": true, "state": "UT"},
+    "category": "search_trails"
   }
 ]

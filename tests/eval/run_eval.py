@@ -116,6 +116,26 @@ def check_result(expected: dict[str, Any], actual: dict[str, Any]) -> tuple[str,
         elif actual_val != expected_val:
             mismatches.append(f"{key}: expected {expected_val!r}, got {actual_val!r}")
 
+    # Check query keywords (for search_by_topic: substring match on the query param)
+    query_keywords = expected.get("query_keywords")
+    if query_keywords:
+        actual_query = str(actual["params"].get("query", "")).lower()
+        missing_keywords = [
+            kw for kw in query_keywords if kw.lower() not in actual_query
+        ]
+        if missing_keywords:
+            mismatches.append(
+                f"query missing keywords: {missing_keywords} "
+                f"(actual query: {actual_query!r})"
+            )
+
+    # Check forbidden params (should NOT appear in actual result)
+    forbidden_params = expected.get("forbidden_params")
+    if forbidden_params:
+        present = [fp for fp in forbidden_params if fp in actual["params"]]
+        if present:
+            mismatches.append(f"forbidden params present: {present}")
+
     if mismatches:
         return "PARTIAL", "; ".join(mismatches)
 
@@ -150,6 +170,8 @@ async def run_eval(
                     "category": case.get("category", "unknown"),
                     "expected_function": case["expected_function"],
                     "expected_params": case.get("expected_params", {}),
+                    "query_keywords": case.get("query_keywords"),
+                    "forbidden_params": case.get("forbidden_params"),
                     "actual_function": actual["function"],
                     "actual_params": actual["params"],
                     "status": status,
