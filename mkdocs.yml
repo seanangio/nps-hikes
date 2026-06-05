@@ -4,6 +4,8 @@ repo_url: https://github.com/seanangio/nps-hikes
 
 theme:
   name: material
+  favicon: assets/boot.png
+  logo: assets/boot.png
   features:
     - content.code.copy
     - navigation.instant
