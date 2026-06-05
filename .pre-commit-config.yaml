@@ -50,6 +50,13 @@ repos:
         args: [--config-file=pyproject.toml]
         pass_filenames: false
 
+      - id: check-json-codeblocks
+        name: Validate JSON in Markdown code blocks
+        entry: python scripts/hooks/check_json_codeblocks.py
+        language: system
+        types: [markdown]
+        pass_filenames: true
+
       - id: check-png-optimization
         name: Check PNG optimization
         entry: python scripts/hooks/check_png_optimization.py
