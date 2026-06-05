@@ -28,7 +28,7 @@ An interactive web application for exploring National Park hiking trails with a 
 
 This is a **pure frontend application** that consumes the NPS Hikes FastAPI backend via HTTP. It does not access the database directly.
 
-```
+```text
 streamlit_app/
 ├── app.py                 # Main Streamlit app entry point
 ├── api/

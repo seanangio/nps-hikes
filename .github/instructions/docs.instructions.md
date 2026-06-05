@@ -29,7 +29,7 @@ catch that a rule-based linter cannot.
 - Flag explanations that assume knowledge not established earlier in the document.
 - Flag inconsistent heading hierarchy or document structure compared to sibling
   pages.
-- Flag code blocks missing a language identifier (```bash, ```json, etc.).
+- Flag code blocks missing a language identifier (`bash`, `json`, etc.).
 
 ## Style
 

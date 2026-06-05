@@ -50,7 +50,7 @@ KML files exported from [Google My Maps](https://www.google.com/maps/d/) contain
 The pipeline orchestrator creates the following tables:
 
 | Table | Description |
-|---|---|
+| --- | --- |
 | **parks** | Park metadata (codes, names, coordinates, descriptions, visit dates) |
 | **park_boundaries** | Spatial boundaries as MultiPolygon geometries in WGS84 |
 | **osm_hikes** | Aggregated trail geometries from OpenStreetMap (segments with same name combined into MultiLineString) |

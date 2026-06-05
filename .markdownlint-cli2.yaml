@@ -1,0 +1,16 @@
+# markdownlint-cli2 configuration
+# https://github.com/DavidAnson/markdownlint-cli2
+
+config:
+  # MD013 - Line length: disabled because prose markdown doesn't benefit
+  # from hard-wrapping at 80 characters.
+  MD013: false
+
+# Ignore generated/third-party files and working notes
+ignores:
+  - ".venv/**"
+  - "scratch/**"
+  - "reviews/**"
+  - ".claude/**"
+  - "styles/proselint/**"
+  - ".pytest_cache/**"

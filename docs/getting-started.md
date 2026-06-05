@@ -114,7 +114,7 @@ In [Google My Maps](https://www.google.com/maps/d/), create one or more maps for
 
 Export each map as a KML file, and save the files to `raw_data/gmaps/`:
 
-```
+```text
 raw_data/gmaps/
 ├── nps_points_west.kml    # could contain layers: zion, yose, grca, ...
 └── nps_points_east.kml    # could contain layers: acad, shen, grsm, ...
@@ -131,7 +131,7 @@ docker compose up --build -d
 This starts two services:
 
 | Service | Port | Description |
-|---------|------|-------------|
+| --- | --- | --- |
 | `db` | 5433 | PostGIS database (mapped to 5433 to avoid conflicts with any local PostgreSQL) |
 | `api` | 8000 | FastAPI REST API |
 
@@ -162,7 +162,7 @@ The `--test-limit 1` flag processes only one park, so you can verify it works be
 The pipeline runs six steps in order:
 
 | Step | What it does | Data source |
-|------|-------------|-------------|
+| --- | --- | --- |
 | 1. NPS Data Collection | Park metadata, coordinates, and boundary polygons | [NPS API](https://www.nps.gov/subjects/developer/) |
 | 2. OSM Trails Collection | Hiking trails within park boundaries | [OpenStreetMap](https://www.openstreetmap.org/) |
 | 3. TNM Trails Collection | Official trail data within park boundaries | [The National Map](https://www.usgs.gov/programs/national-geospatial-program/national-map) |
@@ -216,7 +216,7 @@ Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to
 ### Quick examples
 
 | Description | URL |
-|---|---|
+| --- | --- |
 | Browse all parks | `http://localhost:8000/parks` |
 | Filter to parks you've visited | `http://localhost:8000/parks?visited=true` |
 | See all trails for a specific park | `http://localhost:8000/parks/yose/trails` |

@@ -1,6 +1,6 @@
 # NPS Hikes - National Park Hiking Trail Data Collection & Analysis
 
-[![Unit Tests](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml) [![Integration Tests](https://github.com/seanangio/nps-hikes/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/seanangio/nps-hikes/actions/workflows/integration-tests.yml) [![Python](https://img.shields.io/badge/python-3.12%2B-blue)]() [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+[![Unit Tests](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/seanangio/nps-hikes/actions/workflows/unit-tests.yml) [![Integration Tests](https://github.com/seanangio/nps-hikes/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/seanangio/nps-hikes/actions/workflows/integration-tests.yml) [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 A Python project for collecting, validating, and analyzing hiking trail data from U.S. National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API and an interactive [Streamlit web app](https://seanangio-nps-hikes.streamlit.app) with natural language search.
 
@@ -34,7 +34,7 @@ docker compose up --build -d      # start the database and API
 POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db --test-limit 1
 ```
 
-Then open http://localhost:8000/docs to explore the API, or try the [live web app](https://seanangio-nps-hikes.streamlit.app) and [live API demo](https://seanangio-nps-hikes.onrender.com/docs).
+Then open <http://localhost:8000/docs> to explore the API, or try the [live web app](https://seanangio-nps-hikes.streamlit.app) and [live API demo](https://seanangio-nps-hikes.onrender.com/docs).
 
 ## Development
 
