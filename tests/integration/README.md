@@ -175,6 +175,7 @@ from scripts.database.db_writer import DatabaseWriter
 
 pytestmark = pytest.mark.integration
 
+
 def test_my_integration(test_db_writer: DatabaseWriter):
     """Test description of what this validates."""
     # Arrange

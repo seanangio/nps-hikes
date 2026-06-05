@@ -67,7 +67,7 @@ The initial Phase 2 tests revealed several interface mismatches between tests an
    - **Root Cause**: Schema has FK but not ON DELETE CASCADE
    - **Fix**: Updated `delete_gmaps_park_records()` to delete from child table first:
 
-     ```python
+     ```sql
      # Delete matched locations first
      DELETE FROM gmaps_hiking_locations_matched
      WHERE gmaps_location_id IN (SELECT id FROM gmaps_hiking_locations WHERE park_code = ...)
