@@ -50,6 +50,13 @@ repos:
         args: [--config-file=pyproject.toml]
         pass_filenames: false
 
+      - id: check-bash-codeblocks
+        name: Syntax-check bash in Markdown code blocks
+        entry: python scripts/hooks/check_bash_codeblocks.py
+        language: system
+        types: [markdown]
+        pass_filenames: true
+
       - id: check-json-codeblocks
         name: Validate JSON in Markdown code blocks
         entry: python scripts/hooks/check_json_codeblocks.py

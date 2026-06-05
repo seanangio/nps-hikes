@@ -1,8 +1,8 @@
 name: Docs Lint
 
-# Runs structural (markdownlint), prose (Vale), JSON code block, and build
-# (MkDocs) checks on Markdown files. Triggers on PRs to main and pushes to
-# main when docs or linter config change.
+# Runs structural (markdownlint), prose (Vale), code block (JSON and bash),
+# and build (MkDocs) checks on Markdown files. Triggers on PRs to main and
+# pushes to main when docs or linter config change.
 
 on:
   push:
@@ -15,6 +15,7 @@ on:
       - 'styles/config/**'
       - 'mkdocs.yml'
       - 'scripts/hooks/check_json_codeblocks.py'
+      - 'scripts/hooks/check_bash_codeblocks.py'
   pull_request:
     branches: [main]
     paths:
@@ -25,6 +26,7 @@ on:
       - 'styles/config/**'
       - 'mkdocs.yml'
       - 'scripts/hooks/check_json_codeblocks.py'
+      - 'scripts/hooks/check_bash_codeblocks.py'
 
 jobs:
   markdown-lint:
@@ -53,6 +55,21 @@ jobs:
           fail_on_error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  bash-codeblocks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Syntax-check bash in Markdown code blocks
+        run: python scripts/hooks/check_bash_codeblocks.py **/*.md
 
   json-codeblocks:
     runs-on: ubuntu-latest
