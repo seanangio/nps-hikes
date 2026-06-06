@@ -16,6 +16,7 @@ on:
       - 'mkdocs.yml'
       - 'scripts/hooks/check_json_codeblocks.py'
       - 'scripts/hooks/check_bash_codeblocks.py'
+      - 'lychee.toml'
   pull_request:
     branches: [main]
     paths:
@@ -27,6 +28,7 @@ on:
       - 'mkdocs.yml'
       - 'scripts/hooks/check_json_codeblocks.py'
       - 'scripts/hooks/check_bash_codeblocks.py'
+      - 'lychee.toml'
 
 jobs:
   markdown-lint:
@@ -108,6 +110,20 @@ jobs:
 
       - name: Validate JSON in Markdown code blocks
         run: python scripts/hooks/check_json_codeblocks.py **/*.md
+
+  link-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: "--no-progress 'docs/**/*.md' 'README.md'"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docs-build:
     runs-on: ubuntu-latest

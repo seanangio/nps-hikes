@@ -1,0 +1,31 @@
+# Lychee link checker configuration
+# https://lychee.cli.rs/usage/config/
+#
+# Shared by pre-commit (--offline, local links only) and CI (full check).
+
+# Exclude localhost/dev URLs and sites that block automated requests
+exclude = [
+    "http://localhost.*",
+    "http://127\\.0\\.0\\.1.*",
+    "https://img\\.shields\\.io/.*",
+    "https://seanangio-nps-hikes\\.streamlit\\.app.*",
+]
+
+# Skip directories excluded by other linters (matches .markdownlint-cli2.yaml)
+exclude_path = [
+    "scratch",
+    "reviews",
+    ".venv",
+    ".claude",
+    ".pytest_cache",
+    "styles/proselint",
+]
+
+# Treat rate-limited responses as OK
+accept = [200, 429]
+
+# Limit concurrency to avoid triggering rate limits
+max_concurrency = 4
+
+# Don't require HTTPS (some NPS links use HTTP)
+require_https = false

@@ -77,3 +77,10 @@ repos:
         entry: python scripts/hooks/check_png_optimization.py
         language: system
         types: [png]
+
+      - id: lychee
+        name: Check links in Markdown (offline)
+        entry: lychee --offline --no-progress
+        language: system
+        types: [markdown]
+        exclude: ^(scratch|reviews)/
