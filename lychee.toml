@@ -9,6 +9,7 @@ exclude = [
     "http://127\\.0\\.0\\.1.*",
     "https://img\\.shields\\.io/.*",
     "https://seanangio-nps-hikes\\.streamlit\\.app.*",
+    "https://www\\.usgs\\.gov/.*",
 ]
 
 # Skip directories excluded by other linters (matches .markdownlint-cli2.yaml)
