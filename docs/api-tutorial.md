@@ -95,6 +95,7 @@ To see only the parks from your visit log, add the `visited` filter:
 curl "http://localhost:8000/parks?visited=true" | python3 -m json.tool
 ```
 
+<!-- response: GET /parks -->
 ```json
 {
     "park_count": 3,
@@ -225,6 +226,7 @@ curl "http://localhost:8000/trails?park_code=yose" | python3 -m json.tool
 
 The response includes pagination metadata:
 
+<!-- response: GET /trails -->
 ```json
 {
     "trail_count": 50,
@@ -357,10 +359,10 @@ curl "http://localhost:8000/trails?park_code=acad&viz_3d=true" | python3 -m json
 
 In the response, look for the `viz_3d_slug` field on each trail:
 
+<!-- response: GET /trails -->
 ```json
 {
     "trail_count": 2,
-    "total_miles": 5.8,
     "pagination": {
         "limit": 50,
         "offset": 0,

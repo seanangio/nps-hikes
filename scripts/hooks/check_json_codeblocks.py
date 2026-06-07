@@ -1,15 +1,16 @@
-"""Pre-commit hook to validate JSON inside Markdown fenced code blocks.
+"""Pre-commit hook to syntax-check JSON inside Markdown fenced code blocks.
 
-Scans Markdown files for ```json fenced code blocks and validates each
+Scans Markdown files for ```json fenced code blocks and checks each
 one with json.loads(). Blocks containing ellipsis patterns are sanitized
-before validation: '[...]' is replaced with '[]', standalone '...' lines
+before checking: '[...]' is replaced with '[]', standalone '...' lines
 are removed, and trailing commas left behind are stripped. This allows
-structural validation (mismatched braces, missing quotes, etc.) even in
+structural checking (mismatched braces, missing quotes, etc.) even in
 partial examples.
 
-Limitation: This only checks JSON syntax. It does not verify that
+Limitation: This only checks JSON syntax. It does not validate that
 response examples match the actual API schema or that field values
-are realistic. Unusual ellipsis usage could produce false positives.
+are realistic. See validate_json_schema.py for schema validation.
+Unusual ellipsis usage could produce false positives.
 
 Usage:
     python scripts/hooks/check_json_codeblocks.py docs/**/*.md

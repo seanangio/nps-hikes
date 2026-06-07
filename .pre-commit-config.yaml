@@ -66,8 +66,15 @@ repos:
         pass_filenames: true
 
       - id: check-json-codeblocks
-        name: Validate JSON in Markdown code blocks
+        name: Syntax-check JSON in Markdown code blocks
         entry: python scripts/hooks/check_json_codeblocks.py
+        language: system
+        types: [markdown]
+        pass_filenames: true
+
+      - id: validate-json-schema
+        name: Validate JSON examples against API schema
+        entry: python scripts/hooks/validate_json_schema.py
         language: system
         types: [markdown]
         pass_filenames: true

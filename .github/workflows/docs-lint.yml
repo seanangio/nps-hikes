@@ -16,6 +16,8 @@ on:
       - 'mkdocs.yml'
       - 'scripts/hooks/check_json_codeblocks.py'
       - 'scripts/hooks/check_bash_codeblocks.py'
+      - 'scripts/hooks/validate_json_schema.py'
+      - 'api/models.py'
       - 'lychee.toml'
   pull_request:
     branches: [main]
@@ -28,6 +30,8 @@ on:
       - 'mkdocs.yml'
       - 'scripts/hooks/check_json_codeblocks.py'
       - 'scripts/hooks/check_bash_codeblocks.py'
+      - 'scripts/hooks/validate_json_schema.py'
+      - 'api/models.py'
       - 'lychee.toml'
 
 jobs:
@@ -108,8 +112,26 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Validate JSON in Markdown code blocks
+      - name: Syntax-check JSON in Markdown code blocks
         run: python scripts/hooks/check_json_codeblocks.py **/*.md
+
+  json-schema:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pydantic jsonschema
+
+      - name: Validate JSON examples against API schema
+        run: python scripts/hooks/validate_json_schema.py docs/**/*.md
 
   link-check:
     runs-on: ubuntu-latest

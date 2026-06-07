@@ -13,3 +13,4 @@ nbconvert>=7.17.0  # Fix for CVE-2025-53000
 mkdocs-material
 ruff
 blacken-docs
+jsonschema

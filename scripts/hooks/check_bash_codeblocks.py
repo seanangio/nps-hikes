@@ -1,6 +1,6 @@
 """Pre-commit hook to syntax-check bash inside Markdown fenced code blocks.
 
-Scans Markdown files for ```bash fenced code blocks and validates each
+Scans Markdown files for ```bash fenced code blocks and checks each
 one with `bash -n` (syntax-only mode). This catches parse errors like
 unclosed quotes, mismatched braces, and malformed control structures
 without executing the commands.
