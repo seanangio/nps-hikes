@@ -58,6 +58,14 @@ repos:
         exclude: ^(scratch|reviews)/
         pass_filenames: true
 
+      - id: check-python-codeblocks
+        name: Lint Python in Markdown code blocks
+        entry: python scripts/hooks/check_python_codeblocks.py
+        language: system
+        types: [markdown]
+        exclude: ^(scratch|reviews|tests)/
+        pass_filenames: true
+
       - id: check-bash-codeblocks
         name: Syntax-check bash in Markdown code blocks
         entry: python scripts/hooks/check_bash_codeblocks.py

@@ -16,6 +16,7 @@ on:
       - 'mkdocs.yml'
       - 'scripts/hooks/check_json_codeblocks.py'
       - 'scripts/hooks/check_bash_codeblocks.py'
+      - 'scripts/hooks/check_python_codeblocks.py'
       - 'scripts/hooks/validate_json_schema.py'
       - 'api/models.py'
       - 'lychee.toml'
@@ -30,6 +31,7 @@ on:
       - 'mkdocs.yml'
       - 'scripts/hooks/check_json_codeblocks.py'
       - 'scripts/hooks/check_bash_codeblocks.py'
+      - 'scripts/hooks/check_python_codeblocks.py'
       - 'scripts/hooks/validate_json_schema.py'
       - 'api/models.py'
       - 'lychee.toml'
@@ -74,8 +76,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install blacken-docs
-        run: pip install blacken-docs
+      - name: Install Python code block tools
+        run: pip install blacken-docs ruff
 
       - name: Format-check Python in Markdown code blocks
         run: >-
@@ -84,6 +86,15 @@ jobs:
           -not -path './reviews/*'
           -not -path './.venv/*'
           -print0 | xargs -0 blacken-docs --check
+
+      - name: Lint Python in Markdown code blocks
+        run: >-
+          find . -name '*.md'
+          -not -path './scratch/*'
+          -not -path './reviews/*'
+          -not -path './tests/*'
+          -not -path './.venv/*'
+          -print0 | xargs -0 python scripts/hooks/check_python_codeblocks.py
 
   bash-codeblocks:
     runs-on: ubuntu-latest
