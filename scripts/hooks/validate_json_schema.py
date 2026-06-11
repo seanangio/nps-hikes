@@ -28,6 +28,10 @@ import re
 import sys
 from pathlib import Path
 
+type JsonValue = (
+    str | int | float | bool | None | dict[str, JsonValue] | list[JsonValue]
+)
+
 # Ensure the project root is on sys.path so 'api.models' is importable
 # when this script is invoked as 'python scripts/hooks/validate_json_schema.py'.
 _PROJECT_ROOT = str(Path(__file__).resolve().parent.parent.parent)
@@ -146,7 +150,7 @@ def extract_annotated_blocks(
     return blocks
 
 
-def validate_block(instance: object, schema: dict) -> list[str]:
+def validate_block(instance: JsonValue, schema: dict) -> list[str]:
     """Validate a parsed JSON instance against a schema.
 
     Returns a list of human-readable error messages.
