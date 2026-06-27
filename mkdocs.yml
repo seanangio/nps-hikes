@@ -27,6 +27,11 @@ theme:
 markdown_extensions:
   - footnotes
 
+extra:
+  analytics:
+    provider: google
+    property: G-9X7X15048G
+
 nav:
   - Home: index.md
   - getting-started.md
