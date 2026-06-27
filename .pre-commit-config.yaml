@@ -31,6 +31,7 @@ repos:
     rev: v0.22.1
     hooks:
       - id: markdownlint-cli2
+        exclude: ^plans/
 
   - repo: local
     hooks:
@@ -40,6 +41,7 @@ repos:
         args: ['--minAlertLevel=error']
         language: system
         types: [markdown]
+        exclude: ^plans/
         pass_filenames: true
 
       - id: mypy
@@ -55,7 +57,7 @@ repos:
         entry: blacken-docs
         language: system
         types: [markdown]
-        exclude: ^(scratch|reviews)/
+        exclude: ^(plans|scratch|reviews)/
         pass_filenames: true
 
       - id: check-python-codeblocks
@@ -63,7 +65,7 @@ repos:
         entry: python scripts/hooks/check_python_codeblocks.py
         language: system
         types: [markdown]
-        exclude: ^(scratch|reviews|tests)/
+        exclude: ^(plans|scratch|reviews|tests)/
         pass_filenames: true
 
       - id: check-bash-codeblocks
@@ -71,6 +73,7 @@ repos:
         entry: python scripts/hooks/check_bash_codeblocks.py
         language: system
         types: [markdown]
+        exclude: ^plans/
         pass_filenames: true
 
       - id: check-json-codeblocks
@@ -78,6 +81,7 @@ repos:
         entry: python scripts/hooks/check_json_codeblocks.py
         language: system
         types: [markdown]
+        exclude: ^plans/
         pass_filenames: true
 
       - id: validate-json-schema
@@ -85,6 +89,7 @@ repos:
         entry: python scripts/hooks/validate_json_schema.py
         language: system
         types: [markdown]
+        exclude: ^plans/
         pass_filenames: true
 
       - id: check-png-optimization
@@ -98,4 +103,4 @@ repos:
         entry: lychee --offline --no-progress
         language: system
         types: [markdown]
-        exclude: ^(scratch|reviews)/
+        exclude: ^(plans|scratch|reviews)/
