@@ -4,6 +4,8 @@ repo_url: https://github.com/seanangio/nps-hikes
 
 theme:
   name: material
+  favicon: assets/boot.png
+  logo: assets/boot.png
   features:
     - content.code.copy
     - navigation.instant
@@ -12,10 +14,12 @@ theme:
     - search.highlight
   palette:
     - scheme: default
+      primary: teal
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
+      primary: teal
       toggle:
         icon: material/brightness-4
         name: Switch to light mode

@@ -5,9 +5,11 @@ Phase 3 adds integration tests for the FastAPI endpoints, verifying that the API
 ## 📦 New Test File Created
 
 ### **test_api_db.py** (12 tests)
+
 Integration tests for FastAPI → Database integration:
 
 **Parks Endpoint Tests (4 tests):**
+
 - ✅ **test_parks_endpoint_returns_database_data**
   - Seeds database with test parks
   - Queries `/parks` endpoint
@@ -28,6 +30,7 @@ Integration tests for FastAPI → Database integration:
   - Verifies empty list response (not error)
 
 **Trails Endpoint Tests (6 tests):**
+
 - ✅ **test_trails_endpoint_returns_database_data**
   - Seeds both OSM and TNM trails
   - Queries `/trails` endpoint
@@ -58,6 +61,7 @@ Integration tests for FastAPI → Database integration:
   - Verifies 422 validation error
 
 **Health & Root Endpoint Tests (2 tests):**
+
 - ✅ **test_health_check_with_database_connected**
   - Tests `/health` endpoint
   - Verifies database connectivity check
@@ -73,7 +77,7 @@ Integration tests for FastAPI → Database integration:
 **Total Integration Tests: 23** (21 passed, 2 skipped)
 
 | Test File | Tests | Focus Area |
-|-----------|-------|------------|
+| --- | --- | --- |
 | test_nps_collector_db.py | 4 | Parks & boundaries |
 | test_trail_collectors_db.py | 3 | OSM & TNM trails |
 | test_gmaps_importer_db.py | 4 | GMaps locations |
@@ -84,6 +88,7 @@ Integration tests for FastAPI → Database integration:
 ## 🎯 What Phase 3 Tests Validate
 
 ### API → Database Integration
+
 1. **Database Queries**: API endpoints correctly query PostgreSQL
 2. **Response Serialization**: Database rows → Pydantic models → JSON
 3. **Query Filters**: park_code, visited, source, length ranges
@@ -91,12 +96,14 @@ Integration tests for FastAPI → Database integration:
 5. **Validation Errors**: Invalid params return 422 responses
 
 ### Data Integrity
+
 1. **Parks Endpoint**: Returns correct park metadata
 2. **Trails Endpoint**: Combines OSM + TNM data
 3. **Visit Status**: Correctly filters by visited/unvisited
 4. **Description Inclusion**: Optional field works correctly
 
 ### Error Handling
+
 1. **Empty Database**: No crashes, empty lists returned
 2. **Invalid Parameters**: 422 validation errors
 3. **Database Health**: `/health` endpoint connectivity check
@@ -106,7 +113,9 @@ Integration tests for FastAPI → Database integration:
 ## 🔧 Phase 3 Implementation Details
 
 ### Test Strategy
+
 Unlike unit tests that mock the database, Phase 3 integration tests:
+
 1. Use a **real test database** (PostGIS on port 5434)
 2. **Seed known data** before each test
 3. **Call actual API endpoints** via TestClient
@@ -117,6 +126,7 @@ Unlike unit tests that mock the database, Phase 3 integration tests:
 
 **Problem**: API connected to production database instead of test database
 **Solution**: Patch `get_db_engine()` to return test engine:
+
 ```python
 with patch("api.database.get_db_engine", return_value=test_db_writer.engine):
     with patch("api.queries.get_db_engine", return_value=test_db_writer.engine):
@@ -131,16 +141,19 @@ with patch("api.database.get_db_engine", return_value=test_db_writer.engine):
 ## 🚀 Running Phase 3 Tests
 
 ### Run all integration tests (Phases 1-3)
+
 ```bash
 pytest tests/integration -v -m integration
 ```
 
 ### Run API tests only
+
 ```bash
 pytest tests/integration/test_api_db.py -v
 ```
 
 ### Run specific test class
+
 ```bash
 # Parks endpoint tests
 pytest tests/integration/test_api_db.py::TestParksEndpoint -v
@@ -157,6 +170,7 @@ pytest tests/integration/test_api_db.py::TestTrailsEndpoint -v
 - **All integration tests**: ~113 seconds (21 passed, 2 skipped)
 
 Phase 3 is much faster than Phases 1-2 because:
+
 - No external API calls (NPS, OSM, TNM)
 - No geographic data processing
 - Just database queries and JSON serialization
@@ -166,7 +180,7 @@ Phase 3 is much faster than Phases 1-2 because:
 ## ✅ Phase 3 Coverage Summary
 
 | Component | Coverage | Notes |
-|-----------|----------|-------|
+| --- | --- | --- |
 | `/parks` endpoint | ✅ Complete | All filters tested |
 | `/trails` endpoint | ✅ Complete | park_code, source, length filters |
 | `/health` endpoint | ✅ Complete | Database connectivity |
@@ -178,7 +192,7 @@ Phase 3 is much faster than Phases 1-2 because:
 
 ---
 
-## 🎉 Integration Test Suite Complete!
+## 🎉 Integration Test Suite Complete
 
 All three phases of integration testing are now complete:
 
@@ -187,7 +201,8 @@ All three phases of integration testing are now complete:
 - **Phase 3**: API → Database ✅
 
 The complete integration test suite validates the entire data pipeline:
-```
+
+```text
 External APIs → Collectors → Database → API → JSON Response
    (NPS/OSM/TNM)                      (PostGIS)     (FastAPI)
 ```
@@ -208,17 +223,20 @@ External APIs → Collectors → Database → API → JSON Response
 Potential enhancements for future work:
 
 ### Phase 4: End-to-End Pipeline Tests
+
 - Full orchestrator run with test database
 - Verify complete data flow through all stages
 - Test data consistency across tables
 
 ### Additional API Tests
+
 - Test visualization endpoints (`/parks/{park_code}/viz/static-map`)
 - Test error responses (404s for missing parks)
 - Test state filtering for trails
 - Test hiked=true/false filtering
 
 ### Performance Tests
+
 - Load testing with large datasets
 - Query optimization validation
 - Response time benchmarks

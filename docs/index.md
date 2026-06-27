@@ -21,7 +21,7 @@ A Python project for collecting, validating, and analyzing hiking trail data fro
 
 ## Project structure
 
-```
+```text
 nps-hikes/
 ├── api/                       # FastAPI REST API
 │   ├── main.py                        # API endpoints and application
@@ -47,7 +47,7 @@ nps-hikes/
 The pipeline runs six steps in the following order:
 
 | Step | What it does | Data source |
-|------|-------------|-------------|
+| --- | --- | --- |
 | 1. NPS data collection | Park metadata, coordinates, and boundary polygons | [NPS API](https://www.nps.gov/subjects/developer/) |
 | 2. OSM trails collection | Hiking trails within park boundaries | [OpenStreetMap](https://www.openstreetmap.org/) |
 | 3. TNM trails collection | Official trail data within park boundaries | [The National Map(USGS)](https://www.usgs.gov/programs/national-geospatial-program/national-map) |

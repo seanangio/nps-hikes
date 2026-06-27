@@ -39,7 +39,7 @@ pytest tests/integration/test_nps_collector_db.py -v
 
 You should see output like:
 
-```
+```text
 tests/integration/test_nps_collector_db.py::TestNPSCollectorDatabaseIntegration::test_nps_collector_writes_park_metadata_to_database PASSED
 tests/integration/test_nps_collector_db.py::TestNPSCollectorDatabaseIntegration::test_nps_collector_writes_park_boundaries_to_database PASSED
 tests/integration/test_nps_collector_db.py::TestNPSCollectorDatabaseIntegration::test_park_upsert_updates_existing_records PASSED
@@ -59,6 +59,7 @@ The `-v` flag removes the test database volume for a clean slate next time.
 ## Troubleshooting
 
 ### Database not ready
+
 ```bash
 # Check logs
 docker compose -f docker-compose.test.yml logs test-db
@@ -68,6 +69,7 @@ docker compose -f docker-compose.test.yml restart test-db
 ```
 
 ### Tests skipped with "NPS_API_KEY not set"
+
 ```bash
 # Make sure your API key is exported
 echo $NPS_API_KEY
@@ -77,6 +79,7 @@ export NPS_API_KEY="your_key_here"
 ```
 
 ### Connection refused
+
 ```bash
 # Verify port 5434 is not in use
 lsof -i :5434
@@ -88,6 +91,7 @@ docker ps
 ## What's Being Tested?
 
 The example tests verify:
+
 1. ✅ NPS collector fetches park data from real API
 2. ✅ Data is written to PostgreSQL with correct schema
 3. ✅ Park boundaries are stored as valid PostGIS geometries

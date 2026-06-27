@@ -27,6 +27,11 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=lf']  # Enforce Unix line endings
 
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.22.1
+    hooks:
+      - id: markdownlint-cli2
+
   - repo: local
     hooks:
       - id: vale
@@ -45,8 +50,52 @@ repos:
         args: [--config-file=pyproject.toml]
         pass_filenames: false
 
+      - id: blacken-docs
+        name: Format Python in Markdown code blocks
+        entry: blacken-docs
+        language: system
+        types: [markdown]
+        exclude: ^(scratch|reviews)/
+        pass_filenames: true
+
+      - id: check-python-codeblocks
+        name: Lint Python in Markdown code blocks
+        entry: python scripts/hooks/check_python_codeblocks.py
+        language: system
+        types: [markdown]
+        exclude: ^(scratch|reviews|tests)/
+        pass_filenames: true
+
+      - id: check-bash-codeblocks
+        name: Syntax-check bash in Markdown code blocks
+        entry: python scripts/hooks/check_bash_codeblocks.py
+        language: system
+        types: [markdown]
+        pass_filenames: true
+
+      - id: check-json-codeblocks
+        name: Syntax-check JSON in Markdown code blocks
+        entry: python scripts/hooks/check_json_codeblocks.py
+        language: system
+        types: [markdown]
+        pass_filenames: true
+
+      - id: validate-json-schema
+        name: Validate JSON examples against API schema
+        entry: python scripts/hooks/validate_json_schema.py
+        language: system
+        types: [markdown]
+        pass_filenames: true
+
       - id: check-png-optimization
         name: Check PNG optimization
         entry: python scripts/hooks/check_png_optimization.py
         language: system
         types: [png]
+
+      - id: lychee
+        name: Check links in Markdown (offline)
+        entry: lychee --offline --no-progress
+        language: system
+        types: [markdown]
+        exclude: ^(scratch|reviews)/

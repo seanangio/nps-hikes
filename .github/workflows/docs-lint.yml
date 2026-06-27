@@ -1,0 +1,177 @@
+name: Docs Lint
+
+# Runs structural (markdownlint), prose (Vale), code block (JSON, bash,
+# Python), and build (MkDocs) checks on Markdown files. Triggers on PRs to
+# main and pushes to main when docs or linter config change.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.md'
+      - '.vale.ini'
+      - '.markdownlint-cli2.yaml'
+      - 'styles/NPS/**'
+      - 'styles/config/**'
+      - 'mkdocs.yml'
+      - 'scripts/hooks/check_json_codeblocks.py'
+      - 'scripts/hooks/check_bash_codeblocks.py'
+      - 'scripts/hooks/check_python_codeblocks.py'
+      - 'scripts/hooks/validate_json_schema.py'
+      - 'api/models.py'
+      - 'lychee.toml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.md'
+      - '.vale.ini'
+      - '.markdownlint-cli2.yaml'
+      - 'styles/NPS/**'
+      - 'styles/config/**'
+      - 'mkdocs.yml'
+      - 'scripts/hooks/check_json_codeblocks.py'
+      - 'scripts/hooks/check_bash_codeblocks.py'
+      - 'scripts/hooks/check_python_codeblocks.py'
+      - 'scripts/hooks/validate_json_schema.py'
+      - 'api/models.py'
+      - 'lychee.toml'
+
+jobs:
+  markdown-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Run markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@v23
+        with:
+          globs: '**/*.md'
+
+  vale-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Run Vale
+        uses: errata-ai/vale-action@v2
+        with:
+          reporter: github-pr-check
+          fail_on_error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  python-codeblocks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install Python code block tools
+        run: pip install blacken-docs ruff
+
+      - name: Format-check Python in Markdown code blocks
+        run: >-
+          find . -name '*.md'
+          -not -path './scratch/*'
+          -not -path './reviews/*'
+          -not -path './.venv/*'
+          -print0 | xargs -0 blacken-docs --check
+
+      - name: Lint Python in Markdown code blocks
+        run: >-
+          find . -name '*.md'
+          -not -path './scratch/*'
+          -not -path './reviews/*'
+          -not -path './tests/*'
+          -not -path './.venv/*'
+          -print0 | xargs -0 python scripts/hooks/check_python_codeblocks.py
+
+  bash-codeblocks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Syntax-check bash in Markdown code blocks
+        run: python scripts/hooks/check_bash_codeblocks.py **/*.md
+
+  json-codeblocks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Syntax-check JSON in Markdown code blocks
+        run: python scripts/hooks/check_json_codeblocks.py **/*.md
+
+  json-schema:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pydantic jsonschema
+
+      - name: Validate JSON examples against API schema
+        run: python scripts/hooks/validate_json_schema.py docs/**/*.md
+
+  link-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: "--no-progress 'docs/**/*.md' 'README.md'"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docs-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install MkDocs
+        run: pip install mkdocs-material
+
+      - name: Build docs (strict)
+        run: mkdocs build --strict

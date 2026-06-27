@@ -5,6 +5,7 @@ This directory contains integration tests that verify the complete data flow thr
 ## Overview
 
 Integration tests validate:
+
 - **Data Collection → Database**: Collectors write valid data to PostgreSQL/PostGIS
 - **Database → API**: API endpoints query and return correct data
 - **End-to-End Pipeline**: Complete orchestrator runs populate queryable data
@@ -13,6 +14,7 @@ Integration tests validate:
 ## Prerequisites
 
 ### Required
+
 - Docker Desktop running
 - Python 3.12+ with dev dependencies installed
 - NPS API key set in environment
@@ -36,21 +38,25 @@ docker compose -f docker-compose.test.yml logs -f test-db
 ## Running Integration Tests
 
 ### Run all integration tests
+
 ```bash
 pytest tests/integration -v -m integration
 ```
 
 ### Run specific test file
+
 ```bash
 pytest tests/integration/test_nps_collector_db.py -v
 ```
 
 ### Run specific test
+
 ```bash
 pytest tests/integration/test_nps_collector_db.py::TestNPSCollectorDatabaseIntegration::test_nps_collector_writes_park_metadata_to_database -v
 ```
 
 ### Run with verbose output
+
 ```bash
 pytest tests/integration -v -s -m integration
 ```
@@ -90,18 +96,21 @@ pytest tests/integration -v -m integration
 ### Current Tests
 
 #### test_nps_collector_db.py (Phase 1: Foundation)
+
 - ✅ Park metadata collection and database write
 - ✅ Park boundary collection with PostGIS geometry validation
 - ✅ Upsert behavior (updates instead of duplicate errors)
 - ✅ Database constraint enforcement (PK, CHECK, FK)
 
 #### test_trail_collectors_db.py (Phase 2: Trail Collectors)
+
 - ✅ OSM trail collection via Overpass API → database
 - ✅ OSM PostGIS geometry validation and spatial indexes
 - ✅ TNM trail collection via USGS API → database
 - ✅ TNM unique identifier (permanent_identifier) constraints
 
 #### test_gmaps_importer_db.py (Phase 2: GMaps Locations)
+
 - ✅ KML file parsing → database write
 - ✅ Park code validation (FK constraint enforcement)
 - ✅ Auto-incrementing ID generation
@@ -110,6 +119,7 @@ pytest tests/integration -v -m integration
 ## Performance Notes
 
 Integration tests are slower than unit tests because they:
+
 - Make real API calls (minimized with `limit=1`)
 - Perform actual database I/O
 - Create/drop schemas for each test
@@ -128,19 +138,23 @@ docker compose -f docker-compose.test.yml down -v
 ## Troubleshooting
 
 ### "Connection refused" errors
+
 - Ensure Docker is running: `docker ps`
 - Check test database is healthy: `docker compose -f docker-compose.test.yml ps`
 - View logs: `docker compose -f docker-compose.test.yml logs test-db`
 
 ### "NPS_API_KEY not set" skip messages
+
 - Set your API key: `export NPS_API_KEY="your_key"`
 - Or create a `.env` file with `NPS_API_KEY=your_key`
 
 ### Tests hang or timeout
+
 - Check database health: `docker compose -f docker-compose.test.yml ps`
 - Restart test database: `docker compose -f docker-compose.test.yml restart test-db`
 
 ### Schema errors
+
 - Ensure SQL schema files are up to date in `sql/schema/`
 - Check for migration conflicts if modifying schemas
 
@@ -161,6 +175,7 @@ from scripts.database.db_writer import DatabaseWriter
 
 pytestmark = pytest.mark.integration
 
+
 def test_my_integration(test_db_writer: DatabaseWriter):
     """Test description of what this validates."""
     # Arrange
@@ -176,11 +191,13 @@ Integration tests are **configured and running** in GitHub Actions! The project 
 ### Workflow Setup
 
 **Unit Tests** ([.github/workflows/unit-tests.yml](../../.github/workflows/unit-tests.yml))
+
 - Runs on: Every push to all branches
 - Tests: `pytest tests/ -m "not integration"`
 - Duration: ~Fast (no external APIs or database)
 
 **Integration Tests** ([.github/workflows/integration-tests.yml](../../.github/workflows/integration-tests.yml))
+
 - Runs on: Pull requests and pushes to `main` branch only
 - Tests: `pytest tests/integration -m integration`
 - Duration: ~2 minutes (includes external API calls)

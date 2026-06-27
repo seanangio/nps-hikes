@@ -95,6 +95,7 @@ To see only the parks from your visit log, add the `visited` filter:
 curl "http://localhost:8000/parks?visited=true" | python3 -m json.tool
 ```
 
+<!-- response: GET /parks -->
 ```json
 {
     "park_count": 3,
@@ -139,7 +140,7 @@ POSTGRES_HOST=localhost POSTGRES_PORT=5433 python profiling/orchestrator.py us_p
 
 Now open the static map in your browser:
 
-```
+```text
 http://localhost:8000/parks/viz/us-static-park-map
 ```
 
@@ -149,7 +150,7 @@ This returns a PNG image showing all national parks on a US map with Alaska and 
 
 For an interactive version with hover tooltips and park boundaries, open:
 
-```
+```text
 http://localhost:8000/parks/viz/us-interactive-park-map
 ```
 
@@ -169,7 +170,7 @@ POSTGRES_HOST=localhost POSTGRES_PORT=5433 python profiling/orchestrator.py visu
 
 Open a trail map for a specific park using its 4-letter code:
 
-```
+```text
 http://localhost:8000/parks/acad/viz/static-map
 ```
 
@@ -183,7 +184,7 @@ The response is a PNG image showing the park boundary and all collected trails. 
 
 For parks where you have matched trails with elevation data, there's an elevation profile matrix:
 
-```
+```text
 http://localhost:8000/parks/acad/viz/elevation-matrix
 ```
 
@@ -202,7 +203,7 @@ curl "http://localhost:8000/trails?park_code=acad" | python3 -m json.tool
 The response includes a `trail_count`, `total_miles`, a `trails` array, and `pagination` metadata. Each trail includes:
 
 | Field | Description |
-|---|---|
+| --- | --- |
 | `trail_id` | Unique identifier (from TNM or OSM) |
 | `trail_name` | Trail name |
 | `source` | Data source (`TNM` or `OSM`) |
@@ -225,6 +226,7 @@ curl "http://localhost:8000/trails?park_code=yose" | python3 -m json.tool
 
 The response includes pagination metadata:
 
+<!-- response: GET /trails -->
 ```json
 {
     "trail_count": 50,
@@ -241,6 +243,7 @@ The response includes pagination metadata:
 ```
 
 The `pagination` object tells you:
+
 - `limit`: Items per page (50 by default)
 - `offset`: Number of items skipped (0 for first page)
 - `total_count`: Total trails matching your query
@@ -356,10 +359,10 @@ curl "http://localhost:8000/trails?park_code=acad&viz_3d=true" | python3 -m json
 
 In the response, look for the `viz_3d_slug` field on each trail:
 
+<!-- response: GET /trails -->
 ```json
 {
     "trail_count": 2,
-    "total_miles": 5.8,
     "pagination": {
         "limit": 50,
         "offset": 0,
@@ -389,7 +392,7 @@ The `viz_3d_slug` value is what you need for the next step.
 
 Build the URL using the park code and trail slug, and open it in your browser:
 
-```
+```text
 http://localhost:8000/parks/acad/trails/jordan_pond_path/viz/3d
 ```
 
@@ -401,7 +404,7 @@ This opens an interactive 3D Plotly visualization. You can rotate, zoom, and pan
 
 By default, the z-axis is exaggerated by a factor of 5 to make elevation changes more visible. You can adjust this with the `z_scale` parameter (range: 1 to 20):
 
-```
+```text
 http://localhost:8000/parks/acad/trails/jordan_pond_path/viz/3d?z_scale=10
 ```
 
@@ -460,7 +463,7 @@ curl -X POST http://localhost:8000/query \
 The response includes four fields:
 
 | Field | Description |
-|---|---|
+| --- | --- |
 | `original_query` | Your question as submitted |
 | `interpreted_as` | The structured parameters the LLM extracted (for example, `{"park_code": "yose", "max_length": 3}`) |
 | `function_called` | Which function was used (for example, `search_trails`, `search_parks`, `search_stats`, `search_park_summary`) |

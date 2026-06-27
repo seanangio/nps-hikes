@@ -18,6 +18,7 @@ This directory contains generated files from the NPS hiking data collection proc
 ## Regeneration
 
 To regenerate all artifacts:
+
 ```bash
 # Clear the directory
 rm artifacts/*
