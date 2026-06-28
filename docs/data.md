@@ -1,4 +1,7 @@
-# Data Sources & Schema
+---
+title: Data Sources and Schema
+description: Overview of the NPS, OpenStreetMap, USGS, Google My Maps, and PostGIS data sources and schemas used by the NPS Hikes project.
+---
 
 ## External sources
 

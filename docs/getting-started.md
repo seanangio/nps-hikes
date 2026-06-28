@@ -1,4 +1,7 @@
-# Getting Started
+---
+title: Getting Started
+description: Set up the NPS Hikes project locally with Docker, PostGIS, Python, the NPS API, and optional Ollama-powered natural language queries.
+---
 
 This guide walks you through setting up your own NPS hiking project from scratch. By the end, you'll have a PostGIS database with parks you've visited, queryable through an interactive API.
 
