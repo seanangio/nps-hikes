@@ -1,4 +1,6 @@
 site_name: NPS Hikes
+site_description: Personal project by Sean Angiolillo for collecting, analyzing, and exploring US National Park hiking trail data.
+site_author: Sean Angiolillo
 site_url: https://seanangio.github.io/nps-hikes/
 repo_url: https://github.com/seanangio/nps-hikes
 
