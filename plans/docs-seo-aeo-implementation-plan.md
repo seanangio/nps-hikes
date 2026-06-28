@@ -209,7 +209,6 @@ Add:
 ```yaml
 site_description: Personal project by Sean Angiolillo for collecting, analyzing, and exploring US National Park hiking trail data.
 site_author: Sean Angiolillo
-repo_name: seanangio/nps-hikes
 ```
 
 Confirm existing values:
