@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - '**.md'
+      - '!plans/**'
       - '.vale.ini'
       - '.markdownlint-cli2.yaml'
       - 'styles/NPS/**'
@@ -24,6 +25,7 @@ on:
     branches: [main]
     paths:
       - '**.md'
+      - '!plans/**'
       - '.vale.ini'
       - '.markdownlint-cli2.yaml'
       - 'styles/NPS/**'
@@ -82,6 +84,7 @@ jobs:
       - name: Format-check Python in Markdown code blocks
         run: >-
           find . -name '*.md'
+          -not -path './plans/*'
           -not -path './scratch/*'
           -not -path './reviews/*'
           -not -path './.venv/*'
@@ -90,6 +93,7 @@ jobs:
       - name: Lint Python in Markdown code blocks
         run: >-
           find . -name '*.md'
+          -not -path './plans/*'
           -not -path './scratch/*'
           -not -path './reviews/*'
           -not -path './tests/*'
@@ -109,7 +113,10 @@ jobs:
           python-version: '3.12'
 
       - name: Syntax-check bash in Markdown code blocks
-        run: python scripts/hooks/check_bash_codeblocks.py **/*.md
+        run: >-
+          find . -name '*.md'
+          -not -path './plans/*'
+          -print0 | xargs -0 python scripts/hooks/check_bash_codeblocks.py
 
   json-codeblocks:
     runs-on: ubuntu-latest
@@ -124,7 +131,10 @@ jobs:
           python-version: '3.12'
 
       - name: Syntax-check JSON in Markdown code blocks
-        run: python scripts/hooks/check_json_codeblocks.py **/*.md
+        run: >-
+          find . -name '*.md'
+          -not -path './plans/*'
+          -print0 | xargs -0 python scripts/hooks/check_json_codeblocks.py
 
   json-schema:
     runs-on: ubuntu-latest

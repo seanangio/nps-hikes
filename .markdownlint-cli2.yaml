@@ -9,6 +9,7 @@ config:
 # Ignore generated/third-party files and working notes
 ignores:
   - ".venv/**"
+  - "plans/**"
   - "scratch/**"
   - "reviews/**"
   - ".claude/**"
