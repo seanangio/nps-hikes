@@ -414,9 +414,6 @@ def _build_chip_texts(
     if "source" in params:
         chips.append(f"Source: {params['source']}")
 
-    if "trail_type" in params:
-        chips.append(f"Trail Type: {params['trail_type']}")
-
     if "visit_year" in params:
         chips.append(f"Visit Year: {params['visit_year']}")
 
@@ -500,8 +497,8 @@ def _nlq_params_diverged(function_called: str, params: dict[str, Any]) -> bool:
     """Return True if any widget has changed from the LLM's interpretation.
 
     Only compares params the translation layer actually wrote to a
-    widget. Params with no corresponding widget (trail_type, visit_year,
-    visit_month, limit, per_park) are ignored — they're read-only chips
+    widget. Params with no corresponding widget (visit_year, visit_month,
+    limit, per_park) are ignored — they're read-only chips
     and can't diverge.
     """
     if function_called == "search_stats":

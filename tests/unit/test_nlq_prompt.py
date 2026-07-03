@@ -35,7 +35,6 @@ class TestToolDefinitions:
             "hiked",
             "min_length",
             "max_length",
-            "trail_type",
             "limit",
         }
         assert set(props.keys()) == expected

@@ -239,7 +239,7 @@ async def get_all_parks(
     Returns hiking trails from both TNM and OSM data sources.
 
     Combines TNM and OSM data, preferring TNM when duplicates exist (based on fuzzy name matching).
-    Supports filtering by park, state, length, source, hiking status, trail type,
+    Supports filtering by park, state, length, source, hiking status,
     and 3D visualization availability.
     """,
 )
@@ -278,10 +278,6 @@ async def get_trails(
         description="Maximum trail length in miles (e.g., 10.0)",
         ge=0,
         le=100,
-    ),
-    trail_type: str | None = Query(
-        default=None,
-        description="Filter by OSM highway type (e.g., 'path', 'footway', 'track')",
     ),
     viz_3d: bool | None = Query(
         default=None,
@@ -336,7 +332,6 @@ async def get_trails(
     - California trails: `/trails?state=CA`
     - Yosemite trails from TNM: `/trails?park_code=yose&source=TNM`
     - Trails I haven't hiked yet in Utah: `/trails?state=UT&hiked=false`
-    - Only footway trails: `/trails?trail_type=footway`
     - Trails with 3D viz: `/trails?viz_3d=true`
     """
     # Resolve pagination parameters (outside try block for proper HTTP error handling)
@@ -364,7 +359,6 @@ async def get_trails(
             hiked=hiked,
             min_length=min_length,
             max_length=max_length,
-            trail_type=trail_type,
             viz_3d=viz_3d,
             limit=actual_limit,
             offset=actual_offset,

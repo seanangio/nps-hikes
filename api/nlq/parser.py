@@ -338,12 +338,6 @@ def _normalize_trail_params(
             except (ValueError, TypeError):
                 pass
 
-    # Trail type
-    if params.get("trail_type"):
-        raw = str(params["trail_type"]).lower()
-        if raw in ("path", "footway", "track", "steps", "cycleway"):
-            cleaned["trail_type"] = raw
-
     # Limit: clamp to valid range
     if "limit" in params and params["limit"] is not None:
         try:

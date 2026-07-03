@@ -30,7 +30,6 @@ def trails_to_csv(trails: list[dict[str, Any]]) -> str:
         "park_name",
         "length_miles",
         "source",
-        "trail_type",
         "hiked",
         "viz_3d_available",
     ]
@@ -79,7 +78,6 @@ def trails_to_geojson(trails: list[dict[str, Any]]) -> str:
                 "park_name": trail.get("park_name"),
                 "length_miles": trail.get("length_miles"),
                 "source": trail.get("source"),
-                "trail_type": trail.get("trail_type"),
                 "hiked": trail.get("hiked", False),
                 "viz_3d_available": trail.get("viz_3d_available", False),
             },
