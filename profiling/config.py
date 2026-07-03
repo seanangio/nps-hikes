@@ -74,7 +74,7 @@ PROFILING_MODULES: dict[str, ModuleConfig] = {
         "description": "OSM hiking trails analysis",
         "queries": [
             "trails_summary_by_park.sql",
-            "trail_type_analysis.sql",
+            "highway_type_analysis.sql",
             "trail_length_distribution.sql",
             "trail_data_quality.sql",
         ],

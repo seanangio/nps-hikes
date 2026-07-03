@@ -1,8 +1,8 @@
 -- Trail analysis by highway type (footway, path, etc.)
--- Shows count and length statistics by trail type
+-- Shows count and length statistics by OSM highway type
 
 SELECT
-    highway as trail_type,
+    highway as highway_type,
     COUNT(*) as trail_count,
     ROUND(AVG(length_miles)::numeric, 3) as avg_length_miles,
     ROUND(MIN(length_miles)::numeric, 3) as min_length_miles,
