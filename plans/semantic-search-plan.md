@@ -749,7 +749,7 @@ The `else` branch (fallback, `trail_count == 0`) stays unchanged.
 
 ## Step 8: Hybrid Search - Add Structured Filters to `search_by_topic`
 
-**Goal**: Enable `search_by_topic` to accept structured filters (`hiked`, `min_length`, `max_length`, `source`, `trail_type`) alongside semantic queries, allowing combined queries like "slot canyons I hiked" or "waterfall hikes over 5 miles in California".
+**Goal**: Enable `search_by_topic` to accept structured filters (`hiked`, `min_length`, `max_length`, `source`) alongside semantic queries, allowing combined queries like "slot canyons I hiked" or "waterfall hikes over 5 miles in California".
 
 **Status**: Not started.
 

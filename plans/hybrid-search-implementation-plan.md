@@ -2,7 +2,9 @@
 
 ## Step 8: Add Structured Filters to `search_by_topic`
 
-**Goal**: Enable `search_by_topic` to accept structured filters (`hiked`, `min_length`, `max_length`, `source`, `trail_type`) alongside semantic queries, allowing combined queries like "slot canyons I hiked" or "waterfall hikes over 5 miles in California".
+**Goal**: Enable `search_by_topic` to accept structured filters (`hiked`, `min_length`, `max_length`, `source`) alongside semantic queries, allowing combined queries like "slot canyons I hiked" or "waterfall hikes over 5 miles in California".
+
+**Note:** This plan originally included a `trail_type` filter. That concept has since been removed from the app/API/NLQ surface and should not be implemented here. Any old references to `trail_type` below should be treated as superseded by the trail-type removal work.
 
 **Status**: Not started.
 
@@ -16,7 +18,7 @@
 
 | File | Change |
 |------|--------|
-| `api/nlq/prompt.py` | Add `hiked`, `min_length`, `max_length`, `source`, `trail_type` parameters to `search_by_topic` tool definition; update system message guidance |
+| `api/nlq/prompt.py` | Add `hiked`, `min_length`, `max_length`, `source` parameters to `search_by_topic` tool definition; update system message guidance |
 | `api/queries.py` | Add filter parameters to `fetch_topic_trails()` signature; add WHERE clauses in final SELECT |
 | `api/main.py` | Pass new filter parameters through in `search_by_topic` dispatch (both `/query` and `/search` endpoints) |
 | `api/nlq/parser.py` | Ensure new parameters are normalized (likely already handled by existing `_normalize_topic_search_params`) |
@@ -83,11 +85,6 @@
                     "enum": ["TNM", "OSM"],
                     "description": "Data source: TNM (USGS) or OSM (OpenStreetMap)",
                 },
-                "trail_type": {
-                    "type": "string",
-                    "enum": ["path", "footway", "track", "steps", "cycleway"],
-                    "description": "OSM highway type filter (only applies to OSM trails)",
-                },
                 "limit": {
                     "type": "integer",
                     "description": "Maximum number of results (1-50, default 20)",
@@ -146,7 +143,6 @@ def fetch_topic_trails(
     min_length: float | None = None,
     max_length: float | None = None,
     source: str | None = None,
-    trail_type: str | None = None,
     limit: int = 20,
     geojson: bool = True,
 ) -> dict[str, Any]:
@@ -174,7 +170,6 @@ def fetch_topic_trails(
         min_length: Optional minimum trail length in miles.
         max_length: Optional maximum trail length in miles.
         source: Optional data source filter ('TNM' or 'OSM').
-        trail_type: Optional OSM highway type filter (e.g., 'path', 'footway').
         limit: Maximum number of trail results (default: 20).
         geojson: Whether to include GeoJSON geometry (default: True).
 
@@ -214,10 +209,6 @@ Replace the current final SELECT with:
     if source is not None:
         trail_where_clauses.append("r.source = :source")
         params["source"] = source
-
-    if trail_type is not None:
-        trail_where_clauses.append("r.highway_type = :trail_type")
-        params["trail_type"] = trail_type
 
     trail_where_sql = ""
     if trail_where_clauses:
@@ -289,7 +280,6 @@ elif function_name == "search_by_topic":
         min_length=params.get("min_length"),
         max_length=params.get("max_length"),
         source=params.get("source"),
-        trail_type=params.get("trail_type"),
         limit=params.get("limit", 20),
         geojson=True,
     )
@@ -342,10 +332,6 @@ async def semantic_search(
         description="Data source filter ('TNM' or 'OSM'). Only used when resolve_trails=true",
         pattern="^(TNM|OSM)$",
     ),
-    trail_type: str | None = Query(
-        default=None,
-        description="OSM highway type (e.g., 'path', 'footway'). Only used when resolve_trails=true",
-    ),
 ) -> dict[str, Any]:
     """Semantic search endpoint with optional trail resolution and filtering."""
 
@@ -363,7 +349,6 @@ async def semantic_search(
                 min_length=min_length,
                 max_length=max_length,
                 source=source,
-                trail_type=trail_type,
                 limit=limit,
                 geojson=False,
             )
@@ -437,12 +422,9 @@ def _normalize_topic_search_params(params: dict[str, Any]) -> dict[str, Any]:
         if key in params and params[key] is not None:
             normalized[key] = params[key]
 
-    # Source and trail_type - uppercase
+    # Source - uppercase
     if "source" in params and params["source"]:
         normalized["source"] = params["source"].upper()
-
-    if "trail_type" in params and params["trail_type"]:
-        normalized["trail_type"] = params["trail_type"].lower()
 
     return normalized
 ```
@@ -495,9 +477,6 @@ class TestTopicTrailsWithFilters:
     def test_filter_by_source_osm(self, mock_db_engine):
         """Only returns OSM trails."""
 
-    def test_filter_by_trail_type(self, mock_db_engine):
-        """Filters OSM trails by highway type."""
-
     def test_combined_filters(self, mock_db_engine):
         """Applies multiple filters simultaneously."""
         # hiked=True, min_length=5, source='TNM'
@@ -540,9 +519,6 @@ def test_search_by_topic_with_length_filters():
 
 def test_search_by_topic_with_source_filter():
     """Extracts source parameter, uppercases it."""
-
-def test_search_by_topic_with_trail_type():
-    """Extracts trail_type parameter."""
 
 def test_search_by_topic_combined_filters():
     """Extracts multiple filters in one call."""
@@ -638,8 +614,7 @@ curl -X POST http://localhost:8001/query \
 2. **Filters eliminate some results**: Semantic search finds 10 trails, filters leave 3 → `trail_count=3`, topic_context contains 3 trails
 3. **Conflicting filters**: `min_length=10, max_length=5` → returns empty (SQL handles gracefully)
 4. **Invalid filter values**: Negative lengths, invalid source string → should be caught by FastAPI validation
-5. **trail_type filter on TNM trails**: Should work (highway_type is NULL for TNM, filter won't match)
-6. **Filters without semantic query**: Not possible - `query` is required parameter
+5. **Filters without semantic query**: Not possible - `query` is required parameter
 
 ---
 
@@ -712,9 +687,6 @@ if function_called == "search_by_topic":
     if params.get("source"):
         chips.append(params["source"])
 
-    if params.get("trail_type"):
-        chips.append(params["trail_type"])
-
     return chips
 ```
 
@@ -743,7 +715,6 @@ if function_name == "search_by_topic":
     if params.get("source"):
         st.session_state.source_filter = params["source"]
 
-    # trail_type is OSM-specific, may not have a sidebar widget
 ```
 
 **Option**: Show filters as **read-only** (disabled widgets) vs **editable** (active widgets).
@@ -851,7 +822,6 @@ When using `search_by_topic` or `/search?resolve_trails=true`, you can apply:
 - `min_length` (float): Minimum trail length in miles
 - `max_length` (float): Maximum trail length in miles
 - `source` (string): Data source ('TNM' or 'OSM')
-- `trail_type` (string): OSM highway type ('path', 'footway', etc.)
 - `state` (string): 2-letter state code
 - `park_code` (string): 4-character park code
 
