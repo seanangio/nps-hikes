@@ -22,11 +22,11 @@ test: ## Run unit tests
 	pytest -m "not integration"
 
 .PHONY: test-integration
-test-integration: ## Run integration tests
+test-integration: test-db-up ## Start test DB if needed, then run integration tests
 	pytest tests/integration -m integration
 
 .PHONY: test-all
-test-all: ## Run unit and integration tests
+test-all: test-db-up ## Start test DB if needed, then run unit and integration tests
 	pytest
 
 .PHONY: coverage

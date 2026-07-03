@@ -223,7 +223,6 @@ def valid_tnm_trails_with_optionals_gdf():
         # Optional string fields
         "name_alternate": ["Precipice Loop"],
         "trail_number": ["TR-001"],
-        "trail_type": ["Terra Trail"],
         "primary_trail_maintainer": ["National Park Service"],
         # Optional boolean fields
         "hiker_pedestrian": ["Y"],

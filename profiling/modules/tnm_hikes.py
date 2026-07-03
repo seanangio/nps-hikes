@@ -8,7 +8,7 @@ collections from The National Map.
 Key Features:
 - Trail count and length statistics by park
 - Data quality analysis (completeness, consistency)
-- Trail type and designation breakdowns
+- National designation breakdowns
 - Spatial distribution analysis
 - Comparison metrics between different collection runs
 - Export capabilities for analysis results
@@ -90,15 +90,14 @@ class TNMHikesProfiler:
             COUNT(*) as trail_count,
             COUNT(CASE WHEN name IS NOT NULL AND name != '' THEN 1 END) as named_trail_count,
             COUNT(CASE WHEN name IS NULL OR name = '' THEN 1 END) as unnamed_trail_count,
-            AVG(lengthmiles) as avg_length_miles,
-            MIN(lengthmiles) as min_length_miles,
-            MAX(lengthmiles) as max_length_miles,
-            SUM(lengthmiles) as total_length_miles,
-            COUNT(CASE WHEN hikerpedestrian = 'Y' THEN 1 END) as hiker_pedestrian_count,
-            COUNT(CASE WHEN hikerpedestrian = 'N' THEN 1 END) as non_hiker_pedestrian_count,
-            COUNT(CASE WHEN hikerpedestrian IS NULL THEN 1 END) as unknown_hiker_pedestrian_count,
-            COUNT(CASE WHEN trailtype IS NOT NULL THEN 1 END) as typed_trail_count,
-            COUNT(CASE WHEN nationaltraildesignation IS NOT NULL THEN 1 END) as designated_trail_count
+            AVG(length_miles) as avg_length_miles,
+            MIN(length_miles) as min_length_miles,
+            MAX(length_miles) as max_length_miles,
+            SUM(length_miles) as total_length_miles,
+            COUNT(CASE WHEN hiker_pedestrian = 'Y' THEN 1 END) as hiker_pedestrian_count,
+            COUNT(CASE WHEN hiker_pedestrian = 'N' THEN 1 END) as non_hiker_pedestrian_count,
+            COUNT(CASE WHEN hiker_pedestrian IS NULL THEN 1 END) as unknown_hiker_pedestrian_count,
+            COUNT(CASE WHEN national_trail_designation IS NOT NULL THEN 1 END) as designated_trail_count
         FROM tnm_hikes
         {park_filter}
         GROUP BY park_code
@@ -128,20 +127,20 @@ class TNMHikesProfiler:
             self.logger.error(f"Error generating trail statistics: {e}")
             return {}
 
-    def get_trail_type_breakdown(
+    def get_designation_breakdown(
         self, park_codes: list[str] | None = None
     ) -> dict[str, Any]:
         """
-        Get breakdown of trails by type and designation.
+        Get breakdown of trails by national designation.
 
         Args:
             park_codes (list[str] | None): List of park codes to analyze.
                                             If None, analyzes all parks.
 
         Returns:
-            Dict containing trail type and designation breakdowns
+            Dict containing designation breakdowns
         """
-        self.logger.info("Generating trail type breakdown")
+        self.logger.info("Generating designation breakdown")
 
         # Build SQL query
         if park_codes:
@@ -150,47 +149,27 @@ class TNMHikesProfiler:
         else:
             park_filter = ""
 
-        # Trail type breakdown
-        type_sql = f"""
-        SELECT
-            trailtype,
-            COUNT(*) as count,
-            AVG(lengthmiles) as avg_length_miles,
-            SUM(lengthmiles) as total_length_miles
-        FROM tnm_hikes
-        {park_filter}
-        GROUP BY trailtype
-        ORDER BY count DESC
-        """
-
-        # National designation breakdown
         designation_sql = f"""
         SELECT
-            nationaltraildesignation,
+            national_trail_designation,
             COUNT(*) as count,
-            AVG(lengthmiles) as avg_length_miles,
-            SUM(lengthmiles) as total_length_miles
+            AVG(length_miles) as avg_length_miles,
+            SUM(length_miles) as total_length_miles
         FROM tnm_hikes
         {park_filter}
-        GROUP BY nationaltraildesignation
+        GROUP BY national_trail_designation
         ORDER BY count DESC
         """
 
         try:
-            type_df = pd.read_sql(type_sql, self.engine)
             designation_df = pd.read_sql(designation_sql, self.engine)
 
             breakdown = {
-                "trail_types": type_df.to_dict("records"),
                 "national_designations": designation_df.to_dict("records"),
                 "summary": {
-                    "unique_trail_types": len(type_df),
                     "unique_designations": len(designation_df),
-                    "most_common_type": (
-                        type_df.iloc[0]["trailtype"] if len(type_df) > 0 else None
-                    ),
                     "most_common_designation": (
-                        designation_df.iloc[0]["nationaltraildesignation"]
+                        designation_df.iloc[0]["national_trail_designation"]
                         if len(designation_df) > 0
                         else None
                     ),
@@ -198,12 +177,12 @@ class TNMHikesProfiler:
             }
 
             self.logger.info(
-                f"Generated type breakdown: {len(type_df)} types, {len(designation_df)} designations"
+                f"Generated designation breakdown for {len(designation_df)} designations"
             )
             return breakdown
 
         except Exception as e:
-            self.logger.error(f"Error generating trail type breakdown: {e}")
+            self.logger.error(f"Error generating designation breakdown: {e}")
             return {}
 
     def get_data_quality_metrics(
@@ -233,11 +212,10 @@ class TNMHikesProfiler:
             park_code,
             COUNT(*) as total_trails,
             COUNT(CASE WHEN name IS NOT NULL AND name != '' THEN 1 END) as named_trails,
-            COUNT(CASE WHEN lengthmiles IS NOT NULL THEN 1 END) as trails_with_length,
-            COUNT(CASE WHEN trailtype IS NOT NULL THEN 1 END) as trails_with_type,
-            COUNT(CASE WHEN hikerpedestrian IS NOT NULL THEN 1 END) as trails_with_hiker_status,
-            COUNT(CASE WHEN primarytrailmaintainer IS NOT NULL THEN 1 END) as trails_with_maintainer,
-            COUNT(CASE WHEN nationaltraildesignation IS NOT NULL THEN 1 END) as trails_with_designation,
+            COUNT(CASE WHEN length_miles IS NOT NULL THEN 1 END) as trails_with_length,
+            COUNT(CASE WHEN hiker_pedestrian IS NOT NULL THEN 1 END) as trails_with_hiker_status,
+            COUNT(CASE WHEN primary_trail_maintainer IS NOT NULL THEN 1 END) as trails_with_maintainer,
+            COUNT(CASE WHEN national_trail_designation IS NOT NULL THEN 1 END) as trails_with_designation,
             COUNT(CASE WHEN geometry IS NOT NULL THEN 1 END) as trails_with_geometry
         FROM tnm_hikes
         {park_filter}
@@ -254,9 +232,6 @@ class TNMHikesProfiler:
             ).round(2)
             df["length_completeness"] = (
                 df["trails_with_length"] / df["total_trails"] * 100
-            ).round(2)
-            df["type_completeness"] = (
-                df["trails_with_type"] / df["total_trails"] * 100
             ).round(2)
             df["hiker_status_completeness"] = (
                 df["trails_with_hiker_status"] / df["total_trails"] * 100
@@ -279,9 +254,6 @@ class TNMHikesProfiler:
                 ).round(2),
                 "length_completeness": (
                     df["trails_with_length"].sum() / total_trails * 100
-                ).round(2),
-                "type_completeness": (
-                    df["trails_with_type"].sum() / total_trails * 100
                 ).round(2),
                 "hiker_status_completeness": (
                     df["trails_with_hiker_status"].sum() / total_trails * 100
@@ -412,16 +384,17 @@ class TNMHikesProfiler:
         sql = f"""
         SELECT
             t.park_code,
-            COUNT(DISTINCT t.permanentidentifier) as tnm_trail_count,
+            COALESCE(t.park_code, o.park_code) as park_code,
+            COUNT(DISTINCT t.permanent_identifier) as tnm_trail_count,
             COUNT(DISTINCT o.osm_id) as osm_trail_count,
-            COALESCE(SUM(t.lengthmiles), 0) as tnm_total_length,
+            COALESCE(SUM(t.length_miles), 0) as tnm_total_length,
             COALESCE(SUM(o.length_miles), 0) as osm_total_length,
-            COALESCE(AVG(t.lengthmiles), 0) as tnm_avg_length,
+            COALESCE(AVG(t.length_miles), 0) as tnm_avg_length,
             COALESCE(AVG(o.length_miles), 0) as osm_avg_length
         FROM tnm_hikes t
         FULL OUTER JOIN osm_hikes o ON t.park_code = o.park_code
         {park_filter}
-        GROUP BY t.park_code
+        GROUP BY COALESCE(t.park_code, o.park_code)
         ORDER BY tnm_trail_count DESC
         """
 
@@ -511,16 +484,16 @@ class TNMHikesProfiler:
                 )
                 exported_files["trail_statistics"] = stats_file
 
-            # Export trail type breakdown
-            type_breakdown = self.get_trail_type_breakdown(park_codes)
-            if type_breakdown:
-                type_file = os.path.join(
-                    output_dir, f"tnm_trail_types_{timestamp}.json"
+            # Export designation breakdown
+            designation_breakdown = self.get_designation_breakdown(park_codes)
+            if designation_breakdown:
+                designation_file = os.path.join(
+                    output_dir, f"tnm_national_designations_{timestamp}.json"
                 )
-                pd.DataFrame(type_breakdown["trail_types"]).to_json(
-                    type_file, orient="records", indent=2
+                pd.DataFrame(designation_breakdown["national_designations"]).to_json(
+                    designation_file, orient="records", indent=2
                 )
-                exported_files["trail_types"] = type_file
+                exported_files["national_designations"] = designation_file
 
             # Export data quality metrics
             quality = self.get_data_quality_metrics(park_codes)
@@ -560,7 +533,9 @@ class TNMHikesProfiler:
                 "timestamp": timestamp,
                 "park_codes_analyzed": park_codes,
                 "trail_statistics_summary": stats.get("summary", {}),
-                "type_breakdown_summary": type_breakdown.get("summary", {}),
+                "designation_breakdown_summary": designation_breakdown.get(
+                    "summary", {}
+                ),
                 "quality_summary": quality.get("summary", {}),
                 "spatial_summary": spatial.get("summary", {}),
                 "comparison_summary": comparison.get("summary", {}),
@@ -604,7 +579,7 @@ class TNMHikesProfiler:
                 "analysis_type": "TNM Hikes Comprehensive Report",
             },
             "trail_statistics": self.get_trail_statistics(park_codes),
-            "trail_type_breakdown": self.get_trail_type_breakdown(park_codes),
+            "designation_breakdown": self.get_designation_breakdown(park_codes),
             "data_quality_metrics": self.get_data_quality_metrics(park_codes),
             "spatial_analysis": self.get_spatial_analysis(park_codes),
             "osm_comparison": self.compare_with_osm_data(park_codes),

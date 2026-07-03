@@ -15,7 +15,6 @@ SELECT
     COALESCE(COUNT(CASE WHEN t.hiker_pedestrian = 'Y' THEN 1 END), 0) as hiker_pedestrian_count,
     COALESCE(COUNT(CASE WHEN t.hiker_pedestrian = 'N' THEN 1 END), 0) as non_hiker_pedestrian_count,
     COALESCE(COUNT(CASE WHEN t.hiker_pedestrian IS NULL THEN 1 END), 0) as unknown_hiker_pedestrian_count,
-    COALESCE(COUNT(CASE WHEN t.trail_type IS NOT NULL THEN 1 END), 0) as typed_trail_count,
     COALESCE(COUNT(CASE WHEN t.national_trail_designation IS NOT NULL THEN 1 END), 0) as designated_trail_count
 FROM parks p
 LEFT JOIN tnm_hikes t ON p.park_code = t.park_code

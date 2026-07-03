@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS tnm_hikes (
     source_dataset_id VARCHAR(100),
     source_originator VARCHAR(100),
     load_date BIGINT,
-    trail_type VARCHAR(100),
     hiker_pedestrian VARCHAR(1),
     bicycle VARCHAR(1),
     pack_saddle VARCHAR(1),
@@ -54,8 +53,6 @@ CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code
     ON tnm_hikes (park_code);
 CREATE INDEX IF NOT EXISTS idx_tnm_hikes_collected_at
     ON tnm_hikes (collected_at);
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_trail_type
-    ON tnm_hikes (trail_type);
 CREATE INDEX IF NOT EXISTS idx_tnm_hikes_hiker_pedestrian
     ON tnm_hikes (hiker_pedestrian);
 CREATE INDEX IF NOT EXISTS idx_tnm_hikes_length_miles
@@ -64,8 +61,6 @@ CREATE INDEX IF NOT EXISTS idx_tnm_hikes_primary_trail_maintainer
     ON tnm_hikes (primary_trail_maintainer);
 
 -- Create composite indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code_trail_type
-    ON tnm_hikes (park_code, trail_type);
 CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code_hiker_pedestrian
     ON tnm_hikes (park_code, hiker_pedestrian);
 CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code_length
@@ -75,7 +70,6 @@ CREATE INDEX IF NOT EXISTS idx_tnm_hikes_park_code_length
 COMMENT ON TABLE tnm_hikes IS 'Hiking trail data from The National Map (USGS)';
 COMMENT ON COLUMN tnm_hikes.permanent_identifier IS 'Globally unique identifier from TNM API';
 COMMENT ON COLUMN tnm_hikes.park_code IS '4-character lowercase park identifier, references parks table';
-COMMENT ON COLUMN tnm_hikes.trail_type IS 'Type of trail (Terra Trail, etc.)';
 COMMENT ON COLUMN tnm_hikes.hiker_pedestrian IS 'Allows hiking/pedestrian use (Y/N)';
 COMMENT ON COLUMN tnm_hikes.bicycle IS 'Allows bicycle use (Y/N)';
 COMMENT ON COLUMN tnm_hikes.length_miles IS 'Trail length in miles with 3 decimal places precision (0.001 mile = ~5 feet)';
