@@ -57,11 +57,11 @@ POSTGRES_PASSWORD=choose_a_password
 The remaining defaults work as-is for the Docker setup:
 
 ```dotenv
-# No changes required for these defaults
+# Recommended local defaults: connect local scripts to the Docker DB on host port 5433
 POSTGRES_USER=postgres
 NPS_USER_EMAIL=your_email@example.com
 POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
+POSTGRES_PORT=5433
 POSTGRES_DB=nps_hikes_db
 
 # Ollama (optional, for natural language queries)
@@ -69,7 +69,7 @@ OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.1:8b
 ```
 
-> **How the project uses the `.env` file:** Docker Compose reads it automatically to configure the database container. The Python scripts also read it (via `python-dotenv`) for API credentials and database connections.
+> **How the project uses the `.env` file:** Docker Compose reads it automatically to configure the database container. Local Python scripts also read it (via `python-dotenv`) for API credentials and database connections. In the recommended setup, local scripts talk to the Docker database on `localhost:5433`, while containers talk to that same database internally on `db:5432`.
 
 ## Step 4: Personalize the raw data
 
@@ -150,14 +150,23 @@ You should see both `db` and `api` with a status of "Up" (the database should sh
 
 > **Note:** The database uses port **5433** on your machine, not the standard 5432. This is intentional to avoid conflicts if you have PostgreSQL installed locally.
 
+### Recommended development workflow
+
+There are two valid ways to run the API locally against this Docker database:
+
+- **Recommended for day-to-day development:** run only the database in Docker, then start the API locally with `make dev`. This gives you auto-reload, easier debugging, and better compatibility with host services like Ollama. The API will be available at `http://localhost:8001`.
+- **Full container stack:** run `docker compose up --build -d` or `make up` to start both the database and API in Docker. This is useful when you want to verify the packaged container setup. The API will be available at `http://localhost:8000`.
+
+Both modes use the same Docker database data. The only difference is where the API process runs.
+
 ## Step 6: Run the data collection pipeline
 
 Next, populate the database with park and trail data. The pipeline runs on your local machine and writes to the Docker database.
 
-Since the Docker database is on port 5433, override the port when running the pipeline:
+If you're following the recommended `.env` settings above, local scripts already point to the Docker database on port 5433. You can run the pipeline directly:
 
 ```bash
-POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db --test-limit 1
+python scripts/orchestrator.py --write-db --test-limit 1
 ```
 
 The `--test-limit 1` flag processes only one park, so you can verify it works before committing to the full run. Due to the elevation data collection step, this test run may take approximately 10 minutes.
@@ -199,7 +208,7 @@ You should see a JSON response with a `trails` array and a `pagination` object. 
 Once you've confirmed the test run works, collect data for all visited parks:
 
 ```bash
-POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db
+python scripts/orchestrator.py --write-db
 ```
 
 This takes longer. If using the author's files, expect more than two hours for the full run. The main bottleneck is the elevation collection step, which queries the USGS EPQS API for sampled points along each matched trail (one request per point, with a rate limit delay between calls). The more trails matched from your KML files, the longer this step takes.
@@ -210,24 +219,30 @@ The pipeline is resumable: with `--write-db`, each collector skips parks or trai
 
 ## Step 7: Explore your data
 
-With the pipeline complete, you now have a database full of national park and trail data. The API should be running at `http://localhost:8000`.
+With the pipeline complete, you now have a database full of national park and trail data.
+
+- If you started the full Docker stack, the API should be running at `http://localhost:8000`.
+- If you are using the recommended `make dev` workflow, the API should be running at `http://localhost:8001`.
 
 ### Interactive API documentation
 
-Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to access the Swagger UI. This interactive interface lets you try every endpoint, see request/response schemas, and experiment with query parameters.
+Open the Swagger UI for whichever API mode you are using:
+
+- Docker API: [http://localhost:8000/docs](http://localhost:8000/docs)
+- Local dev API: [http://localhost:8001/docs](http://localhost:8001/docs)
 
 ### Quick examples
 
 | Description | URL |
 | --- | --- |
-| Browse all parks | `http://localhost:8000/parks` |
-| Filter to parks you've visited | `http://localhost:8000/parks?visited=true` |
-| See all trails for a specific park | `http://localhost:8000/parks/yose/trails` |
-| Find long trails across all parks | `http://localhost:8000/trails?min_length=10` |
-| Filter by state | `http://localhost:8000/trails?state=CA` |
-| Ask a question in natural language | `curl -X POST http://localhost:8000/query -H 'Content-Type: application/json' -d '{"query": "short hikes in Yosemite"}'` |
+| Browse all parks | `http://localhost:8001/parks` |
+| Filter to parks you've visited | `http://localhost:8001/parks?visited=true` |
+| See all trails for a specific park | `http://localhost:8001/parks/yose/trails` |
+| Find long trails across all parks | `http://localhost:8001/trails?min_length=10` |
+| Filter by state | `http://localhost:8001/trails?state=CA` |
+| Ask a question in natural language | `curl -X POST http://localhost:8001/query -H 'Content-Type: application/json' -d '{"query": "short hikes in Yosemite"}'` |
 
-> **Note:** The data endpoints (`/parks`, `/trails`) work immediately after the pipeline. The natural language query endpoint (`/query`) also works immediately, but it requires [Ollama](https://ollama.com/) running locally. The visualization endpoints (park maps, trail maps, elevation charts) require an additional generation step covered in the [API Tutorial](api-tutorial.md).
+> **Note:** The data endpoints (`/parks`, `/trails`) work in both API modes. The natural language query endpoint (`/query`) is best used with `make dev`, because the API process runs on your machine and can reach [Ollama](https://ollama.com/) more directly. The visualization endpoints (park maps, trail maps, elevation charts) require an additional generation step covered in the [API Tutorial](api-tutorial.md).
 
 ## Stopping and restarting
 
@@ -259,7 +274,7 @@ Docker Compose requires setting a `POSTGRES_PASSWORD`. Make sure your `.env` fil
 
 ### Pipeline can't connect to the database
 
-When running the pipeline from your local machine against the Docker database, make sure you're using port 5433:
+When running local scripts against the Docker database, make sure they point to port 5433 on your machine:
 
 ```bash
 POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db

@@ -36,6 +36,8 @@ POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --writ
 
 Then open <http://localhost:8000/docs> to explore the API, or try the [live web app](https://seanangio-nps-hikes.streamlit.app) and [live API demo](https://seanangio-nps-hikes.onrender.com/docs).
 
+For day-to-day development, the recommended workflow is to keep the database in Docker and run the API locally with `make dev`. That gives you auto-reload on `http://localhost:8001` while still using the same Docker PostGIS database on `localhost:5433`. Use `make up` when you want to verify the fully containerized stack on `http://localhost:8000`.
+
 ## Development
 
 For development work, you'll need:
