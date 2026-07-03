@@ -55,12 +55,6 @@
     "category": "search_trails"
   },
   {
-    "query": "Footway trails in Shenandoah",
-    "expected_function": "search_trails",
-    "expected_params": {"park_code": "shen", "trail_type": "footway"},
-    "category": "search_trails"
-  },
-  {
     "query": "Show me 10 trails",
     "expected_function": "search_trails",
     "expected_params": {"limit": 10},

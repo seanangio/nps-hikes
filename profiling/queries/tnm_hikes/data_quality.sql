@@ -6,7 +6,6 @@ SELECT
     COUNT(*) as total_trails,
     COUNT(CASE WHEN name IS NOT NULL AND name != '' THEN 1 END) as named_trails,
     COUNT(CASE WHEN length_miles IS NOT NULL THEN 1 END) as trails_with_length,
-    COUNT(CASE WHEN trail_type IS NOT NULL THEN 1 END) as trails_with_type,
     COUNT(CASE WHEN hiker_pedestrian IS NOT NULL THEN 1 END) as trails_with_hiker_status,
     COUNT(CASE WHEN primary_trail_maintainer IS NOT NULL THEN 1 END) as trails_with_maintainer,
     COUNT(CASE WHEN national_trail_designation IS NOT NULL THEN 1 END) as trails_with_designation,
@@ -17,9 +16,6 @@ SELECT
     ROUND(
         (COUNT(CASE WHEN length_miles IS NOT NULL THEN 1 END)::numeric / COUNT(*) * 100), 2
     ) as length_completeness_percent,
-    ROUND(
-        (COUNT(CASE WHEN trail_type IS NOT NULL THEN 1 END)::numeric / COUNT(*) * 100), 2
-    ) as type_completeness_percent,
     ROUND(
         (COUNT(CASE WHEN hiker_pedestrian IS NOT NULL THEN 1 END)::numeric / COUNT(*) * 100), 2
     ) as hiker_status_completeness_percent,

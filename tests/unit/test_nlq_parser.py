@@ -211,22 +211,6 @@ class TestValidateAndNormalize:
         )
         assert params["limit"] == 1000
 
-    def test_valid_trail_type_kept(self, park_lookup):
-        _, params = validate_and_normalize(
-            "search_trails",
-            {"trail_type": "footway"},
-            park_lookup,
-        )
-        assert params["trail_type"] == "footway"
-
-    def test_invalid_trail_type_dropped(self, park_lookup):
-        _, params = validate_and_normalize(
-            "search_trails",
-            {"trail_type": "highway"},
-            park_lookup,
-        )
-        assert "trail_type" not in params
-
     def test_empty_params_return_empty(self, park_lookup):
         _, params = validate_and_normalize(
             "search_trails",

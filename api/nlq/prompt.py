@@ -47,11 +47,6 @@ TOOLS = [
                         "type": "number",
                         "description": "Maximum trail length in miles",
                     },
-                    "trail_type": {
-                        "type": "string",
-                        "enum": ["path", "footway", "track", "steps", "cycleway"],
-                        "description": "OSM highway type filter",
-                    },
                     "limit": {
                         "type": "integer",
                         "description": "Maximum number of results (1-1000, default 50)",

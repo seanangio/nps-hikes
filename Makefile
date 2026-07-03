@@ -22,11 +22,11 @@ test: ## Run unit tests
 	pytest -m "not integration"
 
 .PHONY: test-integration
-test-integration: ## Run integration tests
+test-integration: test-db-up ## Start test DB if needed, then run integration tests
 	pytest tests/integration -m integration
 
 .PHONY: test-all
-test-all: ## Run unit and integration tests
+test-all: test-db-up ## Start test DB if needed, then run unit and integration tests
 	pytest
 
 .PHONY: coverage
@@ -50,7 +50,7 @@ check: lint typecheck ## Run all code quality checks
 # ---------- Dev Server ----------
 
 .PHONY: dev
-dev: ## Start API dev server with auto-reload (connects to Docker DB on :5433)
+dev: ## Recommended: run API locally on :8001 with reload, using Docker DB on :5433
 	POSTGRES_HOST=localhost POSTGRES_PORT=5433 uvicorn api.main:app --reload --port 8001
 
 .PHONY: docs
@@ -64,7 +64,7 @@ streamlit: ## Run the Streamlit web app (requires API on localhost:8001)
 # ---------- Docker ----------
 
 .PHONY: up
-up: ## Start database and API containers
+up: ## Run full container stack: Docker DB on :5433 and Docker API on :8000
 	docker compose up --build -d
 
 .PHONY: down

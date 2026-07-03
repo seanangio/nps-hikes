@@ -167,7 +167,6 @@ def fetch_trails(
     state: str | None = None,
     source: str | None = None,
     hiked: bool | None = None,
-    trail_type: str | None = None,
     viz_3d: bool | None = None,
     limit: int = 50,
     offset: int = 0,
@@ -186,7 +185,6 @@ def fetch_trails(
         state: Filter trails in parks containing this state (e.g., 'CA') (optional)
         source: Filter by data source ('TNM' or 'OSM') (optional)
         hiked: Filter by hiking status - True for hiked, False for not hiked, None for all (optional)
-        trail_type: OSM highway type filter (e.g., 'path', 'footway') (optional)
         viz_3d: Filter by 3D visualization availability (optional)
 
     Returns:
@@ -318,10 +316,6 @@ def fetch_trails(
             query += " AND m.gmaps_location_id IS NOT NULL"
         else:
             query += " AND m.gmaps_location_id IS NULL"
-
-    if trail_type is not None:
-        query += " AND t.highway_type = :trail_type"
-        params["trail_type"] = trail_type
 
     if viz_3d is not None:
         if viz_3d:

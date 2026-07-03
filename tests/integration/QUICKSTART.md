@@ -28,6 +28,9 @@ export NPS_API_KEY="your_nps_api_key_here"
 ## Step 4: Run Tests
 
 ```bash
+# Makefile shortcut (starts test DB first)
+make test-integration
+
 # Run all integration tests
 pytest tests/integration -v -m integration
 

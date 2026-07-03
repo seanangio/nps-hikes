@@ -77,6 +77,8 @@ pip install -r streamlit_app/requirements.txt
 
 ### 3. Start the database and API
 
+Recommended development workflow:
+
 ```bash
 # Start the database container
 docker compose up db -d
@@ -86,6 +88,8 @@ make dev
 ```
 
 Running the API locally (not in Docker) allows it to reach Ollama on the host machine for NLQ queries.
+
+If you want to verify the full container stack instead, run `make up` and point Streamlit at `http://localhost:8000`.
 
 ### 4. Run the Streamlit app
 
@@ -103,7 +107,7 @@ The app will open in your browser at `http://localhost:8501`.
 
 The app connects to the API via the `NPS_API_URL` environment variable.
 
-**Default**: `http://localhost:8001`
+**Recommended default**: `http://localhost:8001` via `make dev`
 
 To override:
 

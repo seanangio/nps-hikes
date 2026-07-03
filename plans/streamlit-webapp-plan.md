@@ -285,7 +285,7 @@ Three API calls in parallel:
 - Trail type: "Path"
 
 **What happens:**
-- New API call: `GET /trails?park_code=yose&hiked=false&min_length=5&trail_type=path&geojson=true&limit=1000`
+- New API call: `GET /trails?park_code=yose&hiked=false&min_length=5&geojson=true&limit=1000`
 - Map updates to show only trails matching filters (e.g., 8 trails remain)
 - Data table updates to show only matching trails
 - Park boundary and GMaps markers remain visible (unchanged)
@@ -384,7 +384,7 @@ Three API calls in parallel:
 │                                 │
 │ Source: ( ) All ( ) TNM ( ) OSM│
 │                                 │
-│ Trail Type: [▼ All types]       │
+│ [Trail type filter removed]     │
 │                                 │
 │ ☑ Only trails with 3D viz       │
 │                                 │

@@ -40,6 +40,9 @@ docker compose -f docker-compose.test.yml logs -f test-db
 ### Run all integration tests
 
 ```bash
+make test-integration
+
+# Or run pytest directly
 pytest tests/integration -v -m integration
 ```
 

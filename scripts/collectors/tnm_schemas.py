@@ -314,15 +314,6 @@ TNMProcessedTrailsSchema = DataFrameSchema(
             required=False,
             description="Source originator",
         ),
-        "trail_type": Column(
-            pa.String,
-            checks=[
-                Check(lambda s: s.str.len() <= 100, error="trail_type max 100 chars")
-            ],
-            nullable=True,
-            required=False,
-            description="Type of trail (e.g., Terra Trail)",
-        ),
         "primary_trail_maintainer": Column(
             pa.String,
             checks=[

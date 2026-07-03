@@ -38,9 +38,6 @@ def initialize_session_state() -> None:
     if "filter_source" not in st.session_state:
         st.session_state.filter_source = None
 
-    if "filter_trail_type" not in st.session_state:
-        st.session_state.filter_trail_type = None
-
     if "filter_viz_3d" not in st.session_state:
         st.session_state.filter_viz_3d = None
 

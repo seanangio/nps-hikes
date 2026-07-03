@@ -52,29 +52,29 @@ class OSMHikesProfiler:
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 
-    def run_trail_type_analysis(self) -> None:
-        """Run trail type analysis query."""
+    def run_highway_type_analysis(self) -> None:
+        """Run highway type analysis query."""
         try:
-            query = load_sql_query("osm_hikes", "trail_type_analysis.sql")
+            query = load_sql_query("osm_hikes", "highway_type_analysis.sql")
             engine = get_db_connection()
             results = run_query(engine, query)
 
             if not results.empty:
                 save_results(
                     results,
-                    "trail_type_analysis.csv",
+                    "highway_type_analysis.csv",
                     PROFILING_SETTINGS["output_directory"],
                     self.config["output_prefix"],
                 )
                 if PROFILING_SETTINGS["print_summaries"]:
-                    print_results_summary(results, "Trail Type Analysis")
-                self.results["trail_types"] = results
-                self.logger.success("Trail type analysis")
+                    print_results_summary(results, "Highway Type Analysis")
+                self.results["highway_types"] = results
+                self.logger.success("Highway type analysis")
             else:
-                self.logger.error("No results for trail type analysis")
+                self.logger.error("No results for highway type analysis")
 
         except Exception as e:
-            self.logger.error(f"Failed to run trail type analysis: {e}")
+            self.logger.error(f"Failed to run highway type analysis: {e}")
             if not PROFILING_SETTINGS["continue_on_error"]:
                 raise
 

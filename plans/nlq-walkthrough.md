@@ -180,7 +180,6 @@ def search_trails(
     hiked: bool = None,       # true = hiked, false = not hiked
     min_length: float = None, # minimum trail length in miles
     max_length: float = None, # maximum trail length in miles
-    trail_type: str = None,   # "path", "footway", "track", etc.
     limit: int = None,        # max number of results
 ): ...
 
@@ -336,7 +335,6 @@ Each tool has its own normalizer. They all follow the same pattern: build a new 
 - `source`: uppercased, validated against "TNM"/"OSM"
 - `hiked`: coerced to bool
 - `min_length`/`max_length`: cast to float, clamped to 0.0-100.0
-- `trail_type`: lowercased, validated against the enum
 - `limit`: cast to int, clamped to 1-1000
 
 **Park normalization** (`_normalize_park_params`):

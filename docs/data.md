@@ -26,7 +26,7 @@ The pipeline collects trail geometries from [OpenStreetMap](https://www.openstre
 
 ### The National Map
 
-[The National Map](https://www.usgs.gov/programs/national-geospatial-program/national-map) provides official USGS trail data through an ArcGIS REST endpoint. The collector queries using each park's bounding box and returns trail geometries along with detailed attributes: trail type, trail number, length, and use flags (hiker, bicycle, pack/saddle, cross-country ski, etc.). Like OSM trails, the collector aggregates segments by name, clips to the park boundary, and recalculates lengths in the projected CRS.
+[The National Map](https://www.usgs.gov/programs/national-geospatial-program/national-map) provides official USGS trail data through an ArcGIS REST endpoint. The collector queries using each park's bounding box and returns trail geometries along with detailed attributes such as trail number, length, and use flags (hiker, bicycle, pack/saddle, cross-country ski, etc.). Like OSM trails, the collector aggregates segments by name, clips to the park boundary, and recalculates lengths in the projected CRS.
 
 ### USGS Elevation Point Query Service
 
