@@ -1,4 +1,7 @@
-# Using the API
+---
+title: Using the API
+description: Tutorial for querying the NPS Hikes FastAPI service, including parks, trails, stats, visualizations, and natural language search.
+---
 
 This tutorial walks through the API's capabilities, starting with a broad overview of your parks and narrowing to individual trail visualizations. By the end, you'll know how to query parks and trails, generate visualizations, build a 3D elevation profile for a specific trail, and use natural language search.
 

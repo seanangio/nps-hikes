@@ -1,4 +1,7 @@
-# NPS Hikes
+---
+title: NPS Hikes
+description: Personal project by Sean Angiolillo for collecting, analyzing, and exploring US National Park hiking trail data with a FastAPI API, Streamlit app, and PostGIS database.
+---
 
 A Python project for collecting, validating, and analyzing hiking trail data from US National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API and an interactive Streamlit web app with natural language search.
 
