@@ -198,11 +198,6 @@ TOOLS = [
                         "enum": ["TNM", "OSM"],
                         "description": "Data source: TNM (USGS) or OSM (OpenStreetMap)",
                     },
-                    "trail_type": {
-                        "type": "string",
-                        "enum": ["path", "footway", "track", "steps", "cycleway"],
-                        "description": "OSM highway type filter (only applies to OSM trails)",
-                    },
                     "limit": {
                         "type": "integer",
                         "description": "Maximum number of results (1-50, default 20)",

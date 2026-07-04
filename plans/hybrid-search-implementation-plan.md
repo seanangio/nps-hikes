@@ -17,9 +17,9 @@
 - Both `POST /query` and `GET /search?resolve_trails=true` currently pass hybrid-search filters through to `fetch_topic_trails()`.
 - Parser hardening and hallucination cleanup were added after the initial hybrid-search commit, so the implementation is stronger than this plan originally described.
 - The plan text is stale in a few places. Most notably, it still reads as future work even though the backend is already built.
-- One follow-up inconsistency remains: this plan says `trail_type` was removed and should not be part of the surface area, but current runtime code still includes `trail_type` in `search_by_topic` prompt/parser/dispatch/query handling. That should be treated as cleanup work outside this status update unless you want this plan to own it.
+- The stale `trail_type` support that had reappeared in hybrid-search runtime code has been removed again to match the trail-type removal work.
 
-**Context**: `search_by_topic` now handles semantic queries plus structured filters, while `search_trails` still handles purely structured queries. The remaining work is mostly documentation/status cleanup, plus any intentional follow-up such as removing stale `trail_type` support.
+**Context**: `search_by_topic` now handles semantic queries plus structured filters, while `search_trails` still handles purely structured queries. The remaining work is mostly documentation/status cleanup.
 
 **Solution**: Extend `search_by_topic` tool definition and `fetch_topic_trails()` to accept the same filter parameters as `fetch_trails()`, applying them in SQL after semantic matching.
 
@@ -628,10 +628,10 @@ curl -X POST http://localhost:8001/query \
 - [x] `/query` passes hybrid filters through to `fetch_topic_trails()`
 - [x] `/search?resolve_trails=true` passes hybrid filters through to `fetch_topic_trails()`
 - [x] Parser hardening added to reduce hallucinated hybrid filters in topic queries
-- [ ] Expand or confirm coverage for the remaining planned hybrid-search filter combinations; some coverage already exists, but not every case in this document is obviously represented
+- [x] Expand or confirm coverage for the remaining planned hybrid-search filter combinations
 - [ ] Re-run the relevant test suite in an environment with `pytest` installed
 - [ ] Re-run the manual routing checks from this plan after the next local API spin-up
-- [ ] Decide whether stale `trail_type` support should be removed here or tracked in follow-up cleanup
+- [x] Remove stale `trail_type` support from the hybrid-search runtime surface
 
 ---
 

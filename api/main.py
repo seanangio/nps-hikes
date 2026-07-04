@@ -1051,10 +1051,6 @@ async def semantic_search(
         description="Data source filter ('TNM' or 'OSM'). Only used when resolve_trails=true",
         pattern="^(TNM|OSM)$",
     ),
-    trail_type: str | None = Query(
-        default=None,
-        description="OSM highway type (e.g., 'path', 'footway'). Only used when resolve_trails=true",
-    ),
 ) -> dict[str, Any]:
     """
     Search park content using semantic similarity.
@@ -1082,7 +1078,6 @@ async def semantic_search(
                 min_length=min_length,
                 max_length=max_length,
                 source=source,
-                trail_type=trail_type,
                 limit=limit,
                 geojson=False,
             )
@@ -1231,7 +1226,6 @@ async def natural_language_query(
                 min_length=params.get("min_length"),
                 max_length=params.get("max_length"),
                 source=params.get("source"),
-                trail_type=params.get("trail_type"),
                 limit=params.get("limit", 20),
                 geojson=True,
             )

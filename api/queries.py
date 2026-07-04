@@ -919,7 +919,6 @@ def fetch_topic_trails(
     min_length: float | None = None,
     max_length: float | None = None,
     source: str | None = None,
-    trail_type: str | None = None,
     limit: int = 20,
     geojson: bool = True,
 ) -> dict[str, Any]:
@@ -942,7 +941,6 @@ def fetch_topic_trails(
         min_length: Optional minimum trail length in miles.
         max_length: Optional maximum trail length in miles.
         source: Optional data source filter ('TNM' or 'OSM').
-        trail_type: Optional OSM highway type filter (e.g., 'path', 'footway').
         limit: Maximum number of trail results (default: 20).
         geojson: Whether to include GeoJSON geometry (default: True).
 
@@ -996,10 +994,6 @@ def fetch_topic_trails(
     if source is not None:
         trail_where_clauses.append("r.source = :source")
         params["source"] = source
-
-    if trail_type is not None:
-        trail_where_clauses.append("r.highway_type = :trail_type")
-        params["trail_type"] = trail_type
 
     trail_where_sql = ""
     if trail_where_clauses:
