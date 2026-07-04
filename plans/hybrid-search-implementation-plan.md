@@ -6,11 +6,39 @@
 
 **Note:** This plan originally included a `trail_type` filter. That concept has since been removed from the app/API/NLQ surface and should not be implemented here. Any old references to `trail_type` below should be treated as superseded by the trail-type removal work (see /plans/trail-type-removal.md for details).
 
-**Status**: Not started.
+**Status**: Substantially implemented. Backend support is in place; this plan needs status cleanup and a small follow-up audit.
 
-**Context**: Currently, `search_by_topic` handles semantic queries ("slot canyons") while `search_trails` handles structured filters (`hiked=true`, `min_length=5`). Queries that combine both aspects (e.g., "waterfall hikes I completed out west") can only route to one tool, losing the other dimension.
+**Current repo state (reviewed 2026-07-04)**:
+
+- Backend hybrid search support is already implemented in the current codebase.
+- The main implementation appears to have landed across `2b19117` (`implement hybrid search`) and `ff37d20` (`update hybrid search`).
+- `search_by_topic` currently accepts and normalizes structured filters including `state`, `hiked`, `min_length`, `max_length`, and `source`.
+- `fetch_topic_trails()` currently applies those filters after semantic matching, preserving semantic ranking and returning structured trail results.
+- Both `POST /query` and `GET /search?resolve_trails=true` currently pass hybrid-search filters through to `fetch_topic_trails()`.
+- Parser hardening and hallucination cleanup were added after the initial hybrid-search commit, so the implementation is stronger than this plan originally described.
+- The plan text is stale in a few places. Most notably, it still reads as future work even though the backend is already built.
+- One follow-up inconsistency remains: this plan says `trail_type` was removed and should not be part of the surface area, but current runtime code still includes `trail_type` in `search_by_topic` prompt/parser/dispatch/query handling. That should be treated as cleanup work outside this status update unless you want this plan to own it.
+
+**Context**: `search_by_topic` now handles semantic queries plus structured filters, while `search_trails` still handles purely structured queries. The remaining work is mostly documentation/status cleanup, plus any intentional follow-up such as removing stale `trail_type` support.
 
 **Solution**: Extend `search_by_topic` tool definition and `fetch_topic_trails()` to accept the same filter parameters as `fetch_trails()`, applying them in SQL after semantic matching.
+
+---
+
+### Progress audit
+
+| Area | Current status | Notes |
+|------|----------------|-------|
+| `api/nlq/prompt.py` | Implemented | `search_by_topic` includes hybrid filter params and guidance to use topic search when a semantic component is present |
+| `api/nlq/parser.py` | Implemented, then expanded | Normalization for hybrid params exists; later work added post-processing validation to remove hallucinated filters |
+| `api/queries.py` | Implemented | `fetch_topic_trails()` accepts hybrid filters and applies them in SQL after semantic matching |
+| `api/main.py` `/query` | Implemented | `search_by_topic` dispatch passes hybrid filters through and preserves generated-answer behavior |
+| `api/main.py` `/search` | Implemented | `resolve_trails=true` path passes hybrid filters through to `fetch_topic_trails()` |
+| `tests/unit/test_nlq_prompt.py` | Implemented | Tool definition assertions include hybrid params |
+| `tests/unit/test_nlq_parser.py` | Implemented and expanded | Includes normalization plus hallucination-validation coverage for hybrid queries |
+| `tests/unit/test_topic_trails_query.py` | Partial relative to this plan | Strong general coverage exists, but this plan's specific filter-combination cases are not all clearly represented |
+| `tests/test_api.py` | Partial relative to this plan | `/search?resolve_trails=true` coverage exists, but only a small subset of the filter combinations in this plan is explicitly tested |
+| Manual verification in current environment | Not re-run in this review | `pytest` is not available in this shell environment, so this review is based on code inspection plus existing committed tests |
 
 ---
 
@@ -594,17 +622,16 @@ curl -X POST http://localhost:8001/query \
 
 ### Verification checklist
 
-- [ ] All new unit tests pass (fetch_topic_trails filters, parser, API integration)
-- [ ] All existing tests pass (zero regressions)
-- [ ] Manual LLM routing tests work as expected (semantic → search_by_topic, non-semantic → search_trails)
-- [ ] `/search` endpoint accepts new filter parameters, validates them correctly
-- [ ] `/search?resolve_trails=true&hiked=true` returns filtered results
-- [ ] Filters applied AFTER semantic ranking (similarity_score preserved)
-- [ ] Empty result when filters eliminate all matches triggers generation fallback
-- [ ] `topic_context` only includes trails that passed filters
-- [ ] Backward compat: calling `fetch_topic_trails` without filters works as before
-- [ ] OpenAPI docs at `/docs` render correctly with new parameters
-- [ ] Test the original failing query: "slot canyons i hiked out west" → now returns results with hiked filter applied
+- [x] Hybrid filter params added to `search_by_topic` tool definition and prompt guidance
+- [x] Hybrid params normalized in `search_by_topic` parsing flow
+- [x] `fetch_topic_trails()` accepts hybrid filters and applies them after semantic matching
+- [x] `/query` passes hybrid filters through to `fetch_topic_trails()`
+- [x] `/search?resolve_trails=true` passes hybrid filters through to `fetch_topic_trails()`
+- [x] Parser hardening added to reduce hallucinated hybrid filters in topic queries
+- [ ] Expand or confirm coverage for the remaining planned hybrid-search filter combinations; some coverage already exists, but not every case in this document is obviously represented
+- [ ] Re-run the relevant test suite in an environment with `pytest` installed
+- [ ] Re-run the manual routing checks from this plan after the next local API spin-up
+- [ ] Decide whether stale `trail_type` support should be removed here or tracked in follow-up cleanup
 
 ---
 

@@ -137,6 +137,9 @@ VALID_FUNCTIONS = {
     "search_by_topic",
 }
 
+_TRUE_STRINGS = {"true", "1", "yes", "y", "on"}
+_FALSE_STRINGS = {"false", "0", "no", "n", "off"}
+
 
 def parse_tool_call(response: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """Extract function name and arguments from an Ollama chat response.
@@ -264,6 +267,14 @@ def validate_and_normalize(
             context={"function_name": function_name},
         )
 
+    if (
+        function_name == "search_by_topic"
+        and query
+        and not params.get("query")
+        and _should_fallback_topic_to_trails(params)
+    ):
+        function_name = "search_trails"
+
     if function_name == "search_trails":
         cleaned = _normalize_trail_params(params, park_lookup)
     elif function_name == "search_parks":
@@ -275,8 +286,8 @@ def validate_and_normalize(
     else:
         cleaned = _normalize_park_summary_params(params, park_lookup)
 
-    if query and function_name == "search_by_topic":
-        cleaned = _validate_extracted_params(cleaned, query, park_lookup)
+    if query:
+        cleaned = _validate_extracted_params(function_name, cleaned, query, park_lookup)
 
     if query:
         cleaned = _apply_negation_correction(query, function_name, cleaned)
@@ -322,12 +333,24 @@ _HIKED_TERMS = [
     "planning to",
 ]
 
+# Terms that indicate park visit status or timing.
+_VISITED_TERMS = [
+    "visited",
+    "visit",
+    "been to",
+    "went to",
+    "go to",
+    "been in",
+]
+
 # Terms that indicate the user is referring to a data source.
 _SOURCE_TERMS = ["tnm", "usgs", "osm", "openstreetmap"]
 
 # Terms that indicate length intent direction.
 _LONG_TERMS = ["long", "longer", "lengthy"]
 _SHORT_TERMS = ["short", "shorter", "brief"]
+_MIN_LENGTH_TERMS = ["over", "more than", "at least", "longer than", *_LONG_TERMS]
+_MAX_LENGTH_TERMS = ["under", "less than", "shorter than", *_SHORT_TERMS]
 
 # Terms that indicate trail length is mentioned.
 _LENGTH_TERMS = (
@@ -346,8 +369,40 @@ _LENGTH_TERMS = (
     ]
 )
 
+_PER_PARK_TERMS = ["by park", "per park", "breakdown", "each park"]
+
+
+def _coerce_optional_bool(value: Any) -> bool | None:
+    """Coerce common LLM boolean outputs to bool.
+
+    Returns None for values that cannot be interpreted confidently.
+    """
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return bool(value)
+
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in _TRUE_STRINGS:
+            return True
+        if normalized in _FALSE_STRINGS:
+            return False
+
+    return None
+
+
+def _should_fallback_topic_to_trails(params: dict[str, Any]) -> bool:
+    """Detect malformed topic calls that are really structured trail queries."""
+    return any(
+        key in params and params.get(key) not in (None, "", "null")
+        for key in ("source", "hiked", "min_length", "max_length")
+    )
+
 
 def _validate_extracted_params(
+    function_name: str,
     params: dict[str, Any],
     query: str,
     park_lookup: dict[str, str],
@@ -360,8 +415,8 @@ def _validate_extracted_params(
     extracted parameter against the original query and removes those
     without textual evidence.
 
-    Only applies to search_by_topic parameters. The ``query`` field
-    itself is never removed.
+    Applies strongest validation to ``search_by_topic`` and lighter
+    validation to other tools to strip unsupported optional filters.
 
     Args:
         params: Normalized parameters from the LLM.
@@ -373,6 +428,29 @@ def _validate_extracted_params(
     """
     cleaned = params.copy()
     query_lower = query.lower()
+
+    if function_name == "search_by_topic":
+        return _validate_topic_params(cleaned, query_lower, query, park_lookup)
+
+    if function_name == "search_trails":
+        return _validate_trail_params(cleaned, query_lower, query)
+
+    if function_name == "search_parks":
+        return _validate_park_params(cleaned, query_lower, query)
+
+    if function_name == "search_stats":
+        return _validate_stats_params(cleaned, query_lower, query)
+
+    return cleaned
+
+
+def _validate_topic_params(
+    cleaned: dict[str, Any],
+    query_lower: str,
+    query: str,
+    park_lookup: dict[str, str],
+) -> dict[str, Any]:
+    """Validate topic-search params against the original query text."""
 
     # --- park_code: remove if no park name mentioned in query ---
     if "park_code" in cleaned:
@@ -427,17 +505,110 @@ def _validate_extracted_params(
             cleaned.pop("max_length", None)
 
     # --- length direction: swap if "long" gave max_length instead of min ---
+    cleaned = _normalize_length_direction(cleaned, query_lower, query)
+
+    return cleaned
+
+
+def _validate_trail_params(
+    cleaned: dict[str, Any], query_lower: str, query: str
+) -> dict[str, Any]:
+    """Strip unsupported optional filters from structured trail queries."""
+    if "source" in cleaned and not any(term in query_lower for term in _SOURCE_TERMS):
+        logger.info(
+            "Removing unsupported source='%s' from query: %s", cleaned["source"], query
+        )
+        del cleaned["source"]
+
+    if "hiked" in cleaned and not any(term in query_lower for term in _HIKED_TERMS):
+        logger.info(
+            "Removing unsupported hiked=%s from query: %s", cleaned["hiked"], query
+        )
+        del cleaned["hiked"]
+
+    if ("min_length" in cleaned or "max_length" in cleaned) and not any(
+        term in query_lower for term in _LENGTH_TERMS
+    ):
+        logger.info("Removing unsupported length filters from query: %s", query)
+        cleaned.pop("min_length", None)
+        cleaned.pop("max_length", None)
+
+    cleaned = _normalize_length_direction(cleaned, query_lower, query)
+
+    return cleaned
+
+
+def _validate_park_params(
+    cleaned: dict[str, Any], query_lower: str, query: str
+) -> dict[str, Any]:
+    """Drop visited when the query does not imply visit status or timing."""
+    if (
+        "visited" in cleaned
+        and "visit_year" not in cleaned
+        and "visit_month" not in cleaned
+        and not any(term in query_lower for term in _VISITED_TERMS)
+        and not _NEGATION_PATTERN.search(query)
+    ):
+        logger.info(
+            "Removing unsupported visited=%s from query: %s", cleaned["visited"], query
+        )
+        del cleaned["visited"]
+
+    return cleaned
+
+
+def _validate_stats_params(
+    cleaned: dict[str, Any], query_lower: str, query: str
+) -> dict[str, Any]:
+    """Drop unsupported optional stats filters."""
+    if "hiked" in cleaned and not any(term in query_lower for term in _HIKED_TERMS):
+        logger.info(
+            "Removing unsupported hiked=%s from query: %s", cleaned["hiked"], query
+        )
+        del cleaned["hiked"]
+
+    if (
+        "per_park" in cleaned
+        and cleaned["per_park"]
+        and not any(term in query_lower for term in _PER_PARK_TERMS)
+    ):
+        logger.info(
+            "Removing unsupported per_park=%s from query: %s",
+            cleaned["per_park"],
+            query,
+        )
+        del cleaned["per_park"]
+
+    return cleaned
+
+
+def _normalize_length_direction(
+    cleaned: dict[str, Any], query_lower: str, query: str
+) -> dict[str, Any]:
+    """Correct inverted min/max length filters based on query language."""
     if (
         "min_length" not in cleaned
         and "max_length" in cleaned
-        and any(term in query_lower for term in _LONG_TERMS)
+        and any(term in query_lower for term in _MIN_LENGTH_TERMS)
     ):
         logger.info(
-            "Swapping max_length=%s to min_length for 'long' query: %s",
+            "Swapping max_length=%s to min_length based on query: %s",
             cleaned["max_length"],
             query,
         )
         cleaned["min_length"] = cleaned.pop("max_length")
+
+    if (
+        "max_length" not in cleaned
+        and "min_length" in cleaned
+        and any(term in query_lower for term in _MAX_LENGTH_TERMS)
+    ):
+        logger.info(
+            "Swapping min_length=%s to max_length based on query: %s",
+            cleaned["min_length"],
+            query,
+        )
+        cleaned["max_length"] = cleaned.pop("min_length")
 
     return cleaned
 
@@ -472,22 +643,24 @@ def _normalize_trail_params(
 
     # Hiked: coerce to bool
     if "hiked" in params and params["hiked"] is not None:
-        cleaned["hiked"] = bool(params["hiked"])
+        bool_val = _coerce_optional_bool(params["hiked"])
+        if bool_val is not None:
+            cleaned["hiked"] = bool_val
 
     # Length filters: clamp to valid range
     for key in ("min_length", "max_length"):
         if key in params and params[key] is not None:
             try:
-                val = float(params[key])
-                cleaned[key] = max(0.0, min(val, 100.0))
+                float_val = float(params[key])
+                cleaned[key] = max(0.0, min(float_val, 100.0))
             except (ValueError, TypeError):
                 pass
 
     # Limit: clamp to valid range
     if "limit" in params and params["limit"] is not None:
         try:
-            val = int(params["limit"])
-            cleaned["limit"] = max(1, min(val, 1000))
+            int_val = int(params["limit"])
+            cleaned["limit"] = max(1, min(int_val, 1000))
         except (ValueError, TypeError):
             pass
 
@@ -531,13 +704,15 @@ def _normalize_park_params(params: dict[str, Any]) -> dict[str, Any]:
     cleaned: dict[str, Any] = {}
 
     if "visited" in params and params["visited"] is not None:
-        cleaned["visited"] = bool(params["visited"])
+        bool_val = _coerce_optional_bool(params["visited"])
+        if bool_val is not None:
+            cleaned["visited"] = bool_val
 
     if "visit_year" in params and params["visit_year"] is not None:
         try:
-            val = int(params["visit_year"])
-            if 2000 <= val <= 2100:
-                cleaned["visit_year"] = val
+            year_val = int(params["visit_year"])
+            if 2000 <= year_val <= 2100:
+                cleaned["visit_year"] = year_val
         except (ValueError, TypeError):
             pass
 
@@ -561,10 +736,14 @@ def _normalize_stats_params(params: dict[str, Any]) -> dict[str, Any]:
     cleaned: dict[str, Any] = {}
 
     if "hiked" in params and params["hiked"] is not None:
-        cleaned["hiked"] = bool(params["hiked"])
+        bool_val = _coerce_optional_bool(params["hiked"])
+        if bool_val is not None:
+            cleaned["hiked"] = bool_val
 
     if "per_park" in params and params["per_park"] is not None:
-        cleaned["per_park"] = bool(params["per_park"])
+        bool_val = _coerce_optional_bool(params["per_park"])
+        if bool_val is not None:
+            cleaned["per_park"] = bool_val
 
     return cleaned
 
@@ -633,14 +812,16 @@ def _normalize_topic_search_params(
 
     # Hiked: coerce to bool
     if "hiked" in params and params["hiked"] is not None:
-        cleaned["hiked"] = bool(params["hiked"])
+        bool_val = _coerce_optional_bool(params["hiked"])
+        if bool_val is not None:
+            cleaned["hiked"] = bool_val
 
     # Length filters: clamp to valid range
     for key in ("min_length", "max_length"):
         if key in params and params[key] is not None:
             try:
-                val = float(params[key])
-                cleaned[key] = max(0.0, min(val, 100.0))
+                float_val = float(params[key])
+                cleaned[key] = max(0.0, min(float_val, 100.0))
             except (ValueError, TypeError):
                 pass
 
@@ -652,8 +833,8 @@ def _normalize_topic_search_params(
 
     if "limit" in params and params["limit"] is not None:
         try:
-            val = int(params["limit"])
-            cleaned["limit"] = max(1, min(val, 50))
+            int_val = int(params["limit"])
+            cleaned["limit"] = max(1, min(int_val, 50))
         except (ValueError, TypeError):
             pass
 

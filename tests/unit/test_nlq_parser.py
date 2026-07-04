@@ -236,6 +236,14 @@ class TestValidateAndNormalize:
         )
         assert params == {}
 
+    def test_search_parks_string_false_preserved(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_parks",
+            {"visited": "false"},
+            park_lookup,
+        )
+        assert params["visited"] is False
+
     # --- search_parks visit_year / visit_month ---
 
     def test_search_parks_visit_year_valid(self, park_lookup):
@@ -402,6 +410,15 @@ class TestValidateAndNormalize:
         )
         assert params["per_park"] is True
 
+    def test_search_stats_string_false_preserved(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_stats",
+            {"hiked": "false", "per_park": "false"},
+            park_lookup,
+        )
+        assert params["hiked"] is False
+        assert params["per_park"] is False
+
     def test_search_stats_empty_params(self, park_lookup):
         _, params = validate_and_normalize(
             "search_stats",
@@ -514,6 +531,14 @@ class TestValidateAndNormalize:
             query="Parks I have visited",
         )
         assert params["visited"] is True
+
+    def test_trails_string_false_preserved(self, park_lookup):
+        _, params = validate_and_normalize(
+            "search_trails",
+            {"hiked": "false"},
+            park_lookup,
+        )
+        assert params["hiked"] is False
 
     # --- search_by_topic ---
 
@@ -767,6 +792,17 @@ class TestHallucinationValidation:
         assert "max_length" not in params
         assert params["min_length"] == 100.0
 
+    def test_swaps_max_to_min_for_over_query(self, park_lookup):
+        """max_length swapped to min_length when user said 'over'."""
+        _, params = validate_and_normalize(
+            "search_by_topic",
+            {"query": "waterfall hikes", "max_length": 5.0},
+            park_lookup,
+            query="waterfall hikes over 5 miles in California",
+        )
+        assert "max_length" not in params
+        assert params["min_length"] == 5.0
+
     def test_removes_multiple_hallucinations(self, park_lookup):
         """Multiple hallucinated params removed at once."""
         _, params = validate_and_normalize(
@@ -801,17 +837,56 @@ class TestHallucinationValidation:
         )
         assert params == {"query": "waterfalls"}
 
-    def test_validation_only_applies_to_search_by_topic(self, park_lookup):
-        """search_trails does not get hallucination validation."""
+    def test_search_trails_removes_unsupported_source(self, park_lookup):
+        """search_trails now strips unsupported optional source filters."""
         _, params = validate_and_normalize(
             "search_trails",
             {"park_code": "arch", "source": "OSM"},
             park_lookup,
             query="slot canyons",
         )
-        # search_trails doesn't run _validate_extracted_params,
-        # so these params are preserved even without query evidence
-        assert params.get("source") == "OSM"
+        assert "source" not in params
+
+    def test_search_trails_removes_unsupported_length(self, park_lookup):
+        """search_trails now strips unsupported length filters."""
+        _, params = validate_and_normalize(
+            "search_trails",
+            {"park_code": "zion", "max_length": 3},
+            park_lookup,
+            query="Hikes in Zion National Park",
+        )
+        assert "max_length" not in params
+
+    def test_search_parks_removes_unsupported_visited(self, park_lookup):
+        """search_parks drops visited when the query asks for all parks."""
+        _, params = validate_and_normalize(
+            "search_parks",
+            {"visited": "false"},
+            park_lookup,
+            query="Show me all parks",
+        )
+        assert "visited" not in params
+
+    def test_search_stats_removes_unsupported_hiked(self, park_lookup):
+        """search_stats drops hiked when the query does not mention status."""
+        _, params = validate_and_normalize(
+            "search_stats",
+            {"hiked": "false", "per_park": "false"},
+            park_lookup,
+            query="How many trails are there?",
+        )
+        assert "hiked" not in params
+
+    def test_search_by_topic_without_query_can_fall_back_to_trails(self, park_lookup):
+        """Malformed topic calls with only structured filters can be recovered."""
+        name, params = validate_and_normalize(
+            "search_by_topic",
+            {"park_code": "glac", "source": "OSM"},
+            park_lookup,
+            query="OSM trails in Glacier",
+        )
+        assert name == "search_trails"
+        assert params["source"] == "OSM"
 
     def test_validation_skipped_without_query(self, park_lookup):
         """Without a query string, validation is skipped entirely."""
