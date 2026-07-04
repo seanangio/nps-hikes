@@ -94,11 +94,11 @@ psql-local: ## Connect to the database via local psql
 # ---------- Data Pipeline ----------
 
 .PHONY: pipeline
-pipeline: ## Run full data pipeline
+pipeline: ## Run full data pipeline (requires Ollama running for embeddings)
 	POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db
 
 .PHONY: pipeline-test
-pipeline-test: ## Run pipeline with --test-limit 1
+pipeline-test: ## Run pipeline with --test-limit 1 (requires Ollama running)
 	POSTGRES_HOST=localhost POSTGRES_PORT=5433 python scripts/orchestrator.py --write-db --test-limit 1
 
 .PHONY: deploy-data

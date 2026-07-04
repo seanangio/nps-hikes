@@ -4,7 +4,7 @@
 
 **Goal**: Enable `search_by_topic` to accept structured filters (`hiked`, `min_length`, `max_length`, `source`) alongside semantic queries, allowing combined queries like "slot canyons I hiked" or "waterfall hikes over 5 miles in California".
 
-**Note:** This plan originally included a `trail_type` filter. That concept has since been removed from the app/API/NLQ surface and should not be implemented here. Any old references to `trail_type` below should be treated as superseded by the trail-type removal work.
+**Note:** This plan originally included a `trail_type` filter. That concept has since been removed from the app/API/NLQ surface and should not be implemented here. Any old references to `trail_type` below should be treated as superseded by the trail-type removal work (see /plans/trail-type-removal.md for details).
 
 **Status**: Not started.
 
@@ -777,7 +777,7 @@ if function_name == "search_by_topic":
 |------|--------|
 | `docs/api-tutorial.md` | Add "Hybrid Search" section covering semantic + filter combinations |
 | `README.md` | Update project overview if needed to mention hybrid search capability |
-| `scratch/semantic-search-plan.md` | Mark Steps 8-9 as complete, add note about future regional support |
+| `plans/semantic-search-plan.md` | Mark Steps 8-9 as complete, add note about future regional support |
 
 ### Documentation content
 

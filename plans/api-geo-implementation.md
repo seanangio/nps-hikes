@@ -2,7 +2,7 @@
 
 ## What Was Done
 
-All 6 steps from the plan in `scratch/api-geo.md` were implemented. The API version was bumped from `1.0.0` to `1.1.0`. **440 tests passing** (85 unit tests in `test_api.py`, plus integration and other test files).
+All 6 steps from the plan in `plans/api-geo.md` were implemented. The API version was bumped from `1.0.0` to `1.1.0`. **440 tests passing** (85 unit tests in `test_api.py`, plus integration and other test files).
 
 ---
 

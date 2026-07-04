@@ -6,7 +6,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from utils.embedding_client import get_embeddings, get_embeddings_sync
+from utils.embedding_client import (
+    check_ollama_available,
+    get_embeddings,
+    get_embeddings_sync,
+)
 from utils.exceptions import LlmConnectionError
 
 
@@ -122,3 +126,29 @@ class TestGetEmbeddingsSync:
 
             with pytest.raises(LlmConnectionError, match="timed out"):
                 get_embeddings_sync(["test"])
+
+
+class TestCheckOllamaAvailable:
+    """Tests for Ollama availability preflight checks."""
+
+    def test_successful_check(self):
+        mock_response = MagicMock()
+        mock_response.raise_for_status.return_value = None
+
+        with patch("utils.embedding_client.httpx.Client") as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client.get.return_value = mock_response
+            mock_client_cls.return_value.__enter__.return_value = mock_client
+
+            check_ollama_available()
+
+        mock_client.get.assert_called_once()
+
+    def test_connection_error_raises(self):
+        with patch("utils.embedding_client.httpx.Client") as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client.get.side_effect = httpx.ConnectError("Connection refused")
+            mock_client_cls.return_value.__enter__.return_value = mock_client
+
+            with pytest.raises(LlmConnectionError, match="Cannot connect"):
+                check_ollama_available()

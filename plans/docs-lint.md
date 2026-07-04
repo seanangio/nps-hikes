@@ -36,6 +36,7 @@ config:
 ignores:
   - ".venv/**"
   - "scratch/**"
+  - "plans/**"
   - "reviews/**"
   - ".claude/**"
   - "styles/proselint/**"

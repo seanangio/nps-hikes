@@ -1,7 +1,8 @@
 """Ollama embedding API client.
 
-Provides both async and sync interfaces for generating embeddings via
-Ollama's /api/embed endpoint using the nomic-embed-text model.
+Provides both async and sync interfaces for checking Ollama availability
+and generating embeddings via Ollama's HTTP API using the
+``nomic-embed-text`` model.
 
 Shared by both the API layer (api/main.py) and the pipeline layer
 (scripts/processors/embedding_indexer.py), following the same pattern
@@ -14,6 +15,36 @@ import httpx
 
 from config.settings import config
 from utils.exceptions import LlmConnectionError
+
+
+def check_ollama_available() -> None:
+    """Verify that the configured Ollama server is reachable.
+
+    Raises:
+        LlmConnectionError: If Ollama is unreachable or returns an error.
+    """
+    url = f"{config.OLLAMA_BASE_URL}/api/tags"
+
+    try:
+        with httpx.Client(timeout=httpx.Timeout(config.OLLAMA_TIMEOUT)) as client:
+            response = client.get(url)
+            response.raise_for_status()
+    except httpx.ConnectError as e:
+        raise LlmConnectionError(
+            f"Cannot connect to Ollama at {config.OLLAMA_BASE_URL}. "
+            "Is Ollama running? Start it with: ollama serve",
+            context={"url": url},
+        ) from e
+    except httpx.TimeoutException as e:
+        raise LlmConnectionError(
+            f"Ollama availability check timed out after {config.OLLAMA_TIMEOUT}s.",
+            context={"url": url, "timeout": config.OLLAMA_TIMEOUT},
+        ) from e
+    except httpx.HTTPStatusError as e:
+        raise LlmConnectionError(
+            f"Ollama returned HTTP {e.response.status_code}: {e.response.text}",
+            context={"url": url, "status_code": e.response.status_code},
+        ) from e
 
 
 async def get_embeddings(texts: list[str]) -> list[list[float]]:

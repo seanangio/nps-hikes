@@ -20,7 +20,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - "5433:5432"   # 5433 on host to avoid conflict with local PostgreSQL
+      - "5433:5432"   # 5433 on host for local Docker-backed development
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh

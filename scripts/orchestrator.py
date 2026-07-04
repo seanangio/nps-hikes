@@ -49,6 +49,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from config.settings import config
 from scripts.database.db_writer import get_postgres_engine
+from utils.embedding_client import check_ollama_available
 from utils.exceptions import DatabaseConnectionError, NpsHikesError
 from utils.logging import setup_logging
 
@@ -195,6 +196,20 @@ class DataCollectionOrchestrator:
                     "Please verify database configuration and connectivity"
                 )
                 return False
+
+        # Check Ollama availability for embedding-dependent pipeline steps
+        try:
+            check_ollama_available()
+            self.logger.info("✅ Ollama connectivity verified")
+        except NpsHikesError as e:
+            self.logger.error(f"❌ Ollama connectivity check failed: {e!s}")
+            if e.context:
+                self.logger.error(f"Context: {e.context}")
+            self.logger.error(
+                "The pipeline now includes content embedding. Start Ollama with: "
+                "ollama serve"
+            )
+            return False
 
         # Check that log directory exists
         log_dir = os.path.dirname(config.ORCHESTRATOR_LOG_FILE)
@@ -350,6 +365,7 @@ Pipeline Steps:
 Notes:
   - Pipeline runs sequentially with fail-fast behavior
   - Each step depends on data from previous steps
+  - Ollama must be running locally for the content embedding step
   - Use --test-limit for development and testing
   - Check logs/orchestrator.log for detailed progress
         """,

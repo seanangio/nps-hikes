@@ -2,7 +2,7 @@
 
 ## Context
 
-The RAG pipeline (collection → chunking → embedding → vector search) is complete and working. See the file /scratch/rag-plan.md for details. The `/search` endpoint returns ranked text chunks from NPS content. However, many of those chunks describe specific trails — `nps_thingstodo` has 365 records with "trail" in the title, and `nps_places` has 1,104. These contain rich semantic information about individual trails.
+The RAG pipeline (collection → chunking → embedding → vector search) is complete and working. See the file /plans/rag-plan.md for details. The `/search` endpoint returns ranked text chunks from NPS content. However, many of those chunks describe specific trails — `nps_thingstodo` has 365 records with "trail" in the title, and `nps_places` has 1,104. These contain rich semantic information about individual trails.
 
 Currently, a query like "waterfall hikes in California" can only return raw text chunks via `search_park_content`. The goal is to bridge semantic search results back to structured trail data, so queries like this produce a filtered trail list visible on the map and in the data table — the same experience as a structured `search_trails` query.
 
@@ -753,7 +753,7 @@ The `else` branch (fallback, `trail_count == 0`) stays unchanged.
 
 **Status**: Not started.
 
-**See**: [/scratch/hybrid-search-implementation-plan.md](./hybrid-search-implementation-plan.md) for full implementation details.
+**See**: [/plans/hybrid-search-implementation-plan.md](./hybrid-search-implementation-plan.md) for full implementation details.
 
 **Summary**: Extend the `search_by_topic` tool definition and `fetch_topic_trails()` to accept the same filter parameters as `fetch_trails()`, applying them in SQL after semantic matching. This solves the problem where queries combining semantic terms with structured filters (e.g., "slot canyons i hiked out west") currently can't apply both dimensions.
 
