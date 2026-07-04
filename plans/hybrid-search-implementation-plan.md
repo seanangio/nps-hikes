@@ -6,7 +6,7 @@
 
 **Note:** This plan originally included a `trail_type` filter. That concept has since been removed from the app/API/NLQ surface and should not be implemented here. Any old references to `trail_type` below should be treated as superseded by the trail-type removal work (see /plans/trail-type-removal.md for details).
 
-**Status**: Substantially implemented. Backend support is in place; this plan needs status cleanup and a small follow-up audit.
+**Status**: Complete.
 
 **Current repo state (reviewed 2026-07-04)**:
 
@@ -16,10 +16,10 @@
 - `fetch_topic_trails()` currently applies those filters after semantic matching, preserving semantic ranking and returning structured trail results.
 - Both `POST /query` and `GET /search?resolve_trails=true` currently pass hybrid-search filters through to `fetch_topic_trails()`.
 - Parser hardening and hallucination cleanup were added after the initial hybrid-search commit, so the implementation is stronger than this plan originally described.
-- The plan text is stale in a few places. Most notably, it still reads as future work even though the backend is already built.
+- The plan text was stale in a few places, but the backend work is now complete and the verification/checklist sections below have been updated to reflect the current state.
 - The stale `trail_type` support that had reappeared in hybrid-search runtime code has been removed again to match the trail-type removal work.
 
-**Context**: `search_by_topic` now handles semantic queries plus structured filters, while `search_trails` still handles purely structured queries. The remaining work is mostly documentation/status cleanup.
+**Context**: `search_by_topic` now handles semantic queries plus structured filters, while `search_trails` still handles purely structured queries. Step 8 is complete; the next step is UI integration.
 
 **Solution**: Extend `search_by_topic` tool definition and `fetch_topic_trails()` to accept the same filter parameters as `fetch_trails()`, applying them in SQL after semantic matching.
 
@@ -36,9 +36,9 @@
 | `api/main.py` `/search` | Implemented | `resolve_trails=true` path passes hybrid filters through to `fetch_topic_trails()` |
 | `tests/unit/test_nlq_prompt.py` | Implemented | Tool definition assertions include hybrid params |
 | `tests/unit/test_nlq_parser.py` | Implemented and expanded | Includes normalization plus hallucination-validation coverage for hybrid queries |
-| `tests/unit/test_topic_trails_query.py` | Partial relative to this plan | Strong general coverage exists, but this plan's specific filter-combination cases are not all clearly represented |
-| `tests/test_api.py` | Partial relative to this plan | `/search?resolve_trails=true` coverage exists, but only a small subset of the filter combinations in this plan is explicitly tested |
-| Manual verification in current environment | Not re-run in this review | `pytest` is not available in this shell environment, so this review is based on code inspection plus existing committed tests |
+| `tests/unit/test_topic_trails_query.py` | Implemented and expanded | Includes explicit hybrid edge cases for conflicting filters, filtered survivors, fallback behavior, and context alignment |
+| `tests/test_api.py` | Implemented and expanded | Includes `/search?resolve_trails=true` coverage for trail resolution, fallback behavior, filter passthrough, and validation errors |
+| Manual/local verification | Re-run by user | Local test reruns reported green; plan updated accordingly |
 
 ---
 
@@ -629,19 +629,19 @@ curl -X POST http://localhost:8001/query \
 - [x] `/search?resolve_trails=true` passes hybrid filters through to `fetch_topic_trails()`
 - [x] Parser hardening added to reduce hallucinated hybrid filters in topic queries
 - [x] Expand or confirm coverage for the remaining planned hybrid-search filter combinations
-- [ ] Re-run the relevant test suite in an environment with `pytest` installed
-- [ ] Re-run the manual routing checks from this plan after the next local API spin-up
+- [x] Re-run the relevant test suite in an environment with `pytest` installed
+- [x] Re-run the manual routing checks from this plan after the next local API spin-up
 - [x] Remove stale `trail_type` support from the hybrid-search runtime surface
 
 ---
 
 ### Edge cases to test
 
-1. **Filters eliminate all results**: Semantic search finds 10 trails, filters eliminate all → `trail_count=0`, generation kicks in
-2. **Filters eliminate some results**: Semantic search finds 10 trails, filters leave 3 → `trail_count=3`, topic_context contains 3 trails
-3. **Conflicting filters**: `min_length=10, max_length=5` → returns empty (SQL handles gracefully)
-4. **Invalid filter values**: Negative lengths, invalid source string → should be caught by FastAPI validation
-5. **Filters without semantic query**: Not possible - `query` is required parameter
+1. **Filters eliminate all results**: Covered. `fetch_topic_trails()` fallback behavior and `/search?resolve_trails=true` content fallback are both tested.
+2. **Filters eliminate some results**: Covered. There is explicit test coverage for filtered survivors and `topic_context` alignment with the returned trail subset.
+3. **Conflicting filters**: Covered. `min_length=10, max_length=5` now has an explicit test asserting an empty result.
+4. **Invalid filter values**: Covered. `/search?resolve_trails=true` validation is explicitly tested for invalid `source` and negative `min_length`.
+5. **Filters without semantic query**: Covered by routing/parser behavior. Purely structured queries route to `search_trails`; malformed topic calls without a semantic query are normalized away from `search_by_topic`.
 
 ---
 
