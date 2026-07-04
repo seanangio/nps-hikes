@@ -591,7 +591,7 @@ class TestFetchTopicTrailsFallback:
 
 
 class TestFetchTopicTrailsFilters:
-    """Park code and state filter tests."""
+    """Structured filter tests."""
 
     @patch("api.queries.get_db_engine")
     def test_park_code_filter_passed_to_query(self, mock_get_engine):
@@ -650,6 +650,76 @@ class TestFetchTopicTrailsFilters:
 
         assert result["trail_count"] == 1
         assert result["trails"][0]["states"] == "CA"
+
+    @patch("api.queries.get_db_engine")
+    def test_hybrid_filter_params_passed_to_query(self, mock_get_engine):
+        """Hybrid filters should all be forwarded into the SQL params."""
+        _mock_engine, mock_conn = _setup_mock_engine(mock_get_engine, [])
+        fallback_result = Mock()
+        fallback_result.fetchall.return_value = []
+        mock_conn.execute.side_effect = [
+            mock_conn.execute.return_value,
+            fallback_result,
+        ]
+
+        fetch_topic_trails(
+            query_embedding=SAMPLE_EMBEDDING,
+            state="CA",
+            hiked=True,
+            min_length=5.0,
+            max_length=10.0,
+            source="TNM",
+        )
+
+        call_args = mock_conn.execute.call_args_list[0]
+        params = call_args[0][1] if len(call_args[0]) > 1 else call_args[1]
+        assert params["state"] == "%CA%"
+        assert params["min_length"] == 5.0
+        assert params["max_length"] == 10.0
+        assert params["source"] == "TNM"
+
+    @patch("api.queries.get_db_engine")
+    def test_conflicting_filters_return_empty(self, mock_get_engine):
+        """Conflicting length filters should return an empty result cleanly."""
+        _setup_mock_engine(mock_get_engine, [], fallback_rows=[])
+
+        result = fetch_topic_trails(
+            query_embedding=SAMPLE_EMBEDDING,
+            min_length=10.0,
+            max_length=5.0,
+        )
+
+        assert result["trail_count"] == 0
+        assert result["trails"] == []
+        assert result["topic_context"] == []
+        assert result["fallback_chunks"] == []
+
+    @patch("api.queries.get_db_engine")
+    def test_filters_can_leave_subset_of_results(self, mock_get_engine):
+        """Filtered hybrid search should preserve only the surviving trails/context."""
+        rows = [
+            _make_trail_row(trail_id="1", trail_name="Trail One", length_miles=5.1),
+            _make_trail_row(trail_id="2", trail_name="Trail Two", length_miles=5.4),
+            _make_trail_row(
+                trail_id="3",
+                trail_name="Trail Three",
+                length_miles=5.7,
+            ),
+        ]
+        _setup_mock_engine(mock_get_engine, rows)
+
+        result = fetch_topic_trails(
+            query_embedding=SAMPLE_EMBEDDING,
+            state="CA",
+            min_length=5.0,
+            max_length=6.0,
+            source="TNM",
+        )
+
+        assert result["trail_count"] == 3
+        assert len(result["trails"]) == 3
+        assert {t["trail_id"] for t in result["trails"]} == {"1", "2", "3"}
+        assert {tc["trail_id"] for tc in result["topic_context"]} == {"1", "2", "3"}
 
 
 class TestFetchTopicTrailsReturnStructure:

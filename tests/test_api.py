@@ -1806,7 +1806,18 @@ class TestSearchEndpointResolveTrails:
             min_length=None,
             max_length=None,
             source=None,
-            trail_type=None,
             limit=10,
             geojson=False,
         )
+
+    def test_resolve_trails_invalid_source_rejected(self):
+        """Invalid trail source should fail FastAPI validation."""
+        response = client.get("/search?q=waterfalls&resolve_trails=true&source=INVALID")
+
+        assert response.status_code == 422
+
+    def test_resolve_trails_negative_min_length_rejected(self):
+        """Negative min_length should fail FastAPI validation."""
+        response = client.get("/search?q=waterfalls&resolve_trails=true&min_length=-1")
+
+        assert response.status_code == 422

@@ -80,7 +80,6 @@ class TestToolDefinitions:
             "min_length",
             "max_length",
             "source",
-            "trail_type",
             "limit",
         }
 
