@@ -41,6 +41,9 @@ _LAST_PARAMS_KEY = "nlq_last_params"
 _LAST_QUERY_KEY = "nlq_last_query"
 _LAST_FUNCTION_KEY = "nlq_last_function"
 _ERROR_KEY = "nlq_error"
+_ACTIVE_TRAILS_KEY = "nlq_active_trails"
+_ACTIVE_PARK_CODES_KEY = "nlq_active_park_codes"
+_WIDGET_SNAPSHOT_KEY = "nlq_widget_snapshot"
 
 # GUI widget state keys the sidebar uses. Kept here so the translation
 # layer has a single source of truth that mirrors sidebar.py.
@@ -68,9 +71,14 @@ def initialize_nlq_state() -> None:
         _LAST_QUERY_KEY,
         _LAST_FUNCTION_KEY,
         _ERROR_KEY,
+        _ACTIVE_TRAILS_KEY,
+        _ACTIVE_PARK_CODES_KEY,
+        _WIDGET_SNAPSHOT_KEY,
     ):
         if key not in st.session_state:
             st.session_state[key] = None
+
+    _ensure_widget_defaults()
 
 
 # ---------------------------------------------------------------------------
@@ -154,7 +162,7 @@ def process_pending_nlq_query(all_parks: list[dict[str, Any]]) -> None:
     st.session_state[_LAST_FUNCTION_KEY] = function_called
     st.session_state[_ERROR_KEY] = None
 
-    _apply_params_to_widgets(function_called, interpreted, all_parks)
+    _apply_nlq_state(function_called, interpreted, response, all_parks)
 
     # Rerun so the sidebar widgets pick up the new state values before
     # any downstream data fetches run. Without this, the current run
@@ -230,14 +238,106 @@ def _apply_params_to_widgets(
     _apply_trail_search_params(params, all_parks)
 
 
+def _apply_nlq_state(
+    function_called: str,
+    params: dict[str, Any],
+    response: dict[str, Any],
+    all_parks: list[dict[str, Any]],
+) -> None:
+    """Apply NLQ state and capture the widget snapshot for divergence checks."""
+    _clear_active_trail_state()
+
+    results = response.get("results") or {}
+    is_topic_query = function_called == "search_by_topic"
+    trails = results.get("trails") if isinstance(results, dict) else None
+
+    # For zero-result semantic queries, keep the current map/browse state
+    # intact and rely on chips + the generated summary to explain what happened.
+    if is_topic_query and not trails:
+        st.session_state[_WIDGET_SNAPSHOT_KEY] = _capture_widget_snapshot()
+        return
+
+    _apply_params_to_widgets(function_called, params, all_parks)
+
+    if function_called in ("search_trails", "search_by_topic") and trails:
+        _activate_trail_results(params, trails, all_parks)
+
+    st.session_state[_WIDGET_SNAPSHOT_KEY] = _capture_widget_snapshot()
+
+
 def _valid_park_codes(all_parks: list[dict[str, Any]]) -> set[str]:
     return {p["park_code"] for p in all_parks if p.get("park_code")}
+
+
+def _ensure_widget_defaults() -> None:
+    """Seed sidebar widget keys so NLQ can safely snapshot them pre-render."""
+    defaults = {
+        _W_STATE: "All States",
+        _W_VISITED: "All Parks",
+        _W_PARKS: [],
+        _W_TRAIL_NAME: "",
+        _W_HIKED: "All Trails",
+        _W_LENGTH: (0.0, 20.0),
+        _W_SOURCE: "All Sources",
+        _W_VIZ_3D: "All Trails",
+    }
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+
+def _capture_widget_snapshot() -> dict[str, Any]:
+    """Capture the current sidebar widget values for divergence detection."""
+    return {
+        _W_STATE: st.session_state.get(_W_STATE, "All States"),
+        _W_VISITED: st.session_state.get(_W_VISITED, "All Parks"),
+        _W_PARKS: list(st.session_state.get(_W_PARKS, [])),
+        _W_TRAIL_NAME: st.session_state.get(_W_TRAIL_NAME, ""),
+        _W_HIKED: st.session_state.get(_W_HIKED, "All Trails"),
+        _W_LENGTH: tuple(st.session_state.get(_W_LENGTH, (0.0, 20.0))),
+        _W_SOURCE: st.session_state.get(_W_SOURCE, "All Sources"),
+        _W_VIZ_3D: st.session_state.get(_W_VIZ_3D, "All Trails"),
+    }
+
+
+def _activate_trail_results(
+    params: dict[str, Any],
+    trails: list[dict[str, Any]],
+    all_parks: list[dict[str, Any]],
+) -> None:
+    """Persist NLQ trail results and mirror their park scope into the sidebar."""
+    valid_codes = _valid_park_codes(all_parks)
+    park_codes = sorted(
+        {
+            trail.get("park_code")
+            for trail in trails
+            if trail.get("park_code") in valid_codes
+        }
+    )
+
+    # Reflect the active result set directly in the visible park selector.
+    st.session_state[_W_PARKS] = park_codes
+    st.session_state[_W_VISITED] = "All Parks"
+    if "state" not in params:
+        st.session_state[_W_STATE] = "All States"
+
+    st.session_state[_ACTIVE_TRAILS_KEY] = trails
+    st.session_state[_ACTIVE_PARK_CODES_KEY] = park_codes
 
 
 def _apply_trail_search_params(
     params: dict[str, Any], all_parks: list[dict[str, Any]]
 ) -> None:
     """Translate ``search_trails`` params into widget state."""
+    # Reset trail-level controls so stale manual filters don't keep
+    # affecting or misrepresenting the fresh NLQ result set.
+    st.session_state[_W_TRAIL_NAME] = ""
+    st.session_state[_W_HIKED] = "All Trails"
+    st.session_state[_W_LENGTH] = (0.0, 20.0)
+    st.session_state[_W_SOURCE] = "All Sources"
+    st.session_state[_W_VIZ_3D] = "All Trails"
+    st.session_state[_W_VISITED] = "All Parks"
+
     # Park selection handling first, because it drives whether we also
     # need to relax the state/visited filters so the park is visible
     # in the multiselect options.
@@ -251,12 +351,14 @@ def _apply_trail_search_params(
             # (it will overwrite the reset). Visited filter is always
             # relaxed since the LLM tools don't surface it for trails.
             st.session_state[_W_STATE] = "All States"
-            st.session_state[_W_VISITED] = "All Parks"
     elif "state" in params:
         # State-only query: clear any stale park selection that may not
         # be in the new state, so the multiselect doesn't show a park
         # outside the freshly-set state.
         st.session_state[_W_PARKS] = []
+    else:
+        st.session_state[_W_PARKS] = []
+        st.session_state[_W_STATE] = "All States"
 
     # State
     if "state" in params:
@@ -372,6 +474,9 @@ def render_nlq_chips_and_results(all_parks: list[dict[str, Any]]) -> None:
         )
         st.markdown(chips_html, unsafe_allow_html=True)
 
+    if function_called == "search_by_topic" and not diverged:
+        _render_generated_summary()
+
     # For search_stats, also render the results payload as an info card
     # since the stats query doesn't change the map/table view.
     if function_called == "search_stats":
@@ -385,6 +490,9 @@ def _build_chip_texts(
 ) -> list[str]:
     """Build the human-readable chip strings for an interpreted query."""
     chips: list[str] = []
+
+    if function_called == "search_by_topic" and params.get("query"):
+        chips.append(f"Topic: {params['query']}")
 
     # Park code: show the park name if we can find it
     if "park_code" in params:
@@ -488,6 +596,20 @@ def _render_stats_dict(data: dict[str, Any]) -> None:
         st.json(value, expanded=False)
 
 
+def _render_generated_summary() -> None:
+    """Render the generated topic summary in a lightweight collapsible panel."""
+    response = st.session_state.get(_LAST_RESPONSE_KEY) or {}
+    results = response.get("results") or {}
+    generated_answer = (
+        results.get("generated_answer") if isinstance(results, dict) else None
+    )
+    if not generated_answer:
+        return
+
+    with st.expander("Summary", expanded=False):
+        st.write(generated_answer)
+
+
 # ---------------------------------------------------------------------------
 # Divergence detection
 # ---------------------------------------------------------------------------
@@ -506,6 +628,10 @@ def _nlq_params_diverged(function_called: str, params: dict[str, Any]) -> bool:
         # meaningful — the chips describe a standalone result card,
         # not active filters.
         return False
+
+    snapshot = st.session_state.get(_WIDGET_SNAPSHOT_KEY)
+    if snapshot:
+        return _capture_widget_snapshot() != snapshot
 
     # search_park_summary writes the park_code + relaxes state/visited.
     # If the user has since changed the park selection, that's divergence.
@@ -569,3 +695,29 @@ def _clear_nlq_state() -> None:
     st.session_state[_LAST_QUERY_KEY] = None
     st.session_state[_LAST_FUNCTION_KEY] = None
     st.session_state[_ERROR_KEY] = None
+    st.session_state[_WIDGET_SNAPSHOT_KEY] = None
+    _clear_active_trail_state()
+
+
+def _clear_active_trail_state() -> None:
+    """Clear the stored NLQ trail result set without touching visible widgets."""
+    st.session_state[_ACTIVE_TRAILS_KEY] = None
+    st.session_state[_ACTIVE_PARK_CODES_KEY] = None
+
+
+def get_active_nlq_trails() -> dict[str, Any] | None:
+    """Return the active NLQ trail result set while it still matches the UI state."""
+    trails = st.session_state.get(_ACTIVE_TRAILS_KEY)
+    park_codes = st.session_state.get(_ACTIVE_PARK_CODES_KEY)
+    function_called = st.session_state.get(_LAST_FUNCTION_KEY)
+    params = st.session_state.get(_LAST_PARAMS_KEY) or {}
+
+    if function_called not in ("search_trails", "search_by_topic"):
+        return None
+    if not trails or _nlq_params_diverged(function_called, params):
+        return None
+
+    return {
+        "trails": trails,
+        "park_codes": park_codes or [],
+    }

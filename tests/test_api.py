@@ -1655,6 +1655,86 @@ class TestParkSummaryQueryFunction:
         assert result is None
 
 
+class TestNlqQueryEndpoint:
+    """Tests for the NLQ /query endpoint behavior needed by Streamlit."""
+
+    @patch("api.main.fetch_trails")
+    @patch("api.main.validate_and_normalize")
+    @patch("api.main.parse_tool_call")
+    @patch("api.main.call_ollama")
+    def test_query_search_trails_returns_geojson_results(
+        self,
+        mock_call_ollama,
+        mock_parse_tool_call,
+        mock_validate_and_normalize,
+        mock_fetch_trails,
+    ):
+        """Trail NLQ queries should return geometry-ready trail data."""
+        mock_call_ollama.return_value = {"message": {"content": ""}}
+        mock_parse_tool_call.return_value = ("search_trails", {"state": "CA"})
+        mock_validate_and_normalize.return_value = (
+            "search_trails",
+            {"state": "CA", "hiked": True},
+        )
+        mock_fetch_trails.return_value = {
+            "trail_count": 1,
+            "total_miles": 5.4,
+            "trails": [{"trail_id": "1", "geometry": {"type": "LineString"}}],
+        }
+
+        response = client.post("/query", json={"query": "hiked trails in California"})
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["function_called"] == "search_trails"
+        assert data["interpreted_as"] == {"state": "CA", "hiked": True}
+        mock_fetch_trails.assert_called_once_with(state="CA", hiked=True, geojson=True)
+
+    @patch("api.main.generate_from_context")
+    @patch("api.main.fetch_topic_trails")
+    @patch("api.main.get_embeddings")
+    @patch("api.main.validate_and_normalize")
+    @patch("api.main.parse_tool_call")
+    @patch("api.main.call_ollama")
+    def test_query_search_by_topic_preserves_topic_in_interpreted_as(
+        self,
+        mock_call_ollama,
+        mock_parse_tool_call,
+        mock_validate_and_normalize,
+        mock_get_embeddings,
+        mock_fetch_topic_trails,
+        mock_generate_from_context,
+    ):
+        """Topic NLQ queries should preserve the semantic topic for UI chips."""
+        mock_call_ollama.return_value = {"message": {"content": ""}}
+        mock_parse_tool_call.return_value = (
+            "search_by_topic",
+            {"query": "waterfall hikes", "state": "CA"},
+        )
+        mock_validate_and_normalize.return_value = (
+            "search_by_topic",
+            {"query": "waterfall hikes", "state": "CA"},
+        )
+        mock_get_embeddings.return_value = [[0.01] * 768]
+        mock_fetch_topic_trails.return_value = {
+            "trail_count": 1,
+            "total_miles": 5.4,
+            "trails": [{"trail_id": "1", "geometry": {"type": "LineString"}}],
+            "topic_context": [],
+            "fallback_chunks": [],
+        }
+        mock_generate_from_context.return_value = "Summary"
+
+        response = client.post(
+            "/query", json={"query": "waterfall hikes in California"}
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["function_called"] == "search_by_topic"
+        assert data["interpreted_as"] == {"query": "waterfall hikes", "state": "CA"}
+
+
 class TestSearchEndpointResolveTrails:
     """Tests for the /search endpoint with resolve_trails parameter."""
 

@@ -44,6 +44,7 @@ from streamlit_app.components.data_table import (
 )
 from streamlit_app.components.map import render_map
 from streamlit_app.components.nlq import (
+    get_active_nlq_trails,
     initialize_nlq_state,
     process_pending_nlq_query,
     render_nlq_chips_and_results,
@@ -177,6 +178,14 @@ def main() -> None:
     # Update session state with sidebar selections
     selected_parks = sidebar_data["selected_parks"]
     st.session_state.selected_parks = selected_parks
+    active_nlq_trails = get_active_nlq_trails()
+    active_trails_by_park: dict[str, list[dict]] = {}
+    if active_nlq_trails:
+        for trail in active_nlq_trails["trails"]:
+            park_code = trail.get("park_code")
+            if not park_code:
+                continue
+            active_trails_by_park.setdefault(park_code, []).append(trail)
 
     # === FETCH DATA FOR SELECTED PARKS ===
     park_data = {}  # park_code -> {boundary, trails, hiked_points}
@@ -198,27 +207,37 @@ def main() -> None:
             except APIError:
                 pass  # Skip if unavailable
 
-        # Fetch trails with filters and geometry
-        try:
-            trails_response = fetch_trails(
-                park_code=park_code,
-                hiked=sidebar_data["filter_hiked"],
-                min_length=sidebar_data["filter_min_length"]
-                if sidebar_data["filter_min_length"] > 0
-                else None,
-                max_length=sidebar_data["filter_max_length"]
-                if sidebar_data["filter_max_length"] < 20
-                else None,
-                source=sidebar_data["filter_source"],
-                viz_3d=sidebar_data["filter_viz_3d"],
-                geojson=True,  # Include geometry for map rendering
-                limit=1000,
-            )
-            cached_trails = trails_response
-            # Note: We don't cache filtered trails, only fetch fresh each time
-        except APIError as e:
-            st.error(f"Failed to fetch trails for {park_code}: {e}")
-            cached_trails = {"trails": [], "trail_count": 0, "total_miles": 0}
+        if active_nlq_trails:
+            park_trails = active_trails_by_park.get(park_code, [])
+            cached_trails = {
+                "trails": park_trails,
+                "trail_count": len(park_trails),
+                "total_miles": sum(
+                    trail.get("length_miles", 0) or 0 for trail in park_trails
+                ),
+            }
+        else:
+            # Fetch trails with filters and geometry
+            try:
+                trails_response = fetch_trails(
+                    park_code=park_code,
+                    hiked=sidebar_data["filter_hiked"],
+                    min_length=sidebar_data["filter_min_length"]
+                    if sidebar_data["filter_min_length"] > 0
+                    else None,
+                    max_length=sidebar_data["filter_max_length"]
+                    if sidebar_data["filter_max_length"] < 20
+                    else None,
+                    source=sidebar_data["filter_source"],
+                    viz_3d=sidebar_data["filter_viz_3d"],
+                    geojson=True,  # Include geometry for map rendering
+                    limit=1000,
+                )
+                cached_trails = trails_response
+                # Note: We don't cache filtered trails, only fetch fresh each time
+            except APIError as e:
+                st.error(f"Failed to fetch trails for {park_code}: {e}")
+                cached_trails = {"trails": [], "trail_count": 0, "total_miles": 0}
 
         # Fetch hiked points if not cached
         if cached_hiked_points is None:
@@ -339,7 +358,9 @@ def main() -> None:
             all_trails, api_base_url=API_BASE_URL, all_parks=all_parks
         )
     else:
-        render_empty_table_placeholder()
+        render_empty_table_placeholder(
+            has_nlq_context=bool(st.session_state.get("nlq_last_query"))
+        )
 
     # === HANDLE TRAIL TABLE CLICK → HIGHLIGHT + REPOSITION MAP ===
     if selected_trail:

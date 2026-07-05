@@ -1200,10 +1200,11 @@ async def natural_language_query(
         function_name, params = validate_and_normalize(
             function_name, raw_params, park_lookup, query=request.query
         )
+        interpreted_params = params.copy()
 
         # Dispatch to query functions
         if function_name == "search_trails":
-            results = fetch_trails(**params)
+            results = fetch_trails(**params, geojson=True)
         elif function_name == "search_parks":
             results = fetch_all_parks(**params)
         elif function_name == "search_stats":
@@ -1286,7 +1287,7 @@ async def natural_language_query(
 
         return {
             "original_query": request.query,
-            "interpreted_as": params,
+            "interpreted_as": interpreted_params,
             "function_called": function_name,
             "results": results,
         }

@@ -160,9 +160,14 @@ def render_trail_table(
     return None
 
 
-def render_empty_table_placeholder() -> None:
-    """Render a placeholder when no parks are selected."""
+def render_empty_table_placeholder(has_nlq_context: bool = False) -> None:
+    """Render a placeholder for either manual browsing or NLQ zero-result states."""
     st.subheader("Trails")
-    st.info(
-        "👈 Select one or more parks from the sidebar to view trails on the map and in this table."
-    )
+    if has_nlq_context:
+        st.info(
+            "No trails are currently visible. Adjust the filters or try a broader search."
+        )
+    else:
+        st.info(
+            "👈 Select one or more parks from the sidebar to view trails on the map and in this table."
+        )
