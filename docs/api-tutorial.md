@@ -5,11 +5,14 @@ description: Tutorial for querying the NPS Hikes FastAPI service, including park
 
 This tutorial walks through the API's capabilities, starting with a broad overview of your parks and narrowing to individual trail visualizations. By the end, you'll know how to query parks and trails, use semantic and hybrid search, generate visualizations, build a 3D elevation profile for a specific trail, and use natural language search.
 
-The tutorial assumes you've completed the [Getting Started](getting-started.md) guide, run the full data collection pipeline, and have both Docker services running.
+The tutorial assumes you've completed the [Getting Started](getting-started.md) guide and run the full data collection pipeline. You can follow these examples in either local API mode:
+
+- If you started the full Docker stack with `make up`, the API base URL is `http://localhost:8000`.
+- If you are using the recommended day-to-day workflow with `make dev`, the API base URL is `http://localhost:8001`.
 
 The examples below use `curl` with `python3 -m json.tool` for pretty-printed output. You can also paste the URLs directly into your browser, which is particularly useful for the visualization endpoints that return images and interactive HTML.
 
-> **Tip:** Don't want to set up locally? You can query the data endpoints on the [live API demo](https://seanangio-nps-hikes.onrender.com/docs), or explore the data through the [Streamlit web app](https://seanangio-nps-hikes.streamlit.app), which is a client of this API. In the examples below, replace `http://localhost:8000` with `https://seanangio-nps-hikes.onrender.com`. Note that visualization endpoints and the natural language query endpoint (`/query`) are only available locally.
+> **Tip:** The examples below use `http://localhost:8000` for brevity because that is the Docker API port. If you're running the API with `make dev`, replace `http://localhost:8000` with `http://localhost:8001`. If you want to use the live demo instead, replace `http://localhost:8000` with `https://seanangio-nps-hikes.onrender.com`. Note that visualization endpoints and the natural language query endpoint (`/query`) are only available locally.
 
 ## Python SDK
 
@@ -83,7 +86,7 @@ curl http://localhost:8000/ | python3 -m json.tool
 }
 ```
 
-> **Tip:** For a full interactive reference, open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser. The Swagger UI lets you try every endpoint, inspect request/response schemas, and experiment with query parameters.
+> **Tip:** For a full interactive reference, open `http://localhost:8000/docs` if you're using `make up`, or `http://localhost:8001/docs` if you're using `make dev`. The Swagger UI lets you try every endpoint, inspect request/response schemas, and experiment with query parameters.
 
 ## Browse your parks
 
