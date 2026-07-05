@@ -458,6 +458,8 @@ The API supports two flavors of semantic retrieval:
 
 Use semantic search when the question includes descriptive intent that is hard to express with normal filters alone, such as `waterfalls`, `slot canyons`, `kid-friendly hikes`, or `scenic viewpoints`.
 
+> **Note:** Both of these depend on [Ollama](https://ollama.com/) running locally because they generate embeddings or LLM tool calls at request time. If Ollama is not running, `/search` and `/query` will return a `503` error. (See [Prerequisites](getting-started.md#step-0-prerequisites) for details). The ordinary `/trails` and `/parks` endpoints do not require Ollama.
+
 ### Raw semantic content search
 
 By default, `/search` returns ranked text chunks from NPS content:
@@ -513,15 +515,7 @@ The important difference is that hybrid search first finds relevant content sema
 
 ## Natural language queries
 
-Instead of building query parameters by hand, you can ask questions in plain English using the `/query` endpoint. This requires [Ollama](https://ollama.com/) running locally with a compatible model (see [Prerequisites](getting-started.md#step-0-prerequisites)).
-
-Start Ollama if it isn't already running:
-
-```bash
-ollama serve
-```
-
-Then ask a question:
+With Ollama running, instead of building query parameters by hand, you can ask questions in plain English using the `/query` endpoint.
 
 ```bash
 curl -X POST http://localhost:8000/query \
@@ -543,17 +537,17 @@ The `interpreted_as` field is useful for debugging. If the results look wrong, c
 ### Example queries
 
 ```bash
-# Trails you've hiked in Zion
+# Structured query: route to trail filters only
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
-  -d '{"query": "trails I have hiked in Zion"}' | python3 -m json.tool
+  -d '{"query": "short hikes in Yosemite"}' | python3 -m json.tool
 
-# Parks you haven't visited
+# Semantic topic query: descriptive intent without explicit trail filters
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
-  -d '{"query": "which parks have I never visited?"}' | python3 -m json.tool
+  -d '{"query": "challenging slot canyons"}' | python3 -m json.tool
 
-# Hybrid topic query
+# Hybrid query: semantic topic plus structured filters
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
   -d '{"query": "waterfall hikes I completed over 5 miles in California"}' | python3 -m json.tool
@@ -561,7 +555,7 @@ curl -X POST http://localhost:8000/query \
 
 ### How it works
 
-The endpoint uses a local LLM (via Ollama) to translate a question into structured parameters for the existing query functions. For purely structured trail requests, it routes to `search_trails`. For descriptive or thematic trail requests, it routes to `search_by_topic`, which can combine semantic intent with structured filters like state, hiked status, length, and source. Your data never leaves your machine.
+The endpoint uses a local LLM (via Ollama) to translate a question into structured parameters for the existing query functions. For purely structured trail requests like `short hikes in Yosemite`, it routes to `search_trails`. For descriptive or thematic requests like `slot canyons`, it routes to `search_by_topic`. For hybrid requests, it uses the same topic search path but layers in structured filters like state, hiked status, length, and source. Your data never leaves your machine.
 
 For example, the hybrid query above is interpreted roughly as:
 
