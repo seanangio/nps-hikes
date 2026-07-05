@@ -129,6 +129,7 @@ def test_db(test_db_engine: Engine) -> Engine:
     with test_db_engine.connect() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         conn.commit()
 
     # Create all tables

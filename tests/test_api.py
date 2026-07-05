@@ -1658,6 +1658,7 @@ class TestParkSummaryQueryFunction:
 class TestNlqQueryEndpoint:
     """Tests for the NLQ /query endpoint behavior needed by Streamlit."""
 
+    @patch("api.main.get_park_lookup", return_value={})
     @patch("api.main.fetch_trails")
     @patch("api.main.validate_and_normalize")
     @patch("api.main.parse_tool_call")
@@ -1668,6 +1669,7 @@ class TestNlqQueryEndpoint:
         mock_parse_tool_call,
         mock_validate_and_normalize,
         mock_fetch_trails,
+        _mock_get_park_lookup,
     ):
         """Trail NLQ queries should return geometry-ready trail data."""
         mock_call_ollama.return_value = {"message": {"content": ""}}
@@ -1690,6 +1692,7 @@ class TestNlqQueryEndpoint:
         assert data["interpreted_as"] == {"state": "CA", "hiked": True}
         mock_fetch_trails.assert_called_once_with(state="CA", hiked=True, geojson=True)
 
+    @patch("api.main.get_park_lookup", return_value={})
     @patch("api.main.generate_from_context")
     @patch("api.main.fetch_topic_trails")
     @patch("api.main.get_embeddings")
@@ -1704,6 +1707,7 @@ class TestNlqQueryEndpoint:
         mock_get_embeddings,
         mock_fetch_topic_trails,
         mock_generate_from_context,
+        _mock_get_park_lookup,
     ):
         """Topic NLQ queries should preserve the semantic topic for UI chips."""
         mock_call_ollama.return_value = {"message": {"content": ""}}
