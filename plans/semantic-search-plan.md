@@ -751,7 +751,7 @@ The `else` branch (fallback, `trail_count == 0`) stays unchanged.
 
 **Goal**: Enable `search_by_topic` to accept structured filters (`hiked`, `min_length`, `max_length`, `source`) alongside semantic queries, allowing combined queries like "slot canyons I hiked" or "waterfall hikes over 5 miles in California".
 
-**Status**: Not started.
+**Status**: Complete.
 
 **See**: [/plans/hybrid-search-implementation-plan.md](./hybrid-search-implementation-plan.md) for full implementation details.
 
@@ -766,7 +766,7 @@ The `else` branch (fallback, `trail_count == 0`) stays unchanged.
 
 **Tool selection rule**: Use `search_by_topic` for queries with ANY semantic/descriptive component (even with filters). Use `search_trails` only for purely structured queries with no semantic component.
 
-**Verification**: Test queries like "slot canyons I hiked", "waterfall hikes over 5 miles in California", "long kid-friendly trails" to confirm LLM extracts both semantic query and structured filters.
+**Verification**: Completed. Hybrid queries now support semantic intent plus structured filters across both `/query` and `/search?resolve_trails=true`.
 
 ---
 
@@ -774,7 +774,7 @@ The `else` branch (fallback, `trail_count == 0`) stays unchanged.
 
 **Goal**: Display `search_by_topic` results (including hybrid search with filters) in the Streamlit app — trails on map/table, generated summary in a card above the map, topic context in an expander, applied filters shown as chips.
 
-**Status**: Not started.
+**Status**: Complete.
 
 ### Challenge: trail data injection
 
@@ -879,13 +879,14 @@ No existing Streamlit component tests in the codebase. If tests are added, they 
 
 ### Verification
 
-- [ ] Run Streamlit, enter "waterfall hikes in California" → trails appear on map + table, generated summary card above map, topic context in expander
-- [ ] Enter "short trails in Zion" → works via `search_trails` (existing flow unchanged)
-- [ ] Enter "parks I haven't visited" → works via `search_parks` (unchanged)
-- [ ] After a topic search, change a sidebar filter → topic results clear, normal filtering resumes
-- [ ] Click the X button on chips → topic results clear
-- [ ] With Ollama stopped → trails still show, summary card doesn't appear (graceful degradation)
-- [ ] Click map markers, use sidebar filters — still functional
+- [x] Run Streamlit, enter "waterfall hikes in California" → trails appear on map + table, generated summary card above map, topic context in expander
+- [x] Enter "short trails in Zion" → works via `search_trails` (existing flow unchanged)
+- [x] Enter "parks I haven't visited" → works via `search_parks` (unchanged)
+- [x] After a topic search, change a sidebar filter → topic results clear, normal filtering resumes
+- [x] With Ollama stopped → trails still show, summary card doesn't appear (graceful degradation)
+- [x] Click map markers, use sidebar filters — still functional
+
+See [/plans/streamlit-hybrid-ux-update.md](./streamlit-hybrid-ux-update.md) for the implementation notes and final UX decisions.
 
 ---
 
@@ -893,17 +894,22 @@ No existing Streamlit component tests in the codebase. If tests are added, they 
 
 **Goal**: Document semantic search and hybrid search features in API tutorial.
 
-**Status**: Not started.
+**Status**: Complete.
 
-**File to modify**: `docs/api-tutorial.md`
+**Files modified**:
+- `docs/api-tutorial.md`
+- `README.md`
+- `streamlit_app/README.md`
+- `docs/index.md`
 
-Add section "Semantic search" covering:
-- The `/search` endpoint with curl examples
-- Topic-based queries via `/query` ("waterfall hikes in CA")
-- How semantic search differs from structured queries
-- Note that Ollama is required (local-only feature)
+Documentation now covers:
+- the `/search` endpoint for raw semantic retrieval
+- hybrid search via `/search?resolve_trails=true`
+- topic-based and hybrid NLQ examples via `/query`
+- how semantic search differs from purely structured `/trails` queries
+- the Streamlit app's topic-result behavior, chips, and generated summary handling
 
-Also update the root endpoint listing in tutorial if `/search` isn't already mentioned.
+The API tutorial root-endpoint example was also updated to include `/search`.
 
 ### Verification
 
@@ -940,7 +946,7 @@ Also update the root endpoint listing in tutorial if `/search` isn't already men
 
 **Rationale for deferring**: Orthogonal to hybrid search (semantic + filters). Regional mapping is a distinct NLQ enhancement that can be added later without breaking changes. Users can still specify single states in the interim.
 
-**Return to this after Step 8 (hybrid search) is implemented and verified.**
+**Return to this after hybrid search is fully extended to multi-state/regional interpretation.**
 
 ---
 

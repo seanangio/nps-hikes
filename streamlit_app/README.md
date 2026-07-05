@@ -1,6 +1,6 @@
 # NPS Hikes Streamlit Web Application
 
-An interactive web application for exploring National Park hiking trails with a map-based interface. Built with Streamlit and Folium, this app provides dual-mode interaction: traditional GUI filters and natural language queries.
+An interactive web application for exploring National Park hiking trails with a map-based interface. Built with Streamlit and Folium, this app provides dual-mode interaction: traditional GUI filters and natural language queries, including semantic and hybrid topic search.
 
 ## Features
 
@@ -18,8 +18,11 @@ An interactive web application for exploring National Park hiking trails with a 
   - Park summary cards with NPS descriptions
   - Trail filters: name search, hiked status, length range, data source, 3D viz availability
   - "Reset Filters" button
-- **Natural Language Queries**: Type questions like "long trails I haven't hiked in Utah" to auto-set filters
-  - Interpreted parameter chips with staleness detection
+- **Natural Language Queries**: Type questions like "long trails I haven't hiked in Utah" or "waterfall hikes I completed over 5 miles in California"
+  - Structured queries can still auto-set filters
+  - Topic and hybrid queries render real trail results directly on the map and in the table
+  - Topic chip plus applied-filter chips explain what the query resolved to
+  - Generated topic summaries appear in a collapsible panel while the NLQ result state remains active
   - Stats card rendering for aggregate queries
 - **Data Table**: Sortable trail table with row-click highlighting, 3D viz links, and CSV/GeoJSON export
 - **Map Interactions**: Click a park marker to select it; click a trail row to highlight it on the map
@@ -123,8 +126,18 @@ NPS_API_URL=http://localhost:8000 make streamlit
 2. **Apply Trail Filters**: Filter trails by name, hiking status, length, data source, or 3D viz availability.
 3. **Explore the Map**: Pan, zoom, and hover over park boundaries and trails for details.
 4. **Browse Trails**: Scroll through the data table below the map. Click a row to highlight that trail on the map.
-5. **Natural Language Search**: Type a question in the sidebar input (e.g., "long trails I haven't hiked in Utah") to auto-set filters.
+5. **Natural Language Search**: Type a question in the sidebar input (for example, "long trails I haven't hiked in Utah" or "waterfall hikes I completed over 5 miles in California"). Structured queries auto-set filters, while topic and hybrid queries can directly drive the visible trail results.
 6. **Export Data**: Use the CSV/GeoJSON download buttons above the data table.
+
+### Topic and hybrid query behavior
+
+For `search_by_topic` queries, the app now treats the returned trails as a real active result set instead of only translating the query into sidebar filters.
+
+- The map and trail table render the returned trails immediately
+- The park selector auto-populates with the parks represented in the result set
+- A `Topic: ...` chip appears alongside any structured-filter chips
+- If the API returns a generated summary, it appears in a collapsible panel above the map
+- If you manually change filters or click into a different browsing path, the app cleanly falls back to normal manual browsing and removes the generated summary
 
 ## Performance Notes
 
@@ -158,6 +171,7 @@ For 3 parks simultaneously: ~1.2 MB total.
 
 1. Check if Ollama is running: `curl http://localhost:11434/api/tags`
 2. Ensure the API is running locally (not in Docker) so it can reach Ollama on the host
+3. Remember that the hosted Streamlit demo can browse the API data, but local Ollama-backed `/query` behavior is only available in a local setup
 
 ### Map not rendering or blank
 

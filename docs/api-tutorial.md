@@ -3,7 +3,7 @@ title: Using the API
 description: Tutorial for querying the NPS Hikes FastAPI service, including parks, trails, stats, visualizations, and natural language search.
 ---
 
-This tutorial walks through the API's capabilities, starting with a broad overview of your parks and narrowing to individual trail visualizations. By the end, you'll know how to query parks and trails, generate visualizations, build a 3D elevation profile for a specific trail, and use natural language search.
+This tutorial walks through the API's capabilities, starting with a broad overview of your parks and narrowing to individual trail visualizations. By the end, you'll know how to query parks and trails, use semantic and hybrid search, generate visualizations, build a 3D elevation profile for a specific trail, and use natural language search.
 
 The tutorial assumes you've completed the [Getting Started](getting-started.md) guide, run the full data collection pipeline, and have both Docker services running.
 
@@ -66,6 +66,7 @@ curl http://localhost:8000/ | python3 -m json.tool
     },
     "endpoints": {
         "query": "/query",
+        "search": "/search",
         "parks": "/parks",
         "trails": "/trails",
         "hiked_points": "/trails/hiked-points",
@@ -445,6 +446,68 @@ From there, pick any trail with a `viz_3d_slug` and open its 3D visualization in
 
 > **Tip:** You can also use Python's `requests` library, the Swagger UI at `/docs`, or any HTTP client to query these endpoints.
 
+## Semantic and hybrid search
+
+The API supports two flavors of semantic retrieval:
+
+- `/search` for direct programmatic semantic search over NPS content
+- `/query` for natural-language routing, where the local LLM decides whether your request is a structured query, a topic query, a stats query, or a park query
+
+Use semantic search when the question includes descriptive intent that is hard to express with normal filters alone, such as `waterfalls`, `slot canyons`, `kid-friendly hikes`, or `scenic viewpoints`.
+
+### Raw semantic content search
+
+By default, `/search` returns ranked text chunks from NPS content:
+
+```bash
+curl "http://localhost:8000/search?q=waterfalls&limit=3" | python3 -m json.tool
+```
+
+This is useful when you want the semantic matches themselves instead of structured trail rows.
+
+### Hybrid search with trail resolution
+
+Add `resolve_trails=true` to bridge semantic matches back to structured trail data:
+
+```bash
+curl "http://localhost:8000/search?q=waterfalls&resolve_trails=true" | python3 -m json.tool
+```
+
+When trail mappings are found, the response switches to structured trail results with `response_type: "trails"`.
+
+You can combine semantic search with the same kinds of filters you would normally apply to trail queries:
+
+```bash
+curl "http://localhost:8000/search?q=waterfalls&resolve_trails=true&hiked=true&min_length=5&state=CA" | python3 -m json.tool
+```
+
+That query means: find trails associated with waterfall-related content, then keep only trails you have hiked, at least 5 miles long, in California.
+
+Supported filters in `/search?resolve_trails=true`:
+
+- `park_code`
+- `state`
+- `hiked`
+- `min_length`
+- `max_length`
+- `source`
+
+### Structured vs semantic search
+
+Use the ordinary `/trails` endpoint when the request is purely structured:
+
+```bash
+curl "http://localhost:8000/trails?state=UT&hiked=false&min_length=5" | python3 -m json.tool
+```
+
+Use semantic or hybrid search when the request has a descriptive component:
+
+```bash
+curl "http://localhost:8000/search?q=slot+canyons&resolve_trails=true&hiked=false" | python3 -m json.tool
+```
+
+The important difference is that hybrid search first finds relevant content semantically, then resolves that content to trails, and only then applies the structured filters. That preserves semantic ranking while still letting you narrow the result set.
+
 ## Natural language queries
 
 Instead of building query parameters by hand, you can ask questions in plain English using the `/query` endpoint. This requires [Ollama](https://ollama.com/) running locally with a compatible model (see [Prerequisites](getting-started.md#step-0-prerequisites)).
@@ -463,13 +526,13 @@ curl -X POST http://localhost:8000/query \
   -d '{"query": "short hikes in Yosemite"}' | python3 -m json.tool
 ```
 
-The response includes four fields:
+The response includes these top-level fields:
 
 | Field | Description |
 | --- | --- |
 | `original_query` | Your question as submitted |
 | `interpreted_as` | The structured parameters the LLM extracted (for example, `{"park_code": "yose", "max_length": 3}`) |
-| `function_called` | Which function was used (for example, `search_trails`, `search_parks`, `search_stats`, `search_park_summary`) |
+| `function_called` | Which function was used (for example, `search_trails`, `search_by_topic`, `search_parks`, `search_stats`, `search_park_summary`) |
 | `results` | The API results from the dispatched endpoint |
 
 The `interpreted_as` field is useful for debugging. If the results look wrong, check what parameters were extracted to understand how the LLM interpreted your question.
@@ -486,11 +549,23 @@ curl -X POST http://localhost:8000/query \
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
   -d '{"query": "which parks have I never visited?"}' | python3 -m json.tool
+
+# Hybrid topic query
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "waterfall hikes I completed over 5 miles in California"}' | python3 -m json.tool
 ```
 
 ### How it works
 
-The endpoint uses a local LLM (via Ollama) to translate a question into structured parameters for the existing query functions (`/trails`, `/parks`, `/stats`, and `/parks/{park_code}/summary`). The LLM's only job is parameter extraction. It doesn't answer questions directly or generate SQL. Your data never leaves your machine.
+The endpoint uses a local LLM (via Ollama) to translate a question into structured parameters for the existing query functions. For purely structured trail requests, it routes to `search_trails`. For descriptive or thematic trail requests, it routes to `search_by_topic`, which can combine semantic intent with structured filters like state, hiked status, length, and source. Your data never leaves your machine.
+
+For example, the hybrid query above is interpreted roughly as:
+
+- semantic topic: `waterfall hikes`
+- structured filters: `hiked=true`, `min_length=5`, `state=CA`
+
+When a topic query resolves to trails, the API returns a structured trail result set plus topic context and, when available, a generated summary grounded in the matched content. This is the same result shape the Streamlit app uses to show topic results directly on the map and in the trail table.
 
 The default model is `llama3.1:8b` (configurable via the `OLLAMA_MODEL` environment variable). You can swap models by changing the env var and pulling the new model with `ollama pull <model_name>`.
 

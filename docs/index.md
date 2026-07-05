@@ -3,11 +3,11 @@ title: NPS Hikes
 description: Personal project by Sean Angiolillo for collecting, analyzing, and exploring US National Park hiking trail data with a FastAPI API, Streamlit app, and PostGIS database.
 ---
 
-A Python project for collecting, validating, and analyzing hiking trail data from US National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API and an interactive Streamlit web app with natural language search.
+A Python project for collecting, validating, and analyzing hiking trail data from US National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API and an interactive Streamlit web app with natural language, semantic, and hybrid search.
 
 ## Live demos
 
-- **[Web app](https://seanangio-nps-hikes.streamlit.app)** --- Interactive map-based explorer with park selection, trail filters, data table, and CSV/GeoJSON export. Built with Streamlit and Folium.
+- **[Web app](https://seanangio-nps-hikes.streamlit.app)** --- Interactive map-based explorer with park selection, trail filters, topic-aware trail results, and CSV/GeoJSON export. Built with Streamlit and Folium.
 - **[API Swagger UI](https://seanangio-nps-hikes.onrender.com/docs)** --- Browse the API docs and query park and trail data directly.
 
 > **Note:** Both demos run on free tiers and may take 30-60 seconds to respond on the first request while the servers wake up. Visualization endpoints (maps, elevation charts, 3D trails) and the natural language query endpoint (`/query`) are only available with a [local deployment](getting-started.md).
@@ -18,8 +18,8 @@ A Python project for collecting, validating, and analyzing hiking trail data fro
 - Extract hiking trails from OpenStreetMap and The National Map (USGS).
 - Match personal hiking locations stored in Google My Maps to trail geometries.
 - Explore parks and trails through a [FastAPI REST API](https://seanangio-nps-hikes.onrender.com/docs).
-- Browse an interactive map, filter trails, and export data via a [Streamlit web app](https://seanangio-nps-hikes.streamlit.app).
-- Query the API in natural language via a local LLM.
+- Browse an interactive map, filter trails, and inspect semantic topic results via a [Streamlit web app](https://seanangio-nps-hikes.streamlit.app).
+- Query the API in natural language via a local LLM, including hybrid searches that combine themes with structured filters.
 - Access the API via a [Python SDK](https://github.com/seanangio/nps-hikes-python-sdk).
 
 ## Project structure
