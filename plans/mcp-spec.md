@@ -2,7 +2,7 @@
 
 ## Overview
 
-Build a local-first Model Context Protocol (MCP) server for `nps-hikes` that exposes the project's park and trail dataset as AI-native capabilities for ChatGPT and other MCP-compatible clients.
+Build a local-first Model Context Protocol (MCP) server for `nps-hikes` that exposes the project's park and trail dataset as AI-native capabilities for MCP-compatible clients, including ChatGPT.
 
 The goal of v1 is not to build another chatbot. The goal is to expose reliable, grounded `tools` and lightweight `resources` so an external assistant can answer questions using the user's real local `nps-hikes` data.
 
@@ -29,7 +29,7 @@ This spec defines the end-state design, architecture decisions, workflow, v1 sco
 
 ### Target client
 
-The intended user experience is `ChatGPT`, but the implementation target is a client-agnostic local MCP server over a standard MCP transport.
+The implementation target is a client-agnostic local MCP server over a standard MCP transport. `ChatGPT` is the initial example client, not the protocol target.
 
 Rationale:
 
@@ -147,11 +147,17 @@ When the project is complete, the user workflow should look like this:
 
 1. Start the local `nps-hikes` environment.
 2. Start the local MCP server from the repo.
-3. Configure ChatGPT to use the local MCP server.
-4. Ask ChatGPT questions about parks, trails, and stats.
-5. ChatGPT decides whether to call `nps-hikes` tools or read `nps-hikes` resources.
+3. Configure an MCP-compatible client to use the local MCP server.
+4. Ask the client questions about parks, trails, and stats.
+5. The client decides whether to call `nps-hikes` tools or read `nps-hikes` resources.
 6. The MCP server runs local project logic against the user's local dataset.
-7. ChatGPT answers in natural language using grounded results from the MCP server.
+7. The client answers in natural language using grounded results from the MCP server.
+
+### Example client setup
+
+For v1 learning and validation, `ChatGPT` is the default example client for local setup instructions and end-to-end verification.
+
+That choice should be treated as documentation and workflow guidance, not as a design constraint on the server itself. If another MCP-compatible client is used later, the server surface should remain the same and only the client-specific connection steps should change.
 
 ### Example user questions
 
@@ -162,8 +168,8 @@ When the project is complete, the user workflow should look like this:
 
 ### What the user will be able to do
 
-- Ask ChatGPT structured questions about parks and trails backed by real local project data.
-- Let ChatGPT compare parks and summarize stats without relying on memory or generic web knowledge.
+- Ask an MCP-compatible assistant structured questions about parks and trails backed by real local project data.
+- Let the assistant compare parks and summarize stats without relying on memory or generic web knowledge.
 - See MCP `tools` and `resources` working together in a concrete project.
 - Extend the system later with richer tools, topic search, or hosted adapters without changing the basic architecture.
 
@@ -172,7 +178,7 @@ When the project is complete, the user workflow should look like this:
 ### High-level shape
 
 ```text
-ChatGPT (MCP client)
+MCP-compatible client
         |
         | MCP
         v
@@ -542,12 +548,12 @@ Deliverables:
 
 Goals:
 
-- connect the server to the intended local MCP client path for ChatGPT
+- connect the server to an MCP-compatible local client
 - verify tool invocation and resource access end to end
 
 Deliverables:
 
-- local integration instructions
+- local integration instructions for the example client
 - example prompts that exercise the server
 
 ### Milestone 7: Testing and polish
@@ -568,7 +574,7 @@ Deliverables:
 The v1 MCP project is successful when:
 
 - the local MCP server starts reliably
-- ChatGPT can use the server as a local MCP tool source
+- at least one MCP-compatible client can use the server as a local MCP tool source
 - the assistant can retrieve real `nps-hikes` park/trail/stat data through MCP tools
 - the assistant can read at least a few grounding resources
 - the MCP server reuses existing project logic rather than duplicating the backend
