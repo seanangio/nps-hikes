@@ -77,6 +77,8 @@ V1 should expose deterministic, structured tools first:
 
 `search_by_topic` should be deferred to v2.
 
+These tools should intentionally mirror the existing FastAPI query surface where that reduces ambiguity and avoids duplicate logic. The MCP layer may omit some HTTP-specific options, but it should not introduce a parallel query language for v1.
+
 Rationale:
 
 - Reduces moving parts while learning MCP.
@@ -255,16 +257,16 @@ Using FastAPI as the MCP backend remains a valid fallback if direct reuse become
 Purpose:
 Retrieve trails using explicit structured filters.
 
-Likely inputs:
+Inputs:
 
-- `park_code`
-- `state`
-- `hiked`
-- `min_length`
-- `max_length`
-- `source`
-- `viz_3d`
-- `limit`
+- `park_code` - optional 4-letter lowercase park code
+- `state` - optional 2-letter uppercase state code
+- `hiked` - optional boolean
+- `min_length` - optional minimum trail length in miles
+- `max_length` - optional maximum trail length in miles
+- `source` - optional `TNM` or `OSM`
+- `viz_3d` - optional boolean
+- `limit` - optional result limit, default 50, max 1000
 
 Output shape:
 
@@ -276,18 +278,24 @@ Output shape:
 
 Each trail should include the most useful chat-facing fields, not every possible field by default.
 
+Notes:
+
+- This tool should mirror the current `/trails` API semantics for filters and defaults.
+- V1 should not include pagination unless it falls out naturally from the existing shared logic.
+- V1 should not include geometry-heavy payloads by default.
+
 #### `search_parks`
 
 Purpose:
 Retrieve parks using visit and metadata filters.
 
-Likely inputs:
+Inputs:
 
-- `visited`
-- `visit_year`
-- `visit_month`
-- `park_code`
-- `state`
+- `visited` - optional boolean
+- `visit_year` - optional integer year
+- `visit_month` - optional month value or values normalized to the existing backend behavior
+- `park_code` - optional 4-letter lowercase park code
+- `state` - optional 2-letter uppercase state code
 
 Output shape:
 
@@ -297,33 +305,39 @@ Output shape:
 - `applied_filters`
 - `parks`
 
+Notes:
+
+- This tool should mirror the current `/parks` API semantics where practical.
+- If visit timing is supplied, the shared logic may infer visited status the same way the current backend does.
+
 #### `search_stats`
 
 Purpose:
-Return aggregate trail and park statistics.
+Return aggregate trail statistics.
 
-Likely inputs:
+Inputs:
 
-- `hiked`
-- `per_park`
-
-V1 recommendation:
-Consider keeping `per_park` out of the first iteration unless it falls out naturally from existing logic. If it is easy to include, keep it aligned with the current project capabilities.
+- `hiked` - optional boolean
 
 Output shape:
 
 - `summary`
 - scalar metrics
-- optional grouped breakdowns
+- source breakdowns and other aggregate fields already supported by shared logic
+
+Notes:
+
+- V1 should keep this tool aligned with the current aggregate `/stats` behavior.
+- Per-park breakdowns should stay out of the v1 MCP surface. If they are added later, they should be a separate tool rather than an optional mode hidden behind a boolean flag.
 
 #### `search_park_summary`
 
 Purpose:
 Return a detailed overview for a specific park.
 
-Likely inputs:
+Inputs:
 
-- `park_code`
+- `park_code` - required 4-letter lowercase park code
 
 Output shape:
 
@@ -332,6 +346,12 @@ Output shape:
 - `trail_stats`
 - `source_breakdown`
 - `visit_info`
+
+Notes:
+
+- V1 should keep this tool strict and require `park_code`.
+- Park-name resolution should happen outside the tool call, typically by consulting the `park_lookup` resource first.
+- This preserves parity with the existing API while still demonstrating how MCP resources can support tool selection.
 
 ### Resources
 
@@ -358,7 +378,7 @@ Likely content:
 - park codes
 - maybe state abbreviations
 
-This is especially useful if the client chooses to inspect a resource before calling tools.
+This resource is the preferred v1 path for resolving human park names to canonical `park_code` values before calling strict tools such as `search_park_summary`.
 
 #### `search_methodology`
 
@@ -388,6 +408,33 @@ This is optional because the `search_park_summary` tool may already cover the mo
 - Include compact `summary` fields to help the host assistant compose responses.
 - Avoid embedding LLM behavior inside the server for v1.
 
+### Tool Contract Source of Truth
+
+For v1, MCP tool contracts should be derived primarily from the existing FastAPI layer and its OpenAPI-visible constraints, not directly from SQL schema details.
+
+That means the MCP spec should mirror the external behavior already established by the API, including:
+
+- argument names
+- allowed value formats
+- defaults and limits
+- required versus optional parameters
+- not-found, empty-result, and validation behavior
+
+This is not redundant with the database schema. The SQL layer defines storage; the MCP tool contract defines the external interface seen by MCP clients.
+
+The MCP contract does not need to restate every HTTP concern or expose every API option, but any deliberate deviation from current FastAPI behavior should be explicit in the spec.
+
+### Error Handling Expectations
+
+Tool behavior should be deterministic for the most common failure paths:
+
+- invalid arguments should produce clear validation errors
+- unknown `park_code` should produce a readable not-found result or error
+- empty matches should return a successful empty result, not a failure
+- database or infrastructure problems should surface as operational errors, not ambiguous empty payloads
+
+These expectations should be finalized alongside the tool contracts before implementation begins.
+
 ## Data and Logic Reuse Strategy
 
 The MCP server should maximize reuse from the existing codebase.
@@ -401,6 +448,27 @@ Preferred order of reuse:
 If some logic currently lives too close to FastAPI, factor it into a shared layer rather than duplicating it in the MCP server.
 
 ## V1 Implementation Notes
+
+### Implementation approach
+
+Implementation should happen in small, understandable slices rather than as one large MCP drop.
+
+Each step should aim to:
+
+- introduce one new MCP concept at a time
+- keep the diff small enough to review comfortably
+- verify behavior before moving to the next step
+- leave the repo in a runnable state after each completed step
+
+Preferred working rhythm:
+
+1. read the current code path being reused
+2. implement one small MCP-facing piece
+3. run the smallest useful verification
+4. document what changed and why
+5. pause before starting the next slice
+
+This project is explicitly a learning build. The implementation plan should optimize for clarity and traceability, not just speed.
 
 ### Suggested repository layout
 
@@ -425,9 +493,16 @@ The exact folder names can vary. The important design point is transport separat
 
 ### Transport
 
-Use a local MCP transport suitable for desktop/local client integration.
+Use `stdio` as the default v1 transport.
 
-For v1, favor the simplest transport supported by the chosen MCP framework and by the intended ChatGPT local integration path.
+Rationale:
+
+- simplest local-first setup
+- easy to debug during MCP learning
+- good fit for desktop client integration
+- avoids premature transport complexity
+
+If a specific client later requires a different transport, that should be treated as a client-integration concern rather than a change to the core server design.
 
 ### Framework choice
 
@@ -440,7 +515,7 @@ Selection criteria:
 - easy local development
 - minimal hidden magic
 
-The spec does not require a framework decision yet, but the implementation should avoid inventing custom protocol handling if a standard library exists.
+The implementation should avoid inventing custom protocol handling if a standard library exists. The starting assumption for v1 is a standard Python MCP library plus `stdio` transport.
 
 ## What V1 Will Not Do
 
@@ -477,7 +552,9 @@ That makes it better as a second phase, not part of the foundation.
 
 ## Implementation Milestones
 
-### Milestone 1: Confirm the reusable backend surface
+The implementation should proceed in order. Do not start a later step until the current step is understandable and verified.
+
+### Step 1: Confirm the reusable backend surface
 
 Goals:
 
@@ -490,21 +567,55 @@ Deliverables:
 - chosen shared-layer entry points
 - list of any refactors needed before MCP code is added
 
-### Milestone 2: Define MCP tool and resource schemas
+Checklist:
+
+- [ ] identify the current FastAPI endpoints that map to v1 MCP tools
+- [ ] identify the exact backend functions each MCP tool should call
+- [ ] confirm whether those functions are already transport-neutral
+- [ ] note any FastAPI-coupled logic that should move into a shared layer
+- [ ] write down the smallest safe extraction plan, if extraction is needed
+- [ ] confirm that no v1 MCP tool requires the NLQ `/query` path
+
+Suggested verification:
+
+- read the relevant FastAPI handlers and query functions side by side
+- confirm the proposed MCP tools can be backed by existing structured logic
+
+### Step 2: Define MCP tool and resource schemas
 
 Goals:
 
 - finalize v1 tool names, arguments, and return shapes
 - finalize resource identifiers and contents
 - define answer-oriented summary fields
+- document any intentional differences from the FastAPI surface
 
 Deliverables:
 
 - tool contracts
 - resource contracts
 - examples of expected payloads
+- documented error behavior for empty, invalid, not-found, and operational failure cases
 
-### Milestone 3: Implement the MCP server skeleton
+Checklist:
+
+- [ ] confirm the final v1 tool list
+- [ ] confirm the final v1 resource list
+- [ ] write the exact arguments for each tool
+- [ ] document defaults, limits, and required fields
+- [ ] document which API options are intentionally omitted from v1 MCP
+- [ ] define what each `summary` field should contain
+- [ ] define empty-result behavior for each tool
+- [ ] define not-found behavior for `search_park_summary`
+- [ ] define operational-error behavior at the MCP boundary
+- [ ] add at least one example payload for each tool and resource
+
+Suggested verification:
+
+- review the schema definitions against current FastAPI/OpenAPI behavior
+- confirm there is no hidden ambiguity a developer would need to guess about
+
+### Step 3: Add the MCP server skeleton
 
 Goals:
 
@@ -517,22 +628,91 @@ Deliverables:
 - runnable local MCP server
 - local startup instructions
 
-### Milestone 4: Wire tools to shared logic
+Checklist:
+
+- [ ] choose the Python MCP library for v1
+- [ ] create the `mcp/` module structure
+- [ ] add a minimal server entry point
+- [ ] configure the server to run over `stdio`
+- [ ] register placeholder tools
+- [ ] register placeholder resources
+- [ ] verify the server starts without calling project logic yet
+- [ ] document the local startup command
+
+Suggested verification:
+
+- run the server locally and confirm it starts cleanly
+- verify the client can see the registered tool and resource names
+
+### Step 4: Wire one tool end to end first
 
 Goals:
 
-- connect each MCP tool to the shared query/service layer
-- shape outputs consistently
-- keep error handling deterministic and readable
+- connect a single MCP tool to real shared logic first
+- prove the end-to-end pattern before repeating it
+- keep the first integration narrow and easy to reason about
+
+Recommended first tool:
+
+- `search_stats`
+
+Rationale:
+
+- small input surface
+- no park-name resolution concern
+- aggregate output is easier to inspect than large trail lists
+
+Deliverables:
+
+- working `search_stats`
+- initial shared output-shaping pattern
+- initial MCP-side error mapping pattern
+
+Checklist:
+
+- [ ] decide the exact first tool to implement
+- [ ] connect it to the shared query/service layer
+- [ ] shape its result into the MCP response format
+- [ ] add a compact deterministic `summary`
+- [ ] verify empty and operational failure behavior
+- [ ] document the implementation pattern for reuse by later tools
+
+Suggested verification:
+
+- invoke the first tool manually through the MCP client
+- confirm the output is both structured and easy for an assistant to narrate
+
+### Step 5: Wire the remaining core tools
+
+Goals:
+
+- connect the remaining v1 tools to the shared query/service layer
+- keep output shaping and error handling consistent
+- avoid rewriting logic already proven in earlier steps
 
 Deliverables:
 
 - working `search_trails`
 - working `search_parks`
-- working `search_stats`
 - working `search_park_summary`
 
-### Milestone 5: Add lightweight resources
+Checklist:
+
+- [ ] implement `search_trails`
+- [ ] implement `search_parks`
+- [ ] implement `search_park_summary`
+- [ ] keep argument semantics aligned with the spec
+- [ ] keep result shapes consistent across tools
+- [ ] confirm `search_park_summary` remains strict on `park_code`
+- [ ] confirm no tool depends on the NLQ stack
+- [ ] verify each tool against at least one real example query
+
+Suggested verification:
+
+- test one success case and one edge case for each tool
+- confirm output sizes stay reasonable for assistant use
+
+### Step 6: Add lightweight resources
 
 Goals:
 
@@ -544,7 +724,21 @@ Deliverables:
 
 - working resource reads in the MCP client
 
-### Milestone 6: Local client integration
+Checklist:
+
+- [ ] implement `dataset_overview`
+- [ ] implement `park_lookup`
+- [ ] implement `search_methodology`
+- [ ] confirm each resource has a clear reason to exist
+- [ ] confirm `park_lookup` is sufficient for resolving park names to codes in v1
+- [ ] verify resource contents are stable and lightweight
+
+Suggested verification:
+
+- read each resource from the MCP client
+- verify that the resources improve tool use rather than duplicating tool output
+
+### Step 7: Local client integration
 
 Goals:
 
@@ -556,7 +750,23 @@ Deliverables:
 - local integration instructions for the example client
 - example prompts that exercise the server
 
-### Milestone 7: Testing and polish
+Checklist:
+
+- [ ] connect the local MCP server to the example client
+- [ ] verify the client can discover tools
+- [ ] verify the client can discover resources
+- [ ] verify a resource can be read successfully
+- [ ] verify a tool can be called successfully
+- [ ] verify a multi-step workflow that uses both a resource and a tool
+- [ ] write concise local setup instructions
+- [ ] write a short set of demo prompts
+
+Suggested verification:
+
+- run the recommended demo script end to end
+- confirm the assistant uses grounded MCP data instead of generic background knowledge
+
+### Step 8: Testing and polish
 
 Goals:
 
@@ -569,11 +779,29 @@ Deliverables:
 - test coverage for core MCP behaviors
 - concise developer documentation
 
+Checklist:
+
+- [ ] add tests for tool result shaping
+- [ ] add tests for resource reads where useful
+- [ ] add tests for validation failures
+- [ ] add tests for not-found behavior
+- [ ] add tests for empty-result behavior
+- [ ] add tests for operational error handling where practical
+- [ ] document how to run the MCP server locally
+- [ ] document how to verify the MCP client connection
+- [ ] document the current v1 limitations
+
+Suggested verification:
+
+- run the test suite covering MCP-specific logic
+- perform one final manual end-to-end check from client to data source
+
 ## Acceptance Criteria
 
 The v1 MCP project is successful when:
 
 - the local MCP server starts reliably
+- the server runs over local `stdio` transport
 - at least one MCP-compatible client can use the server as a local MCP tool source
 - the assistant can retrieve real `nps-hikes` park/trail/stat data through MCP tools
 - the assistant can read at least a few grounding resources
@@ -586,7 +814,7 @@ Even if this is not intended as a formal demo project, these checks confirm the 
 
 1. Ask for visited parks in a given month.
 2. Ask for trails under a given mileage in a state.
-3. Ask for a park summary by name and verify the assistant resolves to the correct park code.
+3. Ask for a park summary by name and verify the assistant consults `park_lookup` or otherwise resolves to the correct `park_code` before calling the tool.
 4. Ask the assistant to explain the dataset before searching, so it reads `dataset_overview`.
 5. Ask a follow-up comparison question that requires multiple tool calls.
 
