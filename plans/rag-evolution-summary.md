@@ -143,6 +143,31 @@ This project made that distinction very clear:
 
 That ordering reflects a healthy way to build RAG systems. First make the system find the right evidence. Then decide how much language generation you actually need.
 
+### A simple Phase 2 example
+
+If I want a concrete example of what this phase looked like in practice, the closest current equivalent is a raw semantic search that returns content chunks without resolving them to structured trail objects.
+
+For example:
+
+```bash
+curl "http://localhost:8001/search?q=waterfalls+hikes&resolve_trails=false" | python3 -m json.tool
+```
+
+That is basically the Phase 2 shape:
+
+- take a semantic query like "waterfalls hikes"
+- embed it
+- retrieve the nearest content chunks
+- return ranked text evidence
+
+If I want to narrow that retrieval-only search, the most faithful filters are still content-level ones such as `park_code` or `source_type`:
+
+```bash
+curl "http://localhost:8001/search?q=waterfalls+hikes&park_code=yose&source_type=thingstodo&resolve_trails=false" | python3 -m json.tool
+```
+
+One subtle but important distinction: `state`, `hiked`, and trail length filters belong to the later hybrid/trail-resolution flow. In the current API, those filters only apply when `resolve_trails=true`, which means they are more representative of Phase 3 or Phase 4 than of Phase 2.
+
 ### What the text added
 
 The NPS content endpoints contained things the original schema could not express cleanly:
@@ -175,6 +200,46 @@ Raw passages are informative, but they are not the primary interaction model of 
 That led to an important architectural move: bridge semantic content back to structured trail entities.
 
 The project did this by precomputing content-to-trail mappings during indexing. If a content item like "Hike the Narrows" or "Vernal Fall Footbridge" could be matched confidently to a trail record, then semantic retrieval could become trail retrieval rather than just document retrieval.
+
+### A simple Phase 3 example
+
+One concrete example is Yosemite's `Bridalveil Fall Trailhead` content item.
+
+That title exists in the collected NPS places data and describes the short paved walk to the base of Bridalveil Fall. In Phase 2, a query about waterfall hikes could retrieve that chunk as relevant text. In Phase 3, the system went one step further: during indexing, it precomputed a mapping from that content item to a structured Yosemite trail record and stored the relationship in `content_trail_mapping`.
+
+Conceptually, the bridge looks like this:
+
+```text
+content_embeddings.title = "Bridalveil Fall Trailhead"
+            |
+            v
+content_trail_mapping
+            |
+            v
+tnm_hikes / osm_hikes trail row for the Yosemite trail
+```
+
+If I want to inspect that bridge directly, the useful debugging query is something like:
+
+```sql
+SELECT
+  ce.park_code,
+  ce.title AS content_title,
+  ctm.trail_name,
+  ctm.trail_source,
+  ctm.trail_id,
+  ctm.name_similarity_score,
+  ctm.match_confidence
+FROM content_trail_mapping ctm
+JOIN content_embeddings ce
+  ON ce.id = ctm.content_embedding_id
+WHERE ce.park_code = 'yose'
+  AND ce.title ILIKE '%Bridalveil%';
+```
+
+The important idea is that this linkage was not invented at query time. It was computed ahead of time by fuzzy-matching content titles against trail names within the same park and saving the best confident match. That is what made later semantic search results feel like normal trail search results instead of isolated text snippets.
+
+Once that mapping existed, a semantic query could retrieve Bridalveil-related content, join through the mapping table, and return a normal trail object with fields like trail name, length, source, and hiked status. That is the essence of Phase 3: the retrieved text became evidence, but the returned object could still be a trail.
 
 This was a big conceptual upgrade.
 
@@ -218,6 +283,23 @@ The system no longer had to choose between two separate modes of thought. It cou
 This is probably the cleanest expression of what RAG became in this project.
 
 RAG was not a chatbot feature bolted onto the side. It became a retrieval layer that made the core trail application more expressive.
+
+## Full circle: the `/query` endpoint grew up
+
+There is a satisfying symmetry in where the project ended.
+
+The original `/query` endpoint was the first natural-language interface in the system, but in the beginning it was limited to structured operations. It could translate a request like "short hikes in Yosemite" into known parameters and dispatch one of the existing query functions. That was useful, but narrow.
+
+After semantic retrieval, content-to-trail linking, and hybrid search were added, the same endpoint became something much more capable. It was no longer just a parser for structured filters. It became a unified natural-language front door to all the retrieval modes behind the application:
+
+- structured trail and park search
+- semantic topic search
+- hybrid semantic-plus-structured search
+- grounded answer generation from retrieved context
+
+That last piece matters. By the mature stage of the system, `/query` could return not only structured results but also a `generated_answer` grounded in the retrieved chunks or topic context. In other words, the endpoint that originally helped users reach deterministic query functions eventually became the place where the full retrieval architecture came back together.
+
+So I do not think of this as a separate formal phase so much as the project coming full circle. The system started with natural language as an interface convenience. It ended with natural language as the top layer over a much richer retrieval stack.
 
 ## The bigger picture: what this project says about RAG
 
