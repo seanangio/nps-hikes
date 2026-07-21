@@ -2,11 +2,15 @@
 
 ## Overview
 
-Build a local-first Model Context Protocol (MCP) server for `nps-hikes` that exposes the project's park and trail dataset as AI-native capabilities for MCP-compatible clients, including ChatGPT.
+Build a local-first Model Context Protocol (MCP) server for `nps-hikes` that exposes the project's park and trail dataset as AI-native capabilities for MCP-compatible clients.
 
 The goal of v1 is not to build another chatbot. The goal is to expose reliable, grounded `tools` and lightweight `resources` so an external assistant can answer questions using the user's real local `nps-hikes` data.
 
 This spec defines the end-state design, architecture decisions, workflow, v1 scope, and implementation milestones for that server.
+
+## Status
+
+`V1 complete` as of July 21, 2026 for the local `stdio` server validated with `MCP Inspector`.
 
 ## Goals
 
@@ -29,12 +33,12 @@ This spec defines the end-state design, architecture decisions, workflow, v1 sco
 
 ### Target client
 
-The implementation target is a client-agnostic local MCP server over a standard MCP transport. `ChatGPT` is the initial example client, not the protocol target.
+The implementation target is a client-agnostic local MCP server over a standard MCP transport. `MCP Inspector` is the default v1 validation client, not the protocol target.
 
 Rationale:
 
 - Keeps the server aligned with the MCP standard instead of a single product surface.
-- Reduces churn if ChatGPT-specific setup details change.
+- Uses a protocol-native debugging client that works directly with local `stdio` servers.
 - Makes the design reusable with other MCP clients later.
 
 ### Deployment mode
@@ -157,9 +161,15 @@ When the project is complete, the user workflow should look like this:
 
 ### Example client setup
 
-For v1 learning and validation, `ChatGPT` is the default example client for local setup instructions and end-to-end verification.
+For v1 learning and validation, `MCP Inspector` is the default example client for local setup instructions and end-to-end verification.
 
-That choice should be treated as documentation and workflow guidance, not as a design constraint on the server itself. If another MCP-compatible client is used later, the server surface should remain the same and only the client-specific connection steps should change.
+Rationale:
+
+- it is purpose-built for MCP server testing and debugging
+- it can launch local `stdio` servers directly
+- it keeps the verification loop client-neutral while the server surface is still evolving
+
+`ChatGPT` and other assistant clients remain valid later integrations, but they should be treated as optional client-specific follow-on work rather than the primary v1 validation path.
 
 ### Example user questions
 
@@ -504,6 +514,16 @@ Rationale:
 
 If a specific client later requires a different transport, that should be treated as a client-integration concern rather than a change to the core server design.
 
+### Default validation client
+
+Use `MCP Inspector` as the default v1 test client.
+
+Rationale:
+
+- it works naturally with local `stdio` servers
+- it is better for inspecting tool schemas, resource reads, and error payloads than a chat-first client
+- it keeps the project grounded in MCP itself before any vendor-specific integration work
+
 ### Framework choice
 
 Choose a Python MCP library/framework that keeps the server implementation small and standards-aligned.
@@ -569,12 +589,12 @@ Deliverables:
 
 Checklist:
 
-- [ ] identify the current FastAPI endpoints that map to v1 MCP tools
-- [ ] identify the exact backend functions each MCP tool should call
-- [ ] confirm whether those functions are already transport-neutral
-- [ ] note any FastAPI-coupled logic that should move into a shared layer
-- [ ] write down the smallest safe extraction plan, if extraction is needed
-- [ ] confirm that no v1 MCP tool requires the NLQ `/query` path
+- [x] identify the current FastAPI endpoints that map to v1 MCP tools
+- [x] identify the exact backend functions each MCP tool should call
+- [x] confirm whether those functions are already transport-neutral
+- [x] note any FastAPI-coupled logic that should move into a shared layer
+- [x] write down the smallest safe extraction plan, if extraction is needed
+- [x] confirm that no v1 MCP tool requires the NLQ `/query` path
 
 Suggested verification:
 
@@ -599,16 +619,16 @@ Deliverables:
 
 Checklist:
 
-- [ ] confirm the final v1 tool list
-- [ ] confirm the final v1 resource list
-- [ ] write the exact arguments for each tool
-- [ ] document defaults, limits, and required fields
-- [ ] document which API options are intentionally omitted from v1 MCP
-- [ ] define what each `summary` field should contain
-- [ ] define empty-result behavior for each tool
-- [ ] define not-found behavior for `search_park_summary`
-- [ ] define operational-error behavior at the MCP boundary
-- [ ] add at least one example payload for each tool and resource
+- [x] confirm the final v1 tool list
+- [x] confirm the final v1 resource list
+- [x] write the exact arguments for each tool
+- [x] document defaults, limits, and required fields
+- [x] document which API options are intentionally omitted from v1 MCP
+- [x] define what each `summary` field should contain
+- [x] define empty-result behavior for each tool
+- [x] define not-found behavior for `search_park_summary`
+- [x] define operational-error behavior at the MCP boundary
+- [x] add at least one example payload for each tool and resource
 
 Suggested verification:
 
@@ -630,14 +650,14 @@ Deliverables:
 
 Checklist:
 
-- [ ] choose the Python MCP library for v1
-- [ ] create the `mcp/` module structure
-- [ ] add a minimal server entry point
-- [ ] configure the server to run over `stdio`
-- [ ] register placeholder tools
-- [ ] register placeholder resources
-- [ ] verify the server starts without calling project logic yet
-- [ ] document the local startup command
+- [x] choose the Python MCP library for v1
+- [x] create the `mcp/` module structure
+- [x] add a minimal server entry point
+- [x] configure the server to run over `stdio`
+- [x] register placeholder tools
+- [x] register placeholder resources
+- [x] verify the server starts without calling project logic yet
+- [x] document the local startup command
 
 Suggested verification:
 
@@ -670,12 +690,12 @@ Deliverables:
 
 Checklist:
 
-- [ ] decide the exact first tool to implement
-- [ ] connect it to the shared query/service layer
-- [ ] shape its result into the MCP response format
-- [ ] add a compact deterministic `summary`
-- [ ] verify empty and operational failure behavior
-- [ ] document the implementation pattern for reuse by later tools
+- [x] decide the exact first tool to implement
+- [x] connect it to the shared query/service layer
+- [x] shape its result into the MCP response format
+- [x] add a compact deterministic `summary`
+- [x] verify empty and operational failure behavior
+- [x] document the implementation pattern for reuse by later tools
 
 Suggested verification:
 
@@ -698,14 +718,14 @@ Deliverables:
 
 Checklist:
 
-- [ ] implement `search_trails`
-- [ ] implement `search_parks`
-- [ ] implement `search_park_summary`
-- [ ] keep argument semantics aligned with the spec
-- [ ] keep result shapes consistent across tools
-- [ ] confirm `search_park_summary` remains strict on `park_code`
-- [ ] confirm no tool depends on the NLQ stack
-- [ ] verify each tool against at least one real example query
+- [x] implement `search_trails`
+- [x] implement `search_parks`
+- [x] implement `search_park_summary`
+- [x] keep argument semantics aligned with the spec
+- [x] keep result shapes consistent across tools
+- [x] confirm `search_park_summary` remains strict on `park_code`
+- [x] confirm no tool depends on the NLQ stack
+- [x] verify each tool against at least one real example query
 
 Suggested verification:
 
@@ -726,12 +746,12 @@ Deliverables:
 
 Checklist:
 
-- [ ] implement `dataset_overview`
-- [ ] implement `park_lookup`
-- [ ] implement `search_methodology`
-- [ ] confirm each resource has a clear reason to exist
-- [ ] confirm `park_lookup` is sufficient for resolving park names to codes in v1
-- [ ] verify resource contents are stable and lightweight
+- [x] implement `dataset_overview`
+- [x] implement `park_lookup`
+- [x] implement `search_methodology`
+- [x] confirm each resource has a clear reason to exist
+- [x] confirm `park_lookup` is sufficient for resolving park names to codes in v1
+- [x] verify resource contents are stable and lightweight
 
 Suggested verification:
 
@@ -752,19 +772,27 @@ Deliverables:
 
 Checklist:
 
-- [ ] connect the local MCP server to the example client
-- [ ] verify the client can discover tools
-- [ ] verify the client can discover resources
-- [ ] verify a resource can be read successfully
-- [ ] verify a tool can be called successfully
-- [ ] verify a multi-step workflow that uses both a resource and a tool
-- [ ] write concise local setup instructions
-- [ ] write a short set of demo prompts
+- [x] connect the local MCP server to the example client
+- [x] verify the client can discover tools
+- [x] verify the client can discover resources
+- [x] verify a resource can be read successfully
+- [x] verify a tool can be called successfully
+- [x] verify a multi-step workflow that uses both a resource and a tool
+- [x] write concise local setup instructions
+- [x] write a short set of demo prompts
 
 Suggested verification:
 
 - run the recommended demo script end to end
 - confirm the assistant uses grounded MCP data instead of generic background knowledge
+
+Suggested default workflow:
+
+1. Launch `MCP Inspector` against the local `stdio` server.
+2. Confirm `tools/list` and `resources/list`.
+3. Read `dataset_overview` and `park_lookup`.
+4. Call `search_stats`, then `search_parks`, then `search_trails`.
+5. Treat any later ChatGPT or other assistant integration as a separate client-adapter milestone.
 
 ### Step 8: Testing and polish
 
@@ -781,15 +809,15 @@ Deliverables:
 
 Checklist:
 
-- [ ] add tests for tool result shaping
-- [ ] add tests for resource reads where useful
-- [ ] add tests for validation failures
-- [ ] add tests for not-found behavior
-- [ ] add tests for empty-result behavior
-- [ ] add tests for operational error handling where practical
-- [ ] document how to run the MCP server locally
-- [ ] document how to verify the MCP client connection
-- [ ] document the current v1 limitations
+- [x] add tests for tool result shaping
+- [x] add tests for resource reads where useful
+- [x] add tests for validation failures
+- [x] add tests for not-found behavior
+- [x] add tests for empty-result behavior
+- [x] add tests for operational error handling where practical
+- [x] document how to run the MCP server locally
+- [x] document how to verify the MCP client connection
+- [x] document the current v1 limitations
 
 Suggested verification:
 
@@ -800,23 +828,25 @@ Suggested verification:
 
 The v1 MCP project is successful when:
 
-- the local MCP server starts reliably
-- the server runs over local `stdio` transport
-- at least one MCP-compatible client can use the server as a local MCP tool source
-- the assistant can retrieve real `nps-hikes` park/trail/stat data through MCP tools
-- the assistant can read at least a few grounding resources
-- the MCP server reuses existing project logic rather than duplicating the backend
-- no local LLM dependency is required for the core MCP workflow
+- [x] the local MCP server starts reliably
+- [x] the server runs over local `stdio` transport
+- [x] at least one MCP-compatible client can use the server as a local MCP tool source
+- [x] the assistant can retrieve real `nps-hikes` park/trail/stat data through MCP tools
+- [x] the assistant can read at least a few grounding resources
+- [x] the MCP server reuses existing project logic rather than duplicating the backend
+- [x] no local LLM dependency is required for the core MCP workflow
 
 ## Recommended Demo Script for Self-Verification
 
 Even if this is not intended as a formal demo project, these checks confirm the workflow is working:
 
-1. Ask for visited parks in a given month.
-2. Ask for trails under a given mileage in a state.
-3. Ask for a park summary by name and verify the assistant consults `park_lookup` or otherwise resolves to the correct `park_code` before calling the tool.
-4. Ask the assistant to explain the dataset before searching, so it reads `dataset_overview`.
-5. Ask a follow-up comparison question that requires multiple tool calls.
+1. In `MCP Inspector`, list available tools and resources.
+2. Read `dataset_overview`.
+3. Read `park_lookup`.
+4. Call `search_stats`.
+5. Call `search_parks` for visited parks in a given month.
+6. Call `search_trails` for trails under a given mileage in a state.
+7. Call `search_park_summary` with a known `park_code`.
 
 ## Summary
 

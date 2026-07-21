@@ -29,6 +29,9 @@ theme:
 markdown_extensions:
   - footnotes
 
+draft_docs: |
+  mcp.md
+
 extra:
   analytics:
     provider: google

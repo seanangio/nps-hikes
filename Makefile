@@ -53,6 +53,10 @@ check: lint typecheck ## Run all code quality checks
 dev: ## Recommended: run API locally on :8001 with reload, using Docker DB on :5433
 	POSTGRES_HOST=localhost POSTGRES_PORT=5433 uvicorn api.main:app --reload --port 8001
 
+.PHONY: mcp
+mcp: ## Run the local MCP server over stdio
+	python -m nps_hikes_mcp.server
+
 .PHONY: docs
 docs: ## Serve documentation locally
 	mkdocs serve
