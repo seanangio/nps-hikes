@@ -2,9 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
+from typing import Any, TypedDict
 
 from api.nlq.park_lookup import get_park_lookup
+
+
+class ResourceDefinition(TypedDict):
+    """Single source of truth for a public MCP resource contract."""
+
+    uri: str
+    name: str
+    description: str
+    mime_type: str
+    reader: Callable[[], str | dict[str, Any]]
 
 
 def get_dataset_overview() -> str:
@@ -89,34 +100,34 @@ def get_park_lookup_resource() -> dict[str, Any]:
     }
 
 
-RESOURCE_DEFINITIONS = [
+RESOURCE_DEFINITIONS: list[ResourceDefinition] = [
     {
         "uri": "dataset_overview",
         "name": "dataset_overview",
         "description": "Project and dataset overview for the local nps-hikes MCP server.",
         "mime_type": "text/markdown",
+        "reader": get_dataset_overview,
     },
     {
         "uri": "park_lookup",
         "name": "park_lookup",
         "description": "Structured mapping of park names to canonical 4-letter park codes.",
         "mime_type": "application/json",
+        "reader": get_park_lookup_resource,
     },
     {
         "uri": "search_methodology",
         "name": "search_methodology",
         "description": "Data provenance, deduplication, and status-field interpretation notes.",
         "mime_type": "text/markdown",
+        "reader": get_search_methodology,
     },
 ]
 
 
 def read_resource(uri: str) -> str | dict[str, Any]:
     """Return resource content for a known resource URI."""
-    if uri == "dataset_overview":
-        return get_dataset_overview()
-    if uri == "park_lookup":
-        return get_park_lookup_resource()
-    if uri == "search_methodology":
-        return get_search_methodology()
+    for resource in RESOURCE_DEFINITIONS:
+        if resource["uri"] == uri:
+            return resource["reader"]()
     raise KeyError(f"Unknown resource URI: {uri}")

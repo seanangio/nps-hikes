@@ -1,13 +1,13 @@
 ---
 title: Local MCP Server
-description: Run the local nps-hikes MCP server over stdio and expose park and trail tools to an MCP-compatible client.
+description: Run the local nps-hikes MCP server over stdio and expose park and trail tools and resources to local MCP-compatible clients.
 ---
 
 The local MCP server is the MCP-facing adapter for `nps-hikes`. It reuses the same project query logic as the FastAPI app, but exposes that logic as MCP `tools` and `resources` for a local MCP-compatible client.
 
-For v1, the recommended validation client is `MCP Inspector` rather than a chat-first assistant. That keeps the workflow local, protocol-native, and client-neutral while the MCP surface is still evolving.
+`MCP Inspector` remains the recommended protocol-debugging client because it exposes both MCP tools and MCP resources clearly. `Claude Desktop` is now also a validated local client for the current tool surface.
 
-> **Status:** The local `stdio` MCP v1 described on this page has been implemented and verified with `MCP Inspector`. This page documents the completed v1 workflow.
+> **Status:** As of July 21, 2026, the local `stdio` MCP server has been validated in both `MCP Inspector` and `Claude Desktop`. `MCP Inspector` is still the better resource-focused debugging client; `Claude Desktop` has been validated primarily for tool execution.
 
 ## Current v1 surface
 
@@ -45,15 +45,23 @@ make mcp
 
 This starts the server over `stdio`, which is the default local transport for v1.
 
-## Recommended client
+## Recommended clients
 
-Use `MCP Inspector` as the default local test client for v1.
+Use `MCP Inspector` as the default protocol-debugging client.
 
 Why this is the default:
 
 - it is purpose-built for testing MCP servers
 - it works directly with local `stdio` servers
 - it lets you inspect tools, resources, schemas, and errors without adding ChatGPT-specific setup
+
+Use `Claude Desktop` as the validated second client for a chat-oriented local workflow.
+
+Why this is useful:
+
+- it confirms the server works outside Inspector
+- it shows how the MCP tool descriptions behave in a conversational client
+- it helps surface client-specific quirks around permissions, argument normalization, and result rendering
 
 ### Launch MCP Inspector
 
@@ -110,6 +118,62 @@ Use these in order:
 5. Call `search_trails` with a state and mileage filter.
 6. Call `search_park_summary` with a known `park_code`.
 
+## Claude Desktop validation
+
+`Claude Desktop` can launch the local `stdio` server through `claude_desktop_config.json`.
+
+The working local configuration used for validation was conceptually:
+
+```json
+{
+  "mcpServers": {
+    "nps-hikes": {
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "cd '/path/to/nps-hikes' && source ~/.virtualenvs/nps-hikes/bin/activate && python -m nps_hikes_mcp.server"
+      ]
+    }
+  }
+}
+```
+
+### What worked in Claude Desktop
+
+- Claude Desktop discovered all four MCP tools.
+- `search_stats` executed successfully and returned the expected JSON.
+- `search_trails` executed successfully and returned the expected JSON.
+- `search_park_summary` executed successfully and returned the expected JSON.
+- Empty-result cases still behaved correctly.
+- Validation errors and not-found errors were surfaced clearly in the chat UX.
+- Boolean arguments such as `hiked=false` were passed correctly.
+
+### Claude Desktop quirks
+
+- Claude Desktop asked for permission before using the new MCP tools.
+- Claude wrapped the raw JSON response with short conversational text before and after the tool result.
+- Claude could often infer the correct tool when the request was phrased clearly, even when the tool name was not specified explicitly.
+- For one `search_trails` test, Claude first attempted `source=osm` and received the expected validation error because the MCP tool requires uppercase `OSM` or `TNM`. Claude then retried with `source=OSM` and succeeded.
+
+### Resource behavior in Claude Desktop
+
+During this validation pass, `Claude Desktop` did not expose MCP resources in normal chat use the same way it exposed MCP tools.
+
+Observed behavior:
+
+- `MCP Inspector` could list and read `dataset_overview`, `park_lookup`, and `search_methodology`.
+- `Claude Desktop` could use the MCP tools, but did not provide a normal chat path for the model to enumerate or read those resources directly.
+
+Current interpretation:
+
+- this appears to be a client UX limitation or client-surface difference rather than a confirmed server issue
+- no additional `nps-hikes` server configuration change was identified that would make those resources automatically accessible in Claude Desktop chat
+
+So the practical split is:
+
+- use `MCP Inspector` to validate resources and protocol details
+- use `Claude Desktop` to validate tool execution in a conversational client
+
 ## Inspector input quirks
 
 `MCP Inspector` does not always render tool inputs the same way.
@@ -149,9 +213,9 @@ Once Inspector is connected, a good v1 walkthrough is:
 
 ## Optional later clients
 
-Once the server is stable in `MCP Inspector`, you can optionally connect it to a chat-oriented MCP client such as ChatGPT or another desktop assistant.
+Once the server is stable in both `MCP Inspector` and `Claude Desktop`, you can optionally explore remote-client integration paths such as `ChatGPT`.
 
-That should be treated as a follow-on client integration step, not as the primary v1 validation path.
+That should still be treated as a separate follow-on project because it changes the connection model from the current local `stdio` workflow.
 
 ## Current limitations
 

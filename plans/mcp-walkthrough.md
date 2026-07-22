@@ -1,8 +1,8 @@
 # NPS Hikes MCP Walkthrough
 
-This note explains how the current MCP implementation works, why the code is split across three files, where the duplication is, and what actually happens when a client calls a tool.
+This note explains how the current MCP implementation works, how the code is split across three files after the v2 cleanup pass, and what actually happens when a client calls a tool.
 
-> **Status:** This walkthrough describes the completed v1 local `stdio` MCP server that was validated with `MCP Inspector`.
+> **Status:** As of July 21, 2026, this walkthrough describes the cleaned-up local `stdio` MCP server that was validated with both `MCP Inspector` and `Claude Desktop`.
 
 The three MCP-specific files to understand are:
 
@@ -64,14 +64,14 @@ Responsibilities:
 - define MCP-facing wrappers such as `search_trails`, `search_parks`, `search_stats`, and `search_park_summary`
 - shape the raw results into compact MCP responses
 - add deterministic `summary` fields
-- define `TOOL_DEFINITIONS`, which hold MCP-oriented metadata about the tools
+- define `TOOL_DEFINITIONS`, which now hold MCP-oriented metadata and the MCP-facing callable for each tool
 
 This file is doing two jobs:
 
 1. runtime tool behavior
 2. tool metadata/schema description
 
-That is why it feels somewhat repetitive.
+After the v2 cleanup, that split is still present, but the public MCP contract is now more centralized than it was in v1.
 
 ### Example: `search_trails`
 
@@ -132,7 +132,7 @@ Responsibilities:
 
 - generate each resource's content
 - define `RESOURCE_DEFINITIONS`
-- provide a `read_resource(uri)` dispatcher
+- provide a small `read_resource(uri)` lookup helper backed by those definitions
 
 ### Resource examples
 
@@ -153,8 +153,8 @@ Responsibilities:
 
 `read_resource(uri)`
 
-- acts as a simple router
-- maps resource URIs like `dataset_overview` to the appropriate content function
+- looks up the matching resource definition
+- calls the reader function already attached to that definition
 
 ### Why resources exist separately
 
@@ -181,24 +181,21 @@ This file is mostly wiring, not business logic.
 
 ### Tool registration
 
-For each tool:
+After the v2 cleanup:
 
-- `server.py` defines a function such as `trails_tool(...)`
-- that function mostly passes arguments through to the matching wrapper in `tools.py`
-- the function is registered with the MCP library via `@app.tool(...)`
+- `server.py` loops through `TOOL_DEFINITIONS`
+- registers each tool's public `name`
+- registers each tool's public `description`
+- uses the callable stored in the definition itself
 
-This means `server.py` is what tells the MCP runtime:
-
-- the tool exists
-- the tool has this public name
-- this is the Python function to run when the client calls it
+This means the MCP runtime now learns the public tool contract from one shared definition list rather than from separate hand-written wrappers in `server.py`.
 
 ### Resource registration
 
 For each resource:
 
 - `server.py` loops through `RESOURCE_DEFINITIONS`
-- creates a small reader function
+- creates a tiny serialization wrapper around the resource's attached reader
 - wraps it in a `FunctionResource`
 - registers it with `app.add_resource(...)`
 
@@ -216,23 +213,23 @@ The startup mode is `stdio`, which means:
 
 That is why this is a good local-first v1 setup.
 
-## What the duplication is
+## What the cleanup changed
 
-There is some real duplication in the current design.
+The main v2 cleanup goal was to reduce MCP contract drift.
 
-At the moment, tool information is split across multiple places:
+Before the cleanup:
 
-- wrapper function signatures in `tools.py`
-- `TOOL_DEFINITIONS` metadata in `tools.py`
-- tool registration in `server.py`
+- `server.py` hand-registered each tool separately
+- resource metadata and resource dispatch were more manually split
 
-Resources have a similar pattern:
+After the cleanup:
 
-- content functions in `resources.py`
-- `RESOURCE_DEFINITIONS` metadata in `resources.py`
-- registration logic in `server.py`
+- each tool definition now includes the MCP-facing callable
+- each resource definition now includes the reader function
+- `server.py` registers both tools and resources generically from those shared definitions
+- registration drift is covered by explicit unit tests
 
-## What duplication is acceptable vs risky
+## What duplication is still acceptable vs risky
 
 Some duplication is expected because FastAPI and MCP are different interfaces.
 
@@ -248,7 +245,27 @@ Risky duplication:
 - repeating signatures and schema-like definitions by hand
 - repeating contract details that can drift over time
 
-So the current code is acceptable for a first slice, but your maintenance concern is valid.
+So the current code is in a better place than v1, but the basic maintenance concern was real and the cleanup was worthwhile.
+
+## What still remains true
+
+Some separation still exists by design:
+
+- business/query logic lives in `api/queries.py`
+- MCP output shaping lives in `nps_hikes_mcp/tools.py`
+- MCP resource content lives in `nps_hikes_mcp/resources.py`
+- MCP transport wiring lives in `nps_hikes_mcp/server.py`
+
+That separation is healthy. The v2 cleanup was not about collapsing everything into one file. It was about making the public MCP contract easier to keep consistent.
+
+## Client behavior note
+
+The same cleaned-up MCP server behaves differently across the two validated clients:
+
+- `MCP Inspector` exposes tools and resources clearly and remains the best debugging client
+- `Claude Desktop` exposed the tools successfully in chat, but did not expose MCP resources to the model in the same direct way during this validation pass
+
+That difference appears to be a client-surface difference rather than a problem with the `nps-hikes` server itself.
 
 ## The likely cleanup direction later
 

@@ -6,8 +6,14 @@ from unittest.mock import patch
 
 import pytest
 
-from nps_hikes_mcp.resources import get_park_lookup_resource, read_resource
+from nps_hikes_mcp import server as mcp_server
+from nps_hikes_mcp.resources import (
+    RESOURCE_DEFINITIONS,
+    get_park_lookup_resource,
+    read_resource,
+)
 from nps_hikes_mcp.tools import (
+    TOOL_DEFINITIONS,
     McpToolError,
     McpToolNotFoundError,
     search_park_summary,
@@ -315,3 +321,131 @@ def test_read_resource_returns_expected_content() -> None:
 def test_read_resource_raises_for_unknown_uri() -> None:
     with pytest.raises(KeyError):
         read_resource("unknown")
+
+
+def test_create_server_registers_tools_from_shared_definitions() -> None:
+    class FakeFastMCP:
+        def __init__(self, server_name: str) -> None:
+            self.server_name = server_name
+            self.registered_tools: list[dict[str, str]] = []
+            self.resources: list[object] = []
+
+        def tool(self, *, name: str, description: str):
+            def decorator(fn):
+                self.registered_tools.append(
+                    {
+                        "name": name,
+                        "description": description,
+                        "callable_name": fn.__name__,
+                    }
+                )
+                return fn
+
+            return decorator
+
+        def add_resource(self, resource: object) -> None:
+            self.resources.append(resource)
+
+    class FakeFunctionResource:
+        def __init__(
+            self,
+            *,
+            uri: str,
+            name: str,
+            description: str,
+            mime_type: str,
+            fn,
+        ) -> None:
+            self.uri = uri
+            self.name = name
+            self.description = description
+            self.mime_type = mime_type
+            self.fn = fn
+
+    with (
+        patch.object(mcp_server, "_load_fastmcp", return_value=FakeFastMCP),
+        patch.object(
+            mcp_server,
+            "_load_function_resource",
+            return_value=FakeFunctionResource,
+        ),
+    ):
+        app = mcp_server.create_server()
+
+    assert app.server_name == "nps-hikes"
+    assert app.registered_tools == [
+        {
+            "name": tool["name"],
+            "description": tool["description"],
+            "callable_name": tool["fn"].__name__,
+        }
+        for tool in TOOL_DEFINITIONS
+    ]
+
+
+def test_create_server_registers_resources_from_shared_definitions() -> None:
+    class FakeFastMCP:
+        def __init__(self, server_name: str) -> None:
+            self.server_name = server_name
+            self.registered_tools: list[dict[str, str]] = []
+            self.resources: list[object] = []
+
+        def tool(self, *, name: str, description: str):
+            def decorator(fn):
+                self.registered_tools.append(
+                    {
+                        "name": name,
+                        "description": description,
+                        "callable_name": fn.__name__,
+                    }
+                )
+                return fn
+
+            return decorator
+
+        def add_resource(self, resource: object) -> None:
+            self.resources.append(resource)
+
+    class FakeFunctionResource:
+        def __init__(
+            self,
+            *,
+            uri: str,
+            name: str,
+            description: str,
+            mime_type: str,
+            fn,
+        ) -> None:
+            self.uri = uri
+            self.name = name
+            self.description = description
+            self.mime_type = mime_type
+            self.fn = fn
+
+    with (
+        patch.object(mcp_server, "_load_fastmcp", return_value=FakeFastMCP),
+        patch.object(
+            mcp_server,
+            "_load_function_resource",
+            return_value=FakeFunctionResource,
+        ),
+    ):
+        app = mcp_server.create_server()
+
+    assert [
+        {
+            "uri": resource.uri,
+            "name": resource.name,
+            "description": resource.description,
+            "mime_type": resource.mime_type,
+        }
+        for resource in app.resources
+    ] == [
+        {
+            "uri": f"resource://{resource['uri']}",
+            "name": resource["name"],
+            "description": resource["description"],
+            "mime_type": resource["mime_type"],
+        }
+        for resource in RESOURCE_DEFINITIONS
+    ]

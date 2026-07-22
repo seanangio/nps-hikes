@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from collections.abc import Callable
+from typing import Any, TypedDict
 
 from api.queries import fetch_all_parks, fetch_park_summary, fetch_stats, fetch_trails
 from utils.exceptions import NpsHikesError
@@ -15,6 +16,15 @@ class McpToolError(Exception):
 
 class McpToolNotFoundError(McpToolError):
     """Raised when a requested entity does not exist."""
+
+
+class ToolDefinition(TypedDict):
+    """Single source of truth for a public MCP tool contract."""
+
+    name: str
+    description: str
+    input_schema: dict[str, Any]
+    fn: Callable[..., dict[str, Any]]
 
 
 def _raise_operational_error(tool_name: str, exc: Exception) -> None:
@@ -305,7 +315,15 @@ def search_park_summary(park_code: str) -> dict[str, Any]:
     }
 
 
-TOOL_DEFINITIONS = [
+def search_park_summary_tool(park_code: str) -> dict[str, Any]:
+    """Translate not-found errors into client-friendly MCP validation errors."""
+    try:
+        return search_park_summary(park_code=park_code)
+    except McpToolNotFoundError as exc:
+        raise ValueError(str(exc)) from exc
+
+
+TOOL_DEFINITIONS: list[ToolDefinition] = [
     {
         "name": "search_trails",
         "description": "Retrieve trails using explicit structured filters.",
@@ -327,6 +345,7 @@ TOOL_DEFINITIONS = [
                 },
             },
         },
+        "fn": search_trails,
     },
     {
         "name": "search_parks",
@@ -346,6 +365,7 @@ TOOL_DEFINITIONS = [
                 "state": {"type": "string", "pattern": "^[A-Z]{2}$"},
             },
         },
+        "fn": search_parks,
     },
     {
         "name": "search_stats",
@@ -356,6 +376,7 @@ TOOL_DEFINITIONS = [
                 "hiked": {"type": "boolean"},
             },
         },
+        "fn": search_stats,
     },
     {
         "name": "search_park_summary",
@@ -367,5 +388,6 @@ TOOL_DEFINITIONS = [
             },
             "required": ["park_code"],
         },
+        "fn": search_park_summary_tool,
     },
 ]
