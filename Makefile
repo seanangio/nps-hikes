@@ -57,6 +57,10 @@ dev: ## Recommended: run API locally on :8001 with reload, using Docker DB on :5
 mcp: ## Run the local MCP server over stdio
 	python -m nps_hikes_mcp.server
 
+.PHONY: mcp-http
+mcp-http: ## Run the local MCP server over local Streamable HTTP on 127.0.0.1:8002/mcp
+	python -m nps_hikes_mcp.http_server
+
 .PHONY: docs
 docs: ## Serve documentation locally
 	mkdocs serve

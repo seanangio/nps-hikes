@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+from nps_hikes_mcp import http_server
 from nps_hikes_mcp import server as mcp_server
 from nps_hikes_mcp.resources import (
     RESOURCE_DEFINITIONS,
@@ -449,3 +450,109 @@ def test_create_server_registers_resources_from_shared_definitions() -> None:
         }
         for resource in RESOURCE_DEFINITIONS
     ]
+
+
+def test_run_stdio_server_uses_default_run_method() -> None:
+    class FakeFastMCP:
+        def __init__(self) -> None:
+            self.run_calls = 0
+
+        def run(self) -> None:
+            self.run_calls += 1
+
+    app = FakeFastMCP()
+
+    with patch.object(mcp_server, "create_server", return_value=app):
+        mcp_server.run_stdio_server()
+
+    assert app.run_calls == 1
+
+
+def test_run_stdio_server_falls_back_to_run_stdio() -> None:
+    class FakeFastMCP:
+        def __init__(self) -> None:
+            self.run_stdio_calls = 0
+
+        run = None
+
+        def run_stdio(self) -> None:
+            self.run_stdio_calls += 1
+
+    app = FakeFastMCP()
+
+    with patch.object(mcp_server, "create_server", return_value=app):
+        mcp_server.run_stdio_server()
+
+    assert app.run_stdio_calls == 1
+
+
+def test_run_http_server_uses_streamable_http_defaults() -> None:
+    class FakeFastMCP:
+        def __init__(self) -> None:
+            self.run_kwargs: dict[str, object] | None = None
+
+        def run(self, **kwargs: object) -> None:
+            self.run_kwargs = kwargs
+
+    app = FakeFastMCP()
+
+    with patch.object(mcp_server, "create_server", return_value=app):
+        mcp_server.run_http_server()
+
+    assert app.run_kwargs == {
+        "transport": "streamable-http",
+        "host": mcp_server.DEFAULT_HTTP_HOST,
+        "port": mcp_server.DEFAULT_HTTP_PORT,
+        "path": mcp_server.DEFAULT_HTTP_PATH,
+        "log_level": None,
+    }
+
+
+def test_run_http_server_supports_explicit_overrides() -> None:
+    class FakeFastMCP:
+        def __init__(self) -> None:
+            self.run_kwargs: dict[str, object] | None = None
+
+        def run(self, **kwargs: object) -> None:
+            self.run_kwargs = kwargs
+
+    app = FakeFastMCP()
+
+    with patch.object(mcp_server, "create_server", return_value=app):
+        mcp_server.run_http_server(
+            host="localhost",
+            port=9100,
+            path="/custom-mcp",
+            log_level="warning",
+        )
+
+    assert app.run_kwargs == {
+        "transport": "streamable-http",
+        "host": "localhost",
+        "port": 9100,
+        "path": "/custom-mcp",
+        "log_level": "warning",
+    }
+
+
+def test_http_server_main_parses_and_forwards_arguments() -> None:
+    with patch.object(http_server, "run_http_server") as mock_run_http:
+        http_server.main(
+            [
+                "--host",
+                "localhost",
+                "--port",
+                "9100",
+                "--path",
+                "/custom-mcp",
+                "--log-level",
+                "info",
+            ]
+        )
+
+    mock_run_http.assert_called_once_with(
+        host="localhost",
+        port=9100,
+        path="/custom-mcp",
+        log_level="info",
+    )

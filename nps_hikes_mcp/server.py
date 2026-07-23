@@ -1,7 +1,8 @@
-"""Local stdio MCP server entrypoint for nps-hikes."""
+"""Local MCP server helpers and stdio entrypoint for nps-hikes."""
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import json
 from typing import Any
@@ -10,6 +11,10 @@ from nps_hikes_mcp.resources import (
     RESOURCE_DEFINITIONS,
 )
 from nps_hikes_mcp.tools import TOOL_DEFINITIONS
+
+DEFAULT_HTTP_HOST = "127.0.0.1"
+DEFAULT_HTTP_PORT = 8002
+DEFAULT_HTTP_PATH = "/mcp"
 
 
 def _load_fastmcp() -> type[Any]:
@@ -76,7 +81,7 @@ def create_server() -> Any:
     return app
 
 
-def main() -> None:
+def run_stdio_server() -> None:
     """Run the local MCP server over stdio."""
     server = create_server()
     run_method = getattr(server, "run", None)
@@ -92,6 +97,52 @@ def main() -> None:
     raise RuntimeError(
         "Installed MCP server library does not expose a supported run method."
     )
+
+
+def run_http_server(
+    *,
+    host: str = DEFAULT_HTTP_HOST,
+    port: int = DEFAULT_HTTP_PORT,
+    path: str = DEFAULT_HTTP_PATH,
+    log_level: str | None = None,
+) -> None:
+    """Run the local MCP server over local-only Streamable HTTP."""
+    server = create_server()
+    run_method = getattr(server, "run", None)
+    if callable(run_method):
+        run_method(
+            transport="streamable-http",
+            host=host,
+            port=port,
+            path=path,
+            log_level=log_level,
+        )
+        return
+
+    run_http_async = getattr(server, "run_http_async", None)
+    if callable(run_http_async):
+        asyncio.run(
+            run_http_async(
+                transport="streamable-http",
+                host=host,
+                port=port,
+                path=path,
+                log_level=log_level,
+            )
+        )
+        return
+
+    raise RuntimeError(
+        "Installed MCP server library does not expose a supported HTTP run method."
+    )
+
+
+def main() -> None:
+    """Run the local MCP server over stdio."""
+    try:
+        run_stdio_server()
+    except KeyboardInterrupt:
+        return
 
 
 if __name__ == "__main__":
