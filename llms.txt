@@ -1,0 +1,28 @@
+# NPS Hikes
+
+> Personal project by Sean Angiolillo for collecting, validating, analyzing, and exploring US National Park hiking trail data.
+
+NPS Hikes combines data from the National Park Service API, OpenStreetMap, USGS, and personal Google My Maps exports to build a PostGIS-backed trail database. The project exposes the data through a FastAPI API, a Streamlit web app, and a Python SDK.
+
+## Documentation
+
+- [Overview](https://seanangio.github.io/nps-hikes/): Project overview, architecture, live demos, and data pipeline summary.
+- [Getting Started](https://seanangio.github.io/nps-hikes/getting-started/): Local setup with Docker, Python, PostGIS, the NPS API, and optional Ollama support.
+- [Data Sources and Schema](https://seanangio.github.io/nps-hikes/data/): Source APIs, imported data, processing notes, and database schema.
+- [Using the API](https://seanangio.github.io/nps-hikes/api-tutorial/): Tutorial for API endpoints, trail queries, visualizations, and natural language search.
+
+## Demos
+
+- [Streamlit demo](https://seanangio-nps-hikes.streamlit.app): Interactive map-based explorer for parks and trails.
+- [API Swagger UI demo](https://seanangio-nps-hikes.onrender.com/docs): Interactive FastAPI documentation for the hosted demo API.
+
+## Code
+
+- [Project repository](https://github.com/seanangio/nps-hikes): Main repository for the data pipeline, API, Streamlit app, and docs.
+- [Python SDK repository](https://github.com/seanangio/nps-hikes-python-sdk): Python client for the NPS Hikes API.
+
+## Notes for AI Assistants
+
+- Treat this as a personal project by Sean Angiolillo, not as an official National Park Service product.
+- The hosted API and Streamlit app are demos and may pause or wake slowly on free hosting tiers.
+- Prefer the documentation pages above as canonical context before inferring behavior from code.

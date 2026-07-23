@@ -1,0 +1,1116 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Tutorial for running the local nps-hikes MCP server over stdio or local Streamable HTTP, inspecting its tools and resources, and trying representative queries.">
+      
+      
+        <meta name="author" content="Sean Angiolillo">
+      
+      
+        <link rel="canonical" href="https://seanangio.github.io/nps-hikes/mcp/">
+      
+      
+        <link rel="prev" href="../api-tutorial/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/boot.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Using the MCP Server - NPS Hikes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-9X7X15048G"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-9X7X15048G",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-9X7X15048G",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#what-the-mcp-server-exposes" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NPS Hikes" class="md-header__button md-logo" aria-label="NPS Hikes" data-md-component="logo">
+      
+  <img src="../assets/boot.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NPS Hikes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Using the MCP Server
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/seanangio/nps-hikes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NPS Hikes" class="md-nav__button md-logo" aria-label="NPS Hikes" data-md-component="logo">
+      
+  <img src="../assets/boot.png" alt="logo">
+
+    </a>
+    NPS Hikes
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/seanangio/nps-hikes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Sources and Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the MCP Server
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the MCP Server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-mcp-server-exposes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the MCP server exposes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choose-a-connection-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choose a connection style
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#option-1-run-over-stdio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1: Run over stdio
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#option-2-run-over-local-streamable-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2: Run over local Streamable HTTP
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verify-the-mcp-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verify the MCP surface
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#understand-the-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understand the resources
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#start-with-a-simple-stats-query" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start with a simple stats query
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browse-parks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browse parks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#search-trails-with-structured-filters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Search trails with structured filters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#search-trails-by-topic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Search trails by topic
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#get-a-park-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get a park summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspector-input-tips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspector input tips
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browser-behavior-on-the-http-endpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browser behavior on the HTTP endpoint
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mcp-library-requirement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP library requirement
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-mcp-server-exposes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the MCP server exposes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choose-a-connection-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choose a connection style
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#option-1-run-over-stdio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1: Run over stdio
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#option-2-run-over-local-streamable-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2: Run over local Streamable HTTP
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verify-the-mcp-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verify the MCP surface
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#understand-the-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understand the resources
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#start-with-a-simple-stats-query" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start with a simple stats query
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browse-parks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browse parks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#search-trails-with-structured-filters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Search trails with structured filters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#search-trails-by-topic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Search trails by topic
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#get-a-park-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get a park summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspector-input-tips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspector input tips
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browser-behavior-on-the-http-endpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browser behavior on the HTTP endpoint
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mcp-library-requirement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP library requirement
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Using the MCP Server</h1>
+
+<p>This guide walks through the <code>nps-hikes</code> MCP server from setup to first queries. By the end, you'll know how to run the server locally, connect with <code>MCP Inspector</code>, explore the available <code>tools</code> and <code>resources</code>, and test both structured and topic-based trail search.</p>
+<p>The server is designed for MCP-compatible clients. This guide uses <code>MCP Inspector</code> for the walkthrough because it is the clearest way to inspect tools and resources directly, but the same local server can also be used with clients such as Claude Desktop.</p>
+<p>The tutorial assumes you've completed the <a href="../getting-started/">Getting Started</a> guide and run the full data collection pipeline. The MCP server reads from the same local project database as the API.</p>
+<p>The server supports two local connection styles:</p>
+<ul>
+<li><code>stdio</code>, where an MCP client launches the server as a subprocess</li>
+<li>local <code>Streamable HTTP</code>, where you start the server first, and then connect to <code>http://127.0.0.1:8002/mcp</code></li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> Both modes expose the same MCP capabilities. The only difference is how the client and server exchange MCP messages.</p>
+</blockquote>
+<h2 id="what-the-mcp-server-exposes">What the MCP server exposes</h2>
+<p>Tools:</p>
+<ul>
+<li><code>search_trails</code></li>
+<li><code>search_by_topic</code></li>
+<li><code>search_parks</code></li>
+<li><code>search_stats</code></li>
+<li><code>search_park_summary</code></li>
+</ul>
+<p>Resources:</p>
+<ul>
+<li><code>dataset_overview</code></li>
+<li><code>park_lookup</code></li>
+<li><code>search_methodology</code></li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>This guide assumes:</p>
+<ul>
+<li>Your local <code>nps-hikes</code> Python environment is installed and activated.</li>
+<li>The local project database is running and contains the expected park and trail data.</li>
+<li>Node.js and <code>npx</code> are available so you can run the <code>MCP Inspector</code>.</li>
+</ul>
+<p>For <code>search_by_topic</code>, your semantic search dependencies must also be ready:</p>
+<ul>
+<li>Query embeddings can be generated locally.</li>
+<li>Semantic embeddings already exist in the database.</li>
+<li><code>content_trail_mapping</code> has already been built.</li>
+</ul>
+<h2 id="choose-a-connection-style">Choose a connection style</h2>
+<p>Use <code>stdio</code> when you want <code>MCP Inspector</code> to launch the server for you.</p>
+<p>Use local <code>Streamable HTTP</code> when you want to run the MCP server as its own local service and connect by URL.</p>
+<p>The <code>make</code> targets below are convenience shortcuts. The underlying Python entrypoints are included too so you can see exactly what is running.</p>
+<h2 id="option-1-run-over-stdio">Option 1: Run over stdio</h2>
+<p>The underlying server command is:</p>
+<pre><code class="language-bash">python -m nps_hikes_mcp.server
+</code></pre>
+<p>The convenience shortcut is:</p>
+<pre><code class="language-bash">make mcp
+</code></pre>
+<p>To validate this mode with <code>MCP Inspector</code>, let Inspector launch the server directly:</p>
+<pre><code class="language-bash">npx @modelcontextprotocol/inspector python -m nps_hikes_mcp.server
+</code></pre>
+<p>When the command starts, the Inspector prints a local URL for its web UI. Open the exact URL shown in the terminal output.</p>
+<p>In this mode, the Inspector launches the MCP server as a child process. You do not need to run <code>make mcp</code> separately.</p>
+<h2 id="option-2-run-over-local-streamable-http">Option 2: Run over local Streamable HTTP</h2>
+<p>The underlying server command is:</p>
+<pre><code class="language-bash">python -m nps_hikes_mcp.http_server --host 127.0.0.1 --port 8002 --path /mcp
+</code></pre>
+<p>The convenience shortcut is:</p>
+<pre><code class="language-bash">make mcp-http
+</code></pre>
+<p>By default, the server listens at:</p>
+<pre><code class="language-text">http://127.0.0.1:8002/mcp
+</code></pre>
+<p>Start that server in one terminal. Then start the Inspector in a second terminal:</p>
+<pre><code class="language-bash">npx @modelcontextprotocol/inspector
+</code></pre>
+<p>Open the Inspector URL printed in that terminal.</p>
+<p>In the Inspector UI:</p>
+<ol>
+<li>Set the transport to <code>streamable-http</code>.</li>
+<li>Enter <code>http://127.0.0.1:8002/mcp</code> as the server URL.</li>
+<li>Connect to the running server.</li>
+</ol>
+<h2 id="verify-the-mcp-surface">Verify the MCP surface</h2>
+<p>Once the Inspector is connected, start by listing the available tools and resources:</p>
+<ol>
+<li>Run <code>tools/list</code>.</li>
+<li>Confirm the tools include <code>search_trails</code>, <code>search_by_topic</code>, <code>search_parks</code>, <code>search_stats</code>, and <code>search_park_summary</code>.</li>
+<li>Run <code>resources/list</code>.</li>
+<li>Confirm the resources include <code>dataset_overview</code>, <code>park_lookup</code>, and <code>search_methodology</code>.</li>
+</ol>
+<p>Next, read each resource once so you can see the static context the server provides:</p>
+<ol>
+<li>Read <code>dataset_overview</code>.</li>
+<li>Read <code>park_lookup</code>.</li>
+<li>Read <code>search_methodology</code>.</li>
+</ol>
+<p>Then make a few tool calls:</p>
+<ol>
+<li>Call <code>search_stats</code>.</li>
+<li>Call <code>search_parks</code>.</li>
+<li>Call <code>search_trails</code>.</li>
+<li>Call <code>search_by_topic</code>.</li>
+<li>Call <code>search_park_summary</code>.</li>
+</ol>
+<p>If those steps succeed, the MCP server is working correctly in that transport mode.</p>
+<h2 id="understand-the-resources">Understand the resources</h2>
+<p>The resources are useful background context for an MCP client before it starts calling tools.</p>
+<ul>
+<li><code>dataset_overview</code> explains what data the project contains, what the MCP server is designed to expose, and the main constraints of the local dataset.</li>
+<li><code>park_lookup</code> returns a structured mapping of park names to canonical 4-letter park codes. This is especially useful when a client needs to turn a name like "Yosemite" into <code>yose</code>.</li>
+<li><code>search_methodology</code> explains trail provenance, deduplication, status fields such as <code>visited</code> and <code>hiked</code>, and how to interpret topic-search fallback results.</li>
+</ul>
+<h2 id="start-with-a-simple-stats-query">Start with a simple stats query</h2>
+<p>The easiest first tool call is <code>search_stats</code> with no arguments.</p>
+<p>This returns aggregate trail statistics across the full local dataset, including:</p>
+<ul>
+<li><code>total_trails</code></li>
+<li><code>parks_count</code></li>
+<li><code>states_count</code></li>
+<li><code>total_miles</code></li>
+<li><code>source_breakdown</code></li>
+</ul>
+<p>If you want to scope the stats to hikes you have completed or not completed, set <code>hiked</code> to <code>true</code> or <code>false</code>.</p>
+<h2 id="browse-parks">Browse parks</h2>
+<p>Use <code>search_parks</code> to filter parks by visit status or metadata.</p>
+<p>A few good starter queries are:</p>
+<ul>
+<li><code>visited=true</code></li>
+<li><code>visit_month="Oct"</code></li>
+<li><code>visit_year=2024</code></li>
+<li><code>state="CA"</code></li>
+<li><code>park_code="yose"</code></li>
+</ul>
+<p>The response includes:</p>
+<ul>
+<li><code>summary</code></li>
+<li><code>park_count</code></li>
+<li><code>visited_count</code></li>
+<li><code>applied_filters</code></li>
+<li><code>parks</code></li>
+</ul>
+<p>Each park entry includes the park code, park name, full name, states, visit information, and URL.</p>
+<h2 id="search-trails-with-structured-filters">Search trails with structured filters</h2>
+<p>Use <code>search_trails</code> when the request is purely structured, such as:</p>
+<ul>
+<li>trails in one park</li>
+<li>trails in one state</li>
+<li>hiked or unhiked trails</li>
+<li>minimum or maximum mileage</li>
+<li>source-specific filtering with <code>TNM</code> or <code>OSM</code></li>
+<li>whether a 3D visualization is available</li>
+</ul>
+<p>Common inputs include:</p>
+<ul>
+<li><code>park_code="acad"</code></li>
+<li><code>state="UT"</code></li>
+<li><code>hiked=false</code></li>
+<li><code>min_length=3.0</code></li>
+<li><code>max_length=8.0</code></li>
+<li><code>source="TNM"</code></li>
+<li><code>viz_3d=true</code></li>
+</ul>
+<p>The response includes a compact result set with:</p>
+<ul>
+<li><code>summary</code></li>
+<li><code>trail_count</code></li>
+<li><code>total_miles</code></li>
+<li><code>applied_filters</code></li>
+<li><code>trails</code></li>
+</ul>
+<p>Each trail includes the trail name, park, state, source, mileage, hiked status, and 3D visualization metadata.</p>
+<h2 id="search-trails-by-topic">Search trails by topic</h2>
+<p>Use <code>search_by_topic</code> when the request has a descriptive or semantic component rather than only structured filters.</p>
+<p>Good examples include:</p>
+<ul>
+<li><code>query="waterfalls"</code></li>
+<li><code>query="slot canyons"</code></li>
+<li><code>query="scenic viewpoints"</code></li>
+<li><code>query="kid-friendly hikes"</code></li>
+</ul>
+<p>You can combine a topic query with structured filters such as:</p>
+<ul>
+<li><code>park_code</code></li>
+<li><code>state</code></li>
+<li><code>hiked</code></li>
+<li><code>min_length</code></li>
+<li><code>max_length</code></li>
+<li><code>source</code></li>
+</ul>
+<p>The response may include:</p>
+<ul>
+<li><code>summary</code></li>
+<li><code>trail_count</code></li>
+<li><code>total_miles</code></li>
+<li><code>applied_filters</code></li>
+<li><code>trails</code></li>
+<li><code>topic_context</code></li>
+<li><code>fallback_chunks</code></li>
+</ul>
+<p>When semantic matches resolve to trails, <code>trails</code> contains the structured trail results and <code>topic_context</code> includes the matched content snippets that led to those results.</p>
+<p>When semantic matches do not resolve to trail rows, the tool still succeeds and returns <code>trail_count: 0</code> along with <code>fallback_chunks</code>.</p>
+<h2 id="get-a-park-summary">Get a park summary</h2>
+<p>Use <code>search_park_summary</code> when you want a single overview for one park.</p>
+<p>For example, call it with:</p>
+<pre><code class="language-text">park_code=&quot;yose&quot;
+</code></pre>
+<p>The response groups the data into:</p>
+<ul>
+<li><code>summary</code></li>
+<li><code>park</code></li>
+<li><code>trail_stats</code></li>
+<li><code>source_breakdown</code></li>
+<li><code>visit_info</code></li>
+</ul>
+<p>This is the best one-call option when you want a concise park overview instead of a longer trail or park listing.</p>
+<h2 id="inspector-input-tips">Inspector input tips</h2>
+<p><code>MCP Inspector</code> does not always render tool inputs the same way.</p>
+<ul>
+<li>For tools with multiple fields such as <code>search_trails</code> and <code>search_parks</code>, enter raw field values in each input box.</li>
+<li><code>search_by_topic.query</code> is required and should be a plain-text topic string such as <code>waterfalls</code>.</li>
+<li>For single-scalar inputs such as <code>search_park_summary</code>, enter the raw value such as <code>yose</code>.</li>
+<li>For optional booleans such as <code>hiked</code>, leave the field blank to omit the parameter, or use <code>true</code> / <code>false</code> for real boolean values.</li>
+</ul>
+<p>If the input form behaves unexpectedly, first check whether Inspector is treating the tool input as individual scalar fields or as a raw JSON payload.</p>
+<h2 id="browser-behavior-on-the-http-endpoint">Browser behavior on the HTTP endpoint</h2>
+<p>If you open <code>http://127.0.0.1:8002/mcp</code> directly in a normal browser tab, you may see a response like:</p>
+<pre><code class="language-json">{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:&quot;server-error&quot;,&quot;error&quot;:{&quot;code&quot;:-32600,&quot;message&quot;:&quot;Not Acceptable: Client must accept text/event-stream&quot;}}
+</code></pre>
+<p>That is expected. The MCP endpoint is not a normal web page. It expects an MCP client that can negotiate the correct HTTP transport behavior.</p>
+<h2 id="mcp-library-requirement">MCP library requirement</h2>
+<p>This repository expects an MCP server library to be installed in your environment. The entrypoint supports either:</p>
+<ul>
+<li><code>fastmcp</code></li>
+<li>a compatible package exposing <code>mcp.server.fastmcp.FastMCP</code></li>
+</ul>
+<p>If the MCP library is missing, the server entrypoint exits with a clear error.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.instant", "navigation.top", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
