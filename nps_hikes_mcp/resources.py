@@ -33,8 +33,8 @@ Available data domains:
 Important constraints:
 - This MCP server is designed for a single local user and reads from the user's local project database.
 - Tool outputs are deterministic and structured; the MCP server does not generate final prose answers.
-- v1 focuses on structured parks, trails, stats, and park summary queries.
-- Topic/semantic search is intentionally out of scope for the v1 MCP surface.
+- The MCP surface includes both structured query tools and topic-based semantic trail discovery.
+- Semantic topic search depends on locally available embeddings and content-to-trail mappings.
 """
 
 
@@ -56,6 +56,8 @@ Status fields:
 
 Interpretation notes:
 - Empty results mean the query succeeded but nothing matched the requested filters.
+- Topic search uses locally generated embeddings, then resolves semantic hits to trails through `content_trail_mapping`.
+- Topic search may return `fallback_chunks` when semantic matches do not resolve to structured trail rows.
 - Tool summaries are compact helper text for the host assistant, not final natural-language answers.
 - Results reflect the freshness and completeness of the user's local dataset, not live web data.
 """

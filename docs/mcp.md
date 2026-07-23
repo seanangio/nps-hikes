@@ -1,22 +1,27 @@
 ---
-title: Local MCP Server
-description: Guide for running the local nps-hikes MCP server over stdio or local Streamable HTTP and validating it with MCP Inspector.
+title: Using the MCP Server
+description: Tutorial for running the local nps-hikes MCP server over stdio or local Streamable HTTP, inspecting its tools and resources, and trying representative queries.
 ---
 
-This guide shows how to run the `nps-hikes` MCP server locally and inspect it with `MCP Inspector`. The server exposes the project's park and trail query layer as MCP `tools` and `resources`.
+This guide walks through the `nps-hikes` MCP server from setup to first queries. By the end, you'll know how to run the server locally, connect with `MCP Inspector`, explore the available `tools` and `resources`, and test both structured and topic-based trail search.
 
-The guide covers two local connection styles:
+The server is designed for MCP-compatible clients. This guide uses `MCP Inspector` for the walkthrough because it is the clearest way to inspect tools and resources directly, but the same local server can also be used with clients such as Claude Desktop.
 
-- `stdio`: `MCP Inspector` launches the server as a subprocess
-- local `Streamable HTTP`: you start the server first, then `MCP Inspector` connects to `http://127.0.0.1:8002/mcp`
+The tutorial assumes you've completed the [Getting Started](getting-started.md) guide and run the full data collection pipeline. The MCP server reads from the same local project database as the API.
 
-Both modes expose the same MCP surface. The difference is only how the client and server exchange messages.
+The server supports two local connection styles:
 
-## What the server exposes
+- `stdio`, where an MCP client launches the server as a subprocess
+- local `Streamable HTTP`, where you start the server first, and then connect to `http://127.0.0.1:8002/mcp`
+
+> **Tip:** Both modes expose the same MCP capabilities. The only difference is how the client and server exchange MCP messages.
+
+## What the MCP server exposes
 
 Tools:
 
 - `search_trails`
+- `search_by_topic`
 - `search_parks`
 - `search_stats`
 - `search_park_summary`
@@ -31,22 +36,25 @@ Resources:
 
 This guide assumes:
 
-- you have completed [Getting Started](getting-started.md)
-- your local `nps-hikes` Python environment is installed and activated
-- the local project database is running and contains the expected park and trail data
-- Node.js and `npx` are available so you can run `MCP Inspector`
+- Your local `nps-hikes` Python environment is installed and activated.
+- The local project database is running and contains the expected park and trail data.
+- Node.js and `npx` are available so you can run the `MCP Inspector`.
 
-If you are following the recommended local workflow, the same database used by the API is the main runtime dependency here too.
+For `search_by_topic`, your semantic search dependencies must also be ready:
+
+- Query embeddings can be generated locally.
+- Semantic embeddings already exist in the database.
+- `content_trail_mapping` has already been built.
 
 ## Choose a connection style
 
 Use `stdio` when you want `MCP Inspector` to launch the server for you.
 
-Use local `Streamable HTTP` when you want to run the MCP server as its own local service and connect to it by URL.
+Use local `Streamable HTTP` when you want to run the MCP server as its own local service and connect by URL.
 
-The `make` targets shown below are convenience shortcuts. The underlying Python entrypoints are included too so the guide reflects the real commands.
+The `make` targets below are convenience shortcuts. The underlying Python entrypoints are included too so you can see exactly what is running.
 
-## Option 1: Run with stdio
+## Option 1: Run over stdio
 
 The underlying server command is:
 
@@ -60,25 +68,17 @@ The convenience shortcut is:
 make mcp
 ```
 
-To validate this mode with Inspector, start `MCP Inspector` and let it launch the server:
+To validate this mode with `MCP Inspector`, let Inspector launch the server directly:
 
 ```bash
 npx @modelcontextprotocol/inspector python -m nps_hikes_mcp.server
 ```
 
-If you prefer not to rely on an activated shell environment, point Inspector at the Python executable inside your virtualenv:
+When the command starts, the Inspector prints a local URL for its web UI. Open the exact URL shown in the terminal output.
 
-```bash
-npx @modelcontextprotocol/inspector /path/to/your/virtualenv/bin/python -m nps_hikes_mcp.server
-```
+In this mode, the Inspector launches the MCP server as a child process. You do not need to run `make mcp` separately.
 
-The first time you run this command, `npx` may prompt to install the Inspector package. That package belongs to the Node/npm toolchain, not your Python environment.
-
-After the command starts, Inspector prints a local URL for its web UI. Open the exact URL shown in the terminal output.
-
-In this mode, Inspector launches `nps_hikes_mcp.server` as a child process. You do not need to run `make mcp` separately.
-
-## Option 2: Run with local Streamable HTTP
+## Option 2: Run over local Streamable HTTP
 
 The underlying server command is:
 
@@ -92,15 +92,13 @@ The convenience shortcut is:
 make mcp-http
 ```
 
-By default, the server binds locally at:
+By default, the server listens at:
 
 ```text
 http://127.0.0.1:8002/mcp
 ```
 
-Start that server in one terminal.
-
-Then start Inspector in a second terminal:
+Start that server in one terminal. Then start the Inspector in a second terminal:
 
 ```bash
 npx @modelcontextprotocol/inspector
@@ -114,11 +112,172 @@ In the Inspector UI:
 2. Enter `http://127.0.0.1:8002/mcp` as the server URL.
 3. Connect to the running server.
 
-In this mode, Inspector does not launch the MCP server. The server must already be running in the other terminal.
+## Verify the MCP surface
 
-If you already have an Inspector tab open, you can usually reuse that same UI and switch the transport from `stdio` to `streamable-http` or back again. You do not always need a brand-new Inspector browser session for each transport.
+Once the Inspector is connected, start by listing the available tools and resources:
 
-## Quick note about browsers
+1. Run `tools/list`.
+2. Confirm the tools include `search_trails`, `search_by_topic`, `search_parks`, `search_stats`, and `search_park_summary`.
+3. Run `resources/list`.
+4. Confirm the resources include `dataset_overview`, `park_lookup`, and `search_methodology`.
+
+Next, read each resource once so you can see the static context the server provides:
+
+1. Read `dataset_overview`.
+2. Read `park_lookup`.
+3. Read `search_methodology`.
+
+Then make a few tool calls:
+
+1. Call `search_stats`.
+2. Call `search_parks`.
+3. Call `search_trails`.
+4. Call `search_by_topic`.
+5. Call `search_park_summary`.
+
+If those steps succeed, the MCP server is working correctly in that transport mode.
+
+## Understand the resources
+
+The resources are useful background context for an MCP client before it starts calling tools.
+
+- `dataset_overview` explains what data the project contains, what the MCP server is designed to expose, and the main constraints of the local dataset.
+- `park_lookup` returns a structured mapping of park names to canonical 4-letter park codes. This is especially useful when a client needs to turn a name like "Yosemite" into `yose`.
+- `search_methodology` explains trail provenance, deduplication, status fields such as `visited` and `hiked`, and how to interpret topic-search fallback results.
+
+## Start with a simple stats query
+
+The easiest first tool call is `search_stats` with no arguments.
+
+This returns aggregate trail statistics across the full local dataset, including:
+
+- `total_trails`
+- `parks_count`
+- `states_count`
+- `total_miles`
+- `source_breakdown`
+
+If you want to scope the stats to hikes you have completed or not completed, set `hiked` to `true` or `false`.
+
+## Browse parks
+
+Use `search_parks` to filter parks by visit status or metadata.
+
+A few good starter queries are:
+
+- `visited=true`
+- `visit_month="Oct"`
+- `visit_year=2024`
+- `state="CA"`
+- `park_code="yose"`
+
+The response includes:
+
+- `summary`
+- `park_count`
+- `visited_count`
+- `applied_filters`
+- `parks`
+
+Each park entry includes the park code, park name, full name, states, visit information, and URL.
+
+## Search trails with structured filters
+
+Use `search_trails` when the request is purely structured, such as:
+
+- trails in one park
+- trails in one state
+- hiked or unhiked trails
+- minimum or maximum mileage
+- source-specific filtering with `TNM` or `OSM`
+- whether a 3D visualization is available
+
+Common inputs include:
+
+- `park_code="acad"`
+- `state="UT"`
+- `hiked=false`
+- `min_length=3.0`
+- `max_length=8.0`
+- `source="TNM"`
+- `viz_3d=true`
+
+The response includes a compact result set with:
+
+- `summary`
+- `trail_count`
+- `total_miles`
+- `applied_filters`
+- `trails`
+
+Each trail includes the trail name, park, state, source, mileage, hiked status, and 3D visualization metadata.
+
+## Search trails by topic
+
+Use `search_by_topic` when the request has a descriptive or semantic component rather than only structured filters.
+
+Good examples include:
+
+- `query="waterfalls"`
+- `query="slot canyons"`
+- `query="scenic viewpoints"`
+- `query="kid-friendly hikes"`
+
+You can combine a topic query with structured filters such as:
+
+- `park_code`
+- `state`
+- `hiked`
+- `min_length`
+- `max_length`
+- `source`
+
+The response may include:
+
+- `summary`
+- `trail_count`
+- `total_miles`
+- `applied_filters`
+- `trails`
+- `topic_context`
+- `fallback_chunks`
+
+When semantic matches resolve to trails, `trails` contains the structured trail results and `topic_context` includes the matched content snippets that led to those results.
+
+When semantic matches do not resolve to trail rows, the tool still succeeds and returns `trail_count: 0` along with `fallback_chunks`.
+
+## Get a park summary
+
+Use `search_park_summary` when you want a single overview for one park.
+
+For example, call it with:
+
+```text
+park_code="yose"
+```
+
+The response groups the data into:
+
+- `summary`
+- `park`
+- `trail_stats`
+- `source_breakdown`
+- `visit_info`
+
+This is the best one-call option when you want a concise park overview instead of a longer trail or park listing.
+
+## Inspector input tips
+
+`MCP Inspector` does not always render tool inputs the same way.
+
+- For tools with multiple fields such as `search_trails` and `search_parks`, enter raw field values in each input box.
+- `search_by_topic.query` is required and should be a plain-text topic string such as `waterfalls`.
+- For single-scalar inputs such as `search_park_summary`, enter the raw value such as `yose`.
+- For optional booleans such as `hiked`, leave the field blank to omit the parameter, or use `true` / `false` for real boolean values.
+
+If the input form behaves unexpectedly, first check whether Inspector is treating the tool input as individual scalar fields or as a raw JSON payload.
+
+## Browser behavior on the HTTP endpoint
 
 If you open `http://127.0.0.1:8002/mcp` directly in a normal browser tab, you may see a response like:
 
@@ -128,93 +287,9 @@ If you open `http://127.0.0.1:8002/mcp` directly in a normal browser tab, you ma
 
 That is expected. The MCP endpoint is not a normal web page. It expects an MCP client that can negotiate the correct HTTP transport behavior.
 
-## Verify the server in MCP Inspector
-
-Once Inspector is connected, validate the MCP surface with these checks:
-
-1. Run `tools/list`.
-2. Confirm the tools include `search_trails`, `search_parks`, `search_stats`, and `search_park_summary`.
-3. Run `resources/list`.
-4. Confirm the resources include `dataset_overview`, `park_lookup`, and `search_methodology`.
-5. Read `dataset_overview`.
-6. Read `park_lookup`.
-7. Read `search_methodology`.
-8. Call `search_stats`.
-9. Call `search_trails`.
-10. Call `search_park_summary`.
-
-If those steps succeed, the local MCP server is working correctly in that transport mode.
-
-## Suggested first tool calls
-
-These are good first checks in Inspector:
-
-1. Call `search_stats` with no arguments.
-2. Call `search_parks` with a month filter.
-3. Call `search_trails` with a state and mileage filter.
-4. Call `search_park_summary` with a known `park_code` such as `yose`.
-
-## Inspector input quirks
-
-`MCP Inspector` does not always render inputs the same way.
-
-- For tools with multiple fields such as `search_trails` and `search_parks`, enter raw field values in each input box.
-- Do not paste a full JSON object into a single field unless the UI explicitly asks for raw JSON.
-- For single-scalar inputs such as `search_park_summary`, enter the raw value such as `yose`.
-- For optional booleans such as `search_stats.hiked`, leave the field blank to omit the parameter, or use `true` / `false` for real boolean values.
-
-If input behavior seems odd, first check whether Inspector is treating the field as a scalar input or as a raw JSON payload editor.
-
-## Running stdio and HTTP side by side
-
-Yes, you can run both local transport modes at the same time.
-
-- The HTTP server uses its own local port, by default `8002`.
-- The `stdio` server does not bind to that port.
-
-If you see an Inspector message like `Proxy Server PORT IS IN USE at port 6277`, that message is coming from Inspector itself. It usually means an Inspector process is already running, and the existing browser tab at the URL Inspector printed earlier may still work.
-
-If that happens:
-
-1. first check whether an existing Inspector tab is already open and usable
-2. if it is, reuse that UI and switch transports there if needed
-3. if you want a fresh Inspector session, stop the earlier Inspector process and start it again
-
-## Claude Desktop
-
-`Claude Desktop` can launch the local `stdio` server through `claude_desktop_config.json`.
-
-The working local configuration used for validation was conceptually:
-
-```json
-{
-  "mcpServers": {
-    "nps-hikes": {
-      "command": "/bin/zsh",
-      "args": [
-        "-lc",
-        "cd '/path/to/nps-hikes' && source ~/.virtualenvs/nps-hikes/bin/activate && python -m nps_hikes_mcp.server"
-      ]
-    }
-  }
-}
-```
-
-Observed behavior:
-
-- Claude Desktop discovered all four MCP tools.
-- `search_stats`, `search_trails`, and `search_park_summary` executed successfully.
-- empty-result and validation-error cases surfaced clearly
-- MCP resources were not exposed in normal chat use the same way they were in `MCP Inspector`
-
-That makes the practical split:
-
-- use `MCP Inspector` for protocol and resource validation
-- use `Claude Desktop` for conversational tool validation
-
 ## MCP library requirement
 
-This repo expects an MCP server library to be installed in your environment. The entrypoint supports either:
+This repository expects an MCP server library to be installed in your environment. The entrypoint supports either:
 
 - `fastmcp`
 - a compatible package exposing `mcp.server.fastmcp.FastMCP`

@@ -1142,7 +1142,7 @@ def fetch_topic_trails(
     fallback_chunks: list[dict] = []
 
     if len(trails) == 0:
-        fallback_query = f"""
+        unmatched_fallback_query = f"""
         WITH semantic_hits AS (
             SELECT ce.id as embedding_id, ce.title,
                    ce.chunk_text, ce.park_code,
@@ -1167,8 +1167,34 @@ def fetch_topic_trails(
         """
 
         with engine.connect() as conn:
-            result = conn.execute(text(fallback_query), params)
+            result = conn.execute(text(unmatched_fallback_query), params)
             fallback_rows = result.fetchall()
+
+            # If semantic hits resolved to trails but structured filters removed all
+            # surviving trails, fall back to the top semantic hits regardless of
+            # whether they were mapped. This keeps the no-trail path informative.
+            if not fallback_rows:
+                fallback_query = f"""
+                WITH semantic_hits AS (
+                    SELECT ce.id as embedding_id, ce.title,
+                           ce.chunk_text, ce.park_code,
+                           p.full_name as park_name, ce.source_type,
+                           1 - (ce.embedding <=> CAST(:query_embedding AS vector))
+                               AS similarity_score
+                    FROM content_embeddings ce
+                    JOIN parks p ON ce.park_code = p.park_code
+                    WHERE 1=1{where_clauses}
+                    ORDER BY ce.embedding <=> CAST(:query_embedding AS vector) ASC
+                    LIMIT 50
+                )
+                SELECT sh.title, sh.chunk_text, sh.park_code, sh.park_name,
+                       sh.source_type, sh.similarity_score
+                FROM semantic_hits sh
+                ORDER BY sh.similarity_score DESC
+                LIMIT 10
+                """
+                result = conn.execute(text(fallback_query), params)
+                fallback_rows = result.fetchall()
 
         for row in fallback_rows:
             fallback_chunks.append(

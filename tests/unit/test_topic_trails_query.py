@@ -139,8 +139,9 @@ def _setup_mock_engine(mock_get_engine, trail_rows, fallback_rows=None):
     """
     Configure mock engine for fetch_topic_trails.
 
-    When fallback_rows is provided, the mock supports two consecutive
-    execute() calls (trail query then fallback query). Otherwise only
+    When fallback_rows is provided, the mock supports the trail query,
+    the unmatched-only fallback query, and a broader semantic fallback
+    query if the unmatched-only path returns nothing. Otherwise only
     the trail query is mocked.
     """
     from unittest.mock import MagicMock
@@ -152,14 +153,14 @@ def _setup_mock_engine(mock_get_engine, trail_rows, fallback_rows=None):
     mock_engine.connect.return_value.__enter__.return_value = mock_conn
 
     if fallback_rows is not None:
-        # Two queries: trail query (empty) then fallback query
+        # Fallback can now use up to three queries.
         trail_result = Mock()
         trail_result.fetchall.return_value = trail_rows
 
         fallback_result = Mock()
         fallback_result.fetchall.return_value = fallback_rows
 
-        mock_conn.execute.side_effect = [trail_result, fallback_result]
+        mock_conn.execute.side_effect = [trail_result, fallback_result, fallback_result]
     else:
         # Single query: trail query only
         mock_result = Mock()
@@ -589,6 +590,54 @@ class TestFetchTopicTrailsFallback:
 
         assert result["fallback_chunks"][0]["similarity_score"] == 0.8568
 
+    @patch("api.queries.get_db_engine")
+    def test_fallback_uses_broader_semantic_hits_when_unmatched_chunks_empty(
+        self, mock_get_engine
+    ):
+        """If filters remove all mapped trails, fallback should still return semantic hits."""
+        from unittest.mock import MagicMock
+
+        mock_engine = MagicMock()
+        mock_get_engine.return_value = mock_engine
+
+        mock_conn = MagicMock()
+        mock_engine.connect.return_value.__enter__.return_value = mock_conn
+
+        trail_result = Mock()
+        trail_result.fetchall.return_value = []
+
+        unmatched_fallback_result = Mock()
+        unmatched_fallback_result.fetchall.return_value = []
+
+        broader_fallback_rows = [
+            FallbackRow(
+                title="Waterfall Hikes",
+                chunk_text="Several Yosemite hikes lead to dramatic waterfalls.",
+                park_code="yose",
+                park_name="Yosemite National Park",
+                source_type="thingstodo",
+                similarity_score=0.91,
+            ),
+        ]
+        broader_fallback_result = Mock()
+        broader_fallback_result.fetchall.return_value = broader_fallback_rows
+
+        mock_conn.execute.side_effect = [
+            trail_result,
+            unmatched_fallback_result,
+            broader_fallback_result,
+        ]
+
+        result = fetch_topic_trails(
+            query_embedding=SAMPLE_EMBEDDING,
+            min_length=20.0,
+        )
+
+        assert result["trail_count"] == 0
+        assert len(result["fallback_chunks"]) == 1
+        assert result["fallback_chunks"][0]["title"] == "Waterfall Hikes"
+        assert mock_conn.execute.call_count == 3
+
 
 class TestFetchTopicTrailsFilters:
     """Structured filter tests."""
@@ -602,6 +651,7 @@ class TestFetchTopicTrailsFilters:
         fallback_result.fetchall.return_value = []
         mock_conn.execute.side_effect = [
             mock_conn.execute.return_value,
+            fallback_result,
             fallback_result,
         ]
 
@@ -620,6 +670,7 @@ class TestFetchTopicTrailsFilters:
         fallback_result.fetchall.return_value = []
         mock_conn.execute.side_effect = [
             mock_conn.execute.return_value,
+            fallback_result,
             fallback_result,
         ]
 
@@ -659,6 +710,7 @@ class TestFetchTopicTrailsFilters:
         fallback_result.fetchall.return_value = []
         mock_conn.execute.side_effect = [
             mock_conn.execute.return_value,
+            fallback_result,
             fallback_result,
         ]
 

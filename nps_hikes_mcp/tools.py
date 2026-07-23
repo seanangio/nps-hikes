@@ -1,4 +1,4 @@
-"""MCP-facing tool wrappers around the existing structured query layer."""
+"""MCP-facing tool wrappers around the existing query layer."""
 
 from __future__ import annotations
 
@@ -6,8 +6,15 @@ import re
 from collections.abc import Callable
 from typing import Any, TypedDict
 
-from api.queries import fetch_all_parks, fetch_park_summary, fetch_stats, fetch_trails
-from utils.exceptions import NpsHikesError
+from api.queries import (
+    fetch_all_parks,
+    fetch_park_summary,
+    fetch_stats,
+    fetch_topic_trails,
+    fetch_trails,
+)
+from utils.embedding_client import get_embeddings_sync
+from utils.exceptions import LlmConnectionError, NpsHikesError
 
 
 class McpToolError(Exception):
@@ -55,6 +62,11 @@ def _validate_source(source: str | None) -> None:
 def _validate_limit(limit: int) -> None:
     if not 1 <= limit <= 1000:
         raise McpToolError("limit must be between 1 and 1000.")
+
+
+def _validate_topic_limit(limit: int) -> None:
+    if not 1 <= limit <= 50:
+        raise McpToolError("limit must be between 1 and 50.")
 
 
 def _validate_length_range(
@@ -111,6 +123,17 @@ def _compact_park(park: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _compact_topic_context_item(context: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "trail_id": context["trail_id"],
+        "trail_name": context["trail_name"],
+        "park_code": context["park_code"],
+        "park_name": context["park_name"],
+        "content_title": context["content_title"],
+        "chunk_text_preview": context["chunk_text_preview"],
+    }
+
+
 def _format_applied_filters(filters: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in filters.items() if value is not None}
 
@@ -135,6 +158,32 @@ def _summarize_trail_filters(filters: dict[str, Any]) -> str:
         parts.append("3D viz only")
     elif filters.get("viz_3d") is False:
         parts.append("no 3D viz")
+    return ", ".join(parts)
+
+
+def _validate_topic_query(query: str) -> str:
+    normalized_query = query.strip()
+    if not normalized_query:
+        raise McpToolError("query must be a non-empty string.")
+    return normalized_query
+
+
+def _summarize_topic_filters(filters: dict[str, Any]) -> str:
+    parts = [f"topic '{filters['query']}'"]
+    if filters.get("park_code"):
+        parts.append(f"park {filters['park_code']}")
+    if filters.get("state"):
+        parts.append(f"state {filters['state']}")
+    if filters.get("hiked") is True:
+        parts.append("hiked trails only")
+    elif filters.get("hiked") is False:
+        parts.append("unhiked trails only")
+    if filters.get("source"):
+        parts.append(f"source {filters['source']}")
+    if filters.get("min_length") is not None:
+        parts.append(f"min {filters['min_length']} mi")
+    if filters.get("max_length") is not None:
+        parts.append(f"max {filters['max_length']} mi")
     return ", ".join(parts)
 
 
@@ -195,6 +244,90 @@ def search_trails(
         "total_miles": result["total_miles"],
         "applied_filters": _format_applied_filters(filters),
         "trails": [_compact_trail(trail) for trail in result["trails"]],
+    }
+
+
+def search_by_topic(
+    query: str,
+    park_code: str | None = None,
+    state: str | None = None,
+    hiked: bool | None = None,
+    min_length: float | None = None,
+    max_length: float | None = None,
+    source: str | None = None,
+    limit: int = 20,
+) -> dict[str, Any]:
+    """Search trails by semantic topic while staying fully non-generative."""
+    normalized_query = _validate_topic_query(query)
+    _validate_park_code(park_code)
+    _validate_state(state)
+    _validate_source(source)
+    _validate_topic_limit(limit)
+    _validate_length_range(min_length, max_length)
+
+    filters = {
+        "query": normalized_query,
+        "park_code": park_code,
+        "state": state,
+        "hiked": hiked,
+        "min_length": min_length,
+        "max_length": max_length,
+        "source": source,
+        "limit": limit,
+    }
+
+    try:
+        embeddings = get_embeddings_sync([normalized_query])
+    except LlmConnectionError as exc:
+        raise McpToolError(
+            f"search_by_topic failed: embedding generation unavailable. {exc}"
+        ) from exc
+
+    if not embeddings or not embeddings[0]:
+        raise McpToolError(
+            "search_by_topic failed: embedding generation returned no usable vector."
+        )
+
+    try:
+        result = fetch_topic_trails(
+            query_embedding=embeddings[0],
+            park_code=park_code,
+            state=state,
+            hiked=hiked,
+            min_length=min_length,
+            max_length=max_length,
+            source=source,
+            limit=limit,
+            geojson=False,
+        )
+    except NpsHikesError as exc:
+        _raise_operational_error("search_by_topic", exc)
+
+    filter_summary = _summarize_topic_filters(filters)
+    if result["trail_count"] > 0:
+        summary = f"Found {result['trail_count']} trails totaling {result['total_miles']} miles"
+        if filter_summary:
+            summary += f" matching {filter_summary}"
+        summary += "."
+    else:
+        fallback_count = len(result.get("fallback_chunks", []))
+        summary = (
+            "Found 0 trails"
+            + (f" matching {filter_summary}" if filter_summary else "")
+            + f"; returning {fallback_count} fallback semantic matches."
+        )
+
+    return {
+        "summary": summary,
+        "trail_count": result["trail_count"],
+        "total_miles": result["total_miles"],
+        "applied_filters": _format_applied_filters(filters),
+        "trails": [_compact_trail(trail) for trail in result["trails"]],
+        "topic_context": [
+            _compact_topic_context_item(context)
+            for context in result.get("topic_context", [])
+        ],
+        "fallback_chunks": result.get("fallback_chunks", []),
     }
 
 
@@ -346,6 +479,30 @@ TOOL_DEFINITIONS: list[ToolDefinition] = [
             },
         },
         "fn": search_trails,
+    },
+    {
+        "name": "search_by_topic",
+        "description": "Retrieve trails by semantic topic with optional structured filters.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "park_code": {"type": "string", "pattern": "^[a-z]{4}$"},
+                "state": {"type": "string", "pattern": "^[A-Z]{2}$"},
+                "hiked": {"type": "boolean"},
+                "min_length": {"type": "number"},
+                "max_length": {"type": "number"},
+                "source": {"type": "string", "enum": ["TNM", "OSM"]},
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 50,
+                },
+            },
+            "required": ["query"],
+        },
+        "fn": search_by_topic,
     },
     {
         "name": "search_parks",

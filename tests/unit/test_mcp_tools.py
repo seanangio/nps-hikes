@@ -17,12 +17,13 @@ from nps_hikes_mcp.tools import (
     TOOL_DEFINITIONS,
     McpToolError,
     McpToolNotFoundError,
+    search_by_topic,
     search_park_summary,
     search_parks,
     search_stats,
     search_trails,
 )
-from utils.exceptions import DatabaseError
+from utils.exceptions import DatabaseError, LlmConnectionError
 
 
 def test_search_trails_shapes_result() -> None:
@@ -140,6 +141,114 @@ def test_search_stats_adds_summary() -> None:
     assert "Unhiked trails include 12 trails" in result["summary"]
 
 
+def test_search_by_topic_shapes_successful_result() -> None:
+    fake_result = {
+        "trail_count": 1,
+        "total_miles": 5.4,
+        "trails": [
+            {
+                "trail_id": "550779",
+                "trail_name": "Mist Trail",
+                "park_code": "yose",
+                "park_name": "Yosemite National Park",
+                "states": "CA",
+                "source": "TNM",
+                "length_miles": 5.4,
+                "geometry_type": "LineString",
+                "highway_type": None,
+                "hiked": True,
+                "viz_3d_available": False,
+                "viz_3d_slug": None,
+                "geometry": {"type": "LineString"},
+            }
+        ],
+        "topic_context": [
+            {
+                "trail_id": "550779",
+                "trail_name": "Mist Trail",
+                "park_code": "yose",
+                "park_name": "Yosemite National Park",
+                "content_title": "Hike to Vernal Fall",
+                "chunk_text_preview": "Follow the Mist Trail to see the waterfall.",
+                "chunk_text": "Full chunk text should not survive MCP shaping.",
+            }
+        ],
+        "fallback_chunks": [],
+    }
+
+    with (
+        patch(
+            "nps_hikes_mcp.tools.get_embeddings_sync", return_value=[[0.01] * 768]
+        ) as mock_embed,
+        patch(
+            "nps_hikes_mcp.tools.fetch_topic_trails", return_value=fake_result
+        ) as mock_fetch,
+    ):
+        result = search_by_topic(query="waterfalls", state="CA", limit=10)
+
+    mock_embed.assert_called_once_with(["waterfalls"])
+    mock_fetch.assert_called_once_with(
+        query_embedding=[0.01] * 768,
+        park_code=None,
+        state="CA",
+        hiked=None,
+        min_length=None,
+        max_length=None,
+        source=None,
+        limit=10,
+        geojson=False,
+    )
+    assert result["trail_count"] == 1
+    assert result["applied_filters"] == {
+        "query": "waterfalls",
+        "state": "CA",
+        "limit": 10,
+    }
+    assert "matching topic 'waterfalls', state CA" in result["summary"]
+    assert "geometry" not in result["trails"][0]
+    assert result["topic_context"] == [
+        {
+            "trail_id": "550779",
+            "trail_name": "Mist Trail",
+            "park_code": "yose",
+            "park_name": "Yosemite National Park",
+            "content_title": "Hike to Vernal Fall",
+            "chunk_text_preview": "Follow the Mist Trail to see the waterfall.",
+        }
+    ]
+
+
+def test_search_by_topic_empty_result_includes_fallback_chunks() -> None:
+    fake_result = {
+        "trail_count": 0,
+        "total_miles": 0.0,
+        "trails": [],
+        "topic_context": [],
+        "fallback_chunks": [
+            {
+                "title": "Waterfall Views",
+                "chunk_text": "Look for overlooks and spray zones.",
+                "park_code": "yose",
+                "park_name": "Yosemite National Park",
+                "source_type": "thingstodo",
+                "similarity_score": 0.88,
+            }
+        ],
+    }
+
+    with (
+        patch("nps_hikes_mcp.tools.get_embeddings_sync", return_value=[[0.01] * 768]),
+        patch("nps_hikes_mcp.tools.fetch_topic_trails", return_value=fake_result),
+    ):
+        result = search_by_topic(query="waterfalls")
+
+    assert result["trail_count"] == 0
+    assert result["fallback_chunks"] == fake_result["fallback_chunks"]
+    assert result["summary"] == (
+        "Found 0 trails matching topic 'waterfalls'; returning 1 fallback semantic matches."
+    )
+
+
 def test_search_trails_empty_result_is_structured() -> None:
     fake_result = {
         "trail_count": 0,
@@ -255,6 +364,16 @@ def test_search_stats_rejects_invalid_hiked_type() -> None:
         search_stats(hiked="yes")  # type: ignore[arg-type]
 
 
+def test_search_by_topic_rejects_empty_query() -> None:
+    with pytest.raises(McpToolError, match="query must be a non-empty string"):
+        search_by_topic(query="   ")
+
+
+def test_search_by_topic_rejects_large_limit() -> None:
+    with pytest.raises(McpToolError, match="limit must be between 1 and 50"):
+        search_by_topic(query="waterfalls", limit=51)
+
+
 def test_search_trails_wraps_operational_errors() -> None:
     with (
         patch(
@@ -286,6 +405,46 @@ def test_search_stats_wraps_operational_errors() -> None:
         pytest.raises(McpToolError, match="search_stats failed: database unavailable"),
     ):
         search_stats()
+
+
+def test_search_by_topic_wraps_embedding_errors() -> None:
+    with (
+        patch(
+            "nps_hikes_mcp.tools.get_embeddings_sync",
+            side_effect=LlmConnectionError("Cannot connect to Ollama"),
+        ),
+        pytest.raises(
+            McpToolError,
+            match="search_by_topic failed: embedding generation unavailable",
+        ),
+    ):
+        search_by_topic(query="waterfalls")
+
+
+def test_search_by_topic_rejects_empty_embedding_result() -> None:
+    with (
+        patch("nps_hikes_mcp.tools.get_embeddings_sync", return_value=[]),
+        pytest.raises(
+            McpToolError,
+            match="embedding generation returned no usable vector",
+        ),
+    ):
+        search_by_topic(query="waterfalls")
+
+
+def test_search_by_topic_wraps_operational_errors() -> None:
+    with (
+        patch("nps_hikes_mcp.tools.get_embeddings_sync", return_value=[[0.01] * 768]),
+        patch(
+            "nps_hikes_mcp.tools.fetch_topic_trails",
+            side_effect=DatabaseError("database unavailable"),
+        ),
+        pytest.raises(
+            McpToolError,
+            match="search_by_topic failed: database unavailable",
+        ),
+    ):
+        search_by_topic(query="waterfalls")
 
 
 def test_search_park_summary_wraps_operational_errors() -> None:
