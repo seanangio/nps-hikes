@@ -29,9 +29,6 @@ theme:
 markdown_extensions:
   - footnotes
 
-draft_docs: |
-  mcp.md
-
 extra:
   analytics:
     provider: google
@@ -42,3 +39,4 @@ nav:
   - getting-started.md
   - data.md
   - api-tutorial.md
+  - mcp.md

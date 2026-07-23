@@ -1,9 +1,9 @@
 ---
 title: NPS Hikes
-description: Personal project by Sean Angiolillo for collecting, analyzing, and exploring US National Park hiking trail data with a FastAPI API, Streamlit app, and PostGIS database.
+description: Personal project by Sean Angiolillo for collecting, analyzing, and exploring US National Park hiking trail data with a FastAPI API, local MCP server, Streamlit app, and PostGIS database.
 ---
 
-A Python project for collecting, validating, and analyzing hiking trail data from US National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API and an interactive Streamlit web app with natural language, semantic, and hybrid search.
+A Python project for collecting, validating, and analyzing hiking trail data from US National Parks. The project combines data from the National Park Service API, OpenStreetMap, and the USGS to build a PostGIS database of park boundaries and hiking trails, queryable through a REST API, a local MCP server, and an interactive Streamlit web app with natural language, semantic, and hybrid search.
 
 ## Live demos
 
@@ -18,6 +18,7 @@ A Python project for collecting, validating, and analyzing hiking trail data fro
 - Extract hiking trails from OpenStreetMap and The National Map (USGS).
 - Match personal hiking locations stored in Google My Maps to trail geometries.
 - Explore parks and trails through a [FastAPI REST API](https://seanangio-nps-hikes.onrender.com/docs).
+- Use a local [MCP server](mcp.md) to expose the dataset as MCP tools and resources for compatible AI clients.
 - Browse an interactive map, filter trails, and inspect semantic topic results via a [Streamlit web app](https://seanangio-nps-hikes.streamlit.app).
 - Query the API in natural language via a local LLM, including hybrid searches that combine themes with structured filters.
 - Access the API via a [Python SDK](https://github.com/seanangio/nps-hikes-python-sdk).
@@ -32,6 +33,11 @@ nps-hikes/
 │   ├── queries.py                     # Database query functions
 │   ├── database.py                    # Database connection management
 │   └── nlq/                           # Natural language query module (Ollama LLM)
+├── nps_hikes_mcp/             # Local MCP server exposing tools and resources
+│   ├── server.py                       # stdio MCP server entrypoint
+│   ├── http_server.py                  # Streamable HTTP MCP server entrypoint
+│   ├── tools.py                        # MCP tool wrappers around query logic
+│   └── resources.py                    # MCP resource definitions and readers
 ├── scripts/                   # Data collection and processing scripts
 │   ├── collectors/            # Data collection from external sources
 │   ├── processors/            # Data processing and analysis
