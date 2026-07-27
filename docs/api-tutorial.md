@@ -3,7 +3,7 @@ title: Using the API
 description: Tutorial for querying the NPS Hikes FastAPI service, including parks, trails, stats, visualizations, and natural language search.
 ---
 
-This tutorial walks through the API's capabilities, starting with a broad overview of your parks and narrowing to individual trail visualizations. By the end, you'll know how to query parks and trails, use semantic and hybrid search, generate visualizations, build a 3D elevation profile for a specific trail, and use natural language search.
+This tutorial walks through the capabilities of the [API](https://github.com/seanangio/nps-hikes/tree/main/api), starting with a broad overview of your parks and narrowing to individual trail visualizations. By the end, you'll know how to query parks and trails, use semantic and hybrid search, generate visualizations, build a 3D elevation profile for a specific trail, and use natural language search.
 
 The tutorial assumes you've completed the [Getting Started](getting-started.md) guide and run the full data collection pipeline. You can follow these examples in either local API mode:
 

@@ -3,9 +3,9 @@ title: Using the MCP Server
 description: Tutorial for running the local nps-hikes MCP server over stdio or local Streamable HTTP, inspecting its tools and resources, and trying representative queries.
 ---
 
-This guide walks through the `nps-hikes` MCP server from setup to first queries. By the end, you'll know how to run the server locally, connect with `MCP Inspector`, explore the available `tools` and `resources`, and test both structured and topic-based trail search.
+This guide walks through the [nps-hikes MCP server](https://github.com/seanangio/nps-hikes/tree/main/nps_hikes_mcp) from setup to first queries. It shows how to run the server locally, connect with `MCP Inspector`, inspect the available `tools` and `resources`, and test both structured and topic-based trail search.
 
-The server is designed for MCP-compatible clients. This guide uses `MCP Inspector` for the walkthrough because it is the clearest way to inspect tools and resources directly, but the same local server can also be used with clients such as Claude Desktop.
+The server is designed for MCP-compatible clients. This guide uses [MCP Inspector](https://github.com/modelcontextprotocol/inspector) for the walkthrough because it lets you inspect tools and resources directly, but the same local server can also be used with clients such as Claude Desktop.
 
 The tutorial assumes you've completed the [Getting Started](getting-started.md) guide and run the full data collection pipeline. The MCP server reads from the same local project database as the API.
 
@@ -142,7 +142,7 @@ If those steps succeed, the MCP server is working correctly in that transport mo
 The resources are useful background context for an MCP client before it starts calling tools.
 
 - `dataset_overview` explains what data the project contains, what the MCP server is designed to expose, and the main constraints of the local dataset.
-- `park_lookup` returns a structured mapping of park names to canonical 4-letter park codes. This is especially useful when a client needs to turn a name like "Yosemite" into `yose`.
+- `park_lookup` returns a structured mapping of park names to canonical 4-letter park codes. A client can use it to turn a name like "Yosemite" into `yose`.
 - `search_methodology` explains trail provenance, deduplication, status fields such as `visited` and `hiked`, and how to interpret topic-search fallback results.
 
 ## Start with a simple stats query
@@ -264,7 +264,7 @@ The response groups the data into:
 - `source_breakdown`
 - `visit_info`
 
-This is the best one-call option when you want a concise park overview instead of a longer trail or park listing.
+Use this when you want a concise park overview instead of a longer trail or park listing.
 
 ## Inspector input tips
 
