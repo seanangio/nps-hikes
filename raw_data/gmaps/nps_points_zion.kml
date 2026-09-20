@@ -119,6 +119,24 @@
           </coordinates>
         </Point>
       </Placemark>
+      <Placemark>
+        <name>Taylor Creek Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -113.1994676,37.4619125,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Timber Creek Overlook Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -113.2019997,37.4355783,0
+          </coordinates>
+        </Point>
+      </Placemark>
     </Folder>
     <Folder>
       <name>olym</name>
@@ -182,6 +200,33 @@
         <Point>
           <coordinates>
             -124.6238774,47.8981218,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hurricane Hill Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -123.5177306,47.976522,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Klahhane Ridge Trail</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -123.4915135,47.9723462,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Storm King Trailhead</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -123.7902303,48.0538084,0
           </coordinates>
         </Point>
       </Placemark>
