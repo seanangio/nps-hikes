@@ -56,6 +56,7 @@ from sqlalchemy import (
     Engine,
     Float,
     ForeignKeyConstraint,
+    Integer,
     MetaData,
     String,
     Table,
@@ -161,6 +162,7 @@ class DatabaseWriter:
         # Define table dependencies for proper creation order
         self.table_dependencies = {
             "parks": [],
+            "park_visits": ["parks"],
             "park_boundaries": ["parks"],
             "osm_hikes": ["parks"],
             "tnm_hikes": ["parks"],
@@ -207,6 +209,18 @@ class DatabaseWriter:
                 nullable=False,
                 server_default=text("NOW()"),
             ),
+            extend_existing=True,
+        )
+
+        # Park visits table - one row per visit; a park has multiple rows
+        # if it has been visited on more than one trip
+        self.park_visits_table = Table(
+            "park_visits",
+            self.metadata,
+            Column("park_code", String, primary_key=True),
+            Column("visit_month", String, primary_key=True),
+            Column("visit_year", Integer, primary_key=True),
+            ForeignKeyConstraint(["park_code"], ["parks.park_code"]),
             extend_existing=True,
         )
 
@@ -385,6 +399,7 @@ class DatabaseWriter:
             "tnm_hikes",
             "osm_hikes",
             "park_boundaries",
+            "park_visits",
             "parks",
         ]
 
@@ -627,6 +642,7 @@ class DatabaseWriter:
 
         Supports these tables:
         - 'parks': NPS park metadata (created via SQLAlchemy)
+        - 'park_visits': individual visit records, one row per trip (created via SQLAlchemy)
         - 'park_boundaries': NPS boundary data (created via SQLAlchemy)
         - 'osm_hikes': OSM trail data (created via raw SQL with composite PK)
         - 'tnm_hikes': TNM trail data (created via raw SQL with single PK)
@@ -655,7 +671,7 @@ class DatabaseWriter:
             self._create_nps_content_tables()
         elif table_name == "content_trail_mapping":
             self._create_table_from_sql("content_trail_mapping")
-        elif table_name in ("parks", "park_boundaries"):
+        elif table_name in ("parks", "park_boundaries", "park_visits"):
             self._create_table_from_sql(table_name)
         else:
             raise ValueError(f"Unknown table name: {table_name}")
@@ -748,6 +764,44 @@ class DatabaseWriter:
                 conn.execute(stmt)
 
         self.logger.info(f"Upserted {len(df)} park records to {table_name}")
+
+    def write_park_visits(
+        self, df: pd.DataFrame, table_name: str = "park_visits"
+    ) -> None:
+        """
+        Write individual park visit records to the park_visits table.
+
+        A park may be visited on more than one trip, so this writes one row
+        per (park_code, visit_month, visit_year) and is idempotent: visits
+        already recorded are silently skipped rather than duplicated or
+        overwritten, so it is safe to call with the full visit history on
+        every pipeline run.
+
+        Args:
+            df (pd.DataFrame): Visit records with park_code, visit_month, visit_year columns
+            table_name (str): Target table name (default: 'park_visits')
+
+        Raises:
+            SQLAlchemyError: If database operations fail
+        """
+        if df.empty:
+            self.logger.info("No visit records to save")
+            return
+
+        self.ensure_table_exists(table_name)
+
+        with self.engine.begin() as conn:
+            for _, row in df.iterrows():
+                row_dict = {
+                    k: (None if pd.isna(v) else v) for k, v in row.to_dict().items()
+                }
+                stmt = insert(self.park_visits_table).values(**row_dict)
+                stmt = stmt.on_conflict_do_nothing(
+                    index_elements=["park_code", "visit_month", "visit_year"]
+                )
+                conn.execute(stmt)
+
+        self.logger.info(f"Wrote {len(df)} visit record(s) to {table_name}")
 
     def write_park_boundaries(
         self,

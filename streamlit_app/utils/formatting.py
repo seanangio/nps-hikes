@@ -47,16 +47,13 @@ def format_park_visit_line(park: dict[str, Any]) -> str:
         park: Park dict from API
 
     Returns:
-        Formatted string like "CA (June 2023)" or "CA, NV (Not visited)"
+        Formatted string like "CA (June 2023)", "CA (May 2023, September 2026)"
+        for a park visited more than once, or "CA, NV (Not visited)"
     """
     states = park.get("states", "")
-    visit_month = park.get("visit_month")
-    visit_year = park.get("visit_year")
+    visits = park.get("visits") or []
 
-    if visit_month and visit_year:
-        visit_info = f"{visit_month} {visit_year}"
-    else:
-        visit_info = "Not visited"
+    visit_info = ", ".join(visits) if visits else "Not visited"
 
     if states:
         return f"{states} ({visit_info})"

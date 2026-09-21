@@ -37,6 +37,7 @@ Stage 2 - Spatial Boundary Data Collection:
 from __future__ import annotations
 
 import argparse
+import calendar
 import os
 import sys
 import time
@@ -72,6 +73,40 @@ from utils.exceptions import (
 from utils.logging import setup_nps_collector_logging
 
 logger = setup_nps_collector_logging()
+
+# Maps both abbreviated ("Oct") and full ("October") month names to their
+# calendar position, so visit records can be sorted chronologically
+# regardless of which spelling the visit log CSV uses.
+_MONTH_TO_NUM: dict[str, int] = {
+    **{name: i for i, name in enumerate(calendar.month_abbr) if name},
+    **{name: i for i, name in enumerate(calendar.month_name) if name},
+}
+
+
+def _build_park_name_lookup(api_parks: list[dict]) -> dict[str, int]:
+    """Build a lookup of lowercased park fullName -> index into api_parks."""
+    return {park.get("fullName", "").lower(): idx for idx, park in enumerate(api_parks)}
+
+
+def _match_csv_name_to_index(
+    csv_name: str, parks_by_name: dict[str, int]
+) -> int | None:
+    """
+    Match a CSV visit-log park name to an index in the API-fetched park list.
+
+    Tries an exact match against "{csv_name} National Park" first, then
+    falls back to a substring search against every known fullName.
+    """
+    search_name = f"{csv_name} National Park".lower()
+    matched_idx = parks_by_name.get(search_name)
+
+    if matched_idx is None:
+        for full_name_lower, idx in parks_by_name.items():
+            if csv_name.lower() in full_name_lower:
+                matched_idx = idx
+                break
+
+    return matched_idx
 
 
 class NPSDataCollector:
@@ -468,10 +503,7 @@ class NPSDataCollector:
         logger.info(f"Loaded {len(visit_df)} visit records from {csv_path}")
 
         # Build a lookup of API parks by fullName (lowered) for matching
-        parks_by_name: dict[str, int] = {}
-        for idx, park in enumerate(api_parks):
-            full_name_lower = park.get("fullName", "").lower()
-            parks_by_name[full_name_lower] = idx
+        parks_by_name = _build_park_name_lookup(api_parks)
 
         # Process each park through extract_park_data
         results = []
@@ -479,18 +511,7 @@ class NPSDataCollector:
 
         for _, visit_row in visit_df.iterrows():
             csv_name = visit_row["park_name"]
-            # Try matching by appending "National Park" and comparing to fullName
-            search_name = f"{csv_name} National Park".lower()
-
-            matched_idx = parks_by_name.get(search_name)
-
-            # Try broader matching if exact match fails
-            if matched_idx is None:
-                # Search for parks whose fullName contains the CSV name
-                for full_name_lower, idx in parks_by_name.items():
-                    if csv_name.lower() in full_name_lower:
-                        matched_idx = idx
-                        break
+            matched_idx = _match_csv_name_to_index(csv_name, parks_by_name)
 
             if matched_idx is not None:
                 matched_indices.add(matched_idx)
@@ -517,6 +538,56 @@ class NPSDataCollector:
         )
 
         return results
+
+    def get_all_visit_records(
+        self, api_parks: list[dict], csv_path: str
+    ) -> pd.DataFrame:
+        """
+        Extract every visit recorded in the visit log CSV, matched to a park_code.
+
+        Unlike merge_visit_dates (which produces one row per park_code, used to
+        build the main parks dataset), this returns one row per CSV entry so
+        that a park visited more than once yields multiple records. It is
+        independent of any incremental "already collected" skip logic, so
+        re-running the pipeline always picks up every visit ever logged for a
+        park, even a park whose API metadata was already cached.
+
+        Args:
+            api_parks (List[Dict]): Park data from fetch_all_national_parks(),
+                unfiltered by any incremental-processing skip list
+            csv_path (str): Path to the visit log CSV
+
+        Returns:
+            pd.DataFrame: Columns park_code, visit_month, visit_year - one row
+                per matched CSV visit entry. Unmatched CSV rows are excluded.
+        """
+        visit_df = self.load_parks_from_csv(csv_path)
+        parks_by_name = _build_park_name_lookup(api_parks)
+
+        records = []
+        for _, visit_row in visit_df.iterrows():
+            csv_name = visit_row["park_name"]
+            matched_idx = _match_csv_name_to_index(csv_name, parks_by_name)
+
+            if matched_idx is None:
+                continue
+
+            records.append(
+                {
+                    "park_code": api_parks[matched_idx].get("parkCode", ""),
+                    "visit_month": visit_row["month"],
+                    "visit_year": visit_row["year"],
+                }
+            )
+
+        visits_df = pd.DataFrame(
+            records, columns=["park_code", "visit_month", "visit_year"]
+        )
+        if not visits_df.empty:
+            visits_df = visits_df.drop_duplicates()
+            visits_df["visit_year"] = visits_df["visit_year"].astype(int)
+
+        return visits_df
 
     def _refresh_visit_dates(
         self, existing_data: pd.DataFrame, csv_path: str
@@ -593,12 +664,22 @@ class NPSDataCollector:
 
         Returns:
             pd.DataFrame: Complete dataset with all national park information
+
+        Side Effects:
+            Sets self.all_visits_df to a DataFrame of every individual visit
+            recorded in the visit log CSV (park_code, visit_month, visit_year),
+            for writing to the park_visits table.
         """
         # Use config defaults if not provided
         delay_seconds = delay_seconds or config.DEFAULT_DELAY_SECONDS
         output_path = output_path or config.DEFAULT_OUTPUT_CSV
 
         logger.info("Starting park data collection process")
+
+        # Safe default in case an early return below skips the real computation
+        self.all_visits_df = pd.DataFrame(
+            columns=["park_code", "visit_month", "visit_year"]
+        )
 
         # Handle incremental processing - load existing data to identify already-collected parks
         existing_data = pd.DataFrame()
@@ -630,6 +711,13 @@ class NPSDataCollector:
         if limit_for_testing is not None:
             api_parks = api_parks[:limit_for_testing]
             logger.info(f"TESTING MODE: Limited to first {limit_for_testing} parks")
+
+        # Record every visit logged in the CSV against the full park list, before
+        # any "already collected" skip filtering below. This is what feeds the
+        # park_visits table, so a park revisited after its API metadata was
+        # already cached still gets its new visit recorded (see
+        # get_all_visit_records docstring for why this must run unfiltered).
+        self.all_visits_df = self.get_all_visit_records(api_parks, csv_path)
 
         # Skip parks already in existing data
         if existing_park_codes:
@@ -1320,6 +1408,14 @@ class NPSDataCollector:
         - Return a DataFrame with one row per park_code.
         - If 'park_code' is missing or empty, drop those rows.
 
+        A park may appear with more than one visit_month/visit_year (visited
+        on multiple trips); rows are sorted chronologically by visit date
+        before grouping so the "first" row per park_code - and therefore the
+        visit_month/visit_year kept on the single parks-table row - is
+        always the earliest visit, deterministic regardless of input order.
+        The full visit history itself is recorded separately in the
+        park_visits table via get_all_visit_records(), not here.
+
         This function is used both immediately after loading the CSV (to avoid redundant
         API calls and processing) and at the end of the pipeline (as a safety net to
         guarantee output integrity).
@@ -1331,6 +1427,20 @@ class NPSDataCollector:
                 return pd.DataFrame([df])
         # Drop rows with missing or empty park_code
         df = df[df["park_code"].notna() & (df["park_code"] != "")]
+
+        if "visit_year" in df.columns and "visit_month" in df.columns:
+            sort_year = pd.to_numeric(df["visit_year"], errors="coerce").fillna(9999)
+            sort_month = df["visit_month"].map(
+                lambda m: _MONTH_TO_NUM.get(str(m).strip(), 13)
+            )
+            df = (
+                df.assign(_visit_sort_year=sort_year, _visit_sort_month=sort_month)
+                .sort_values(
+                    ["park_code", "_visit_sort_year", "_visit_sort_month"],
+                    kind="stable",
+                )
+                .drop(columns=["_visit_sort_year", "_visit_sort_month"])
+            )
 
         def join_unique(series: pd.Series[str]) -> str:
             # Split any already-combined values and flatten the list
@@ -1636,6 +1746,7 @@ Examples:
                 db_writer.truncate_tables(tables_to_truncate)
 
             db_writer.write_parks(park_data, mode="upsert")
+            db_writer.write_park_visits(collector.all_visits_df)
             if not boundary_data.empty:
                 db_writer.write_park_boundaries(boundary_data, mode="upsert")
             logger.info("Database write complete.")

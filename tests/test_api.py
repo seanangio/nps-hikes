@@ -1554,6 +1554,7 @@ class TestParkSummaryEndpoint:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchone.return_value = sample_park_summary_response["row"]
+        mock_result.fetchall.return_value = []
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         response = client.get("/parks/yose/summary")
@@ -1628,6 +1629,7 @@ class TestParkSummaryQueryFunction:
         mock_get_engine.return_value = mock_db_engine
         mock_result = Mock()
         mock_result.fetchone.return_value = sample_park_summary_response["row"]
+        mock_result.fetchall.return_value = []
         mock_db_engine.connect.return_value.__enter__.return_value.execute.return_value = mock_result
 
         result = fetch_park_summary("yose")

@@ -291,13 +291,19 @@ class Park(BaseModel):
     )
     visit_month: str | None = Field(
         None,
-        description="Month of park visit",
+        description="Month of the earliest park visit",
         examples=["July"],
     )
     visit_year: int | None = Field(
         None,
-        description="Year of park visit",
+        description="Year of the earliest park visit",
         examples=[2023],
+    )
+    visits: list[str] = Field(
+        default_factory=list,
+        description="Every recorded visit as '{month} {year}' strings, in chronological order. "
+        "Empty if unvisited; more than one entry if visited on multiple trips.",
+        examples=[["July 2023"]],
     )
     description: str | None = Field(
         None,
@@ -324,6 +330,7 @@ class Park(BaseModel):
                     "url": "https://www.nps.gov/yose/index.htm",
                     "visit_month": "July",
                     "visit_year": 2023,
+                    "visits": ["July 2023"],
                 }
             ]
         },
@@ -382,6 +389,7 @@ class ParksResponse(BaseModel):
                             "url": "https://www.nps.gov/yose/index.htm",
                             "visit_month": "July",
                             "visit_year": 2023,
+                            "visits": ["July 2023"],
                         },
                     ],
                 }
@@ -662,13 +670,19 @@ class ParkSummaryResponse(BaseModel):
     )
     visit_month: str | None = Field(
         None,
-        description="Month of park visit",
+        description="Month of the earliest park visit",
         examples=["July"],
     )
     visit_year: int | None = Field(
         None,
-        description="Year of park visit",
+        description="Year of the earliest park visit",
         examples=[2023],
+    )
+    visits: list[str] = Field(
+        default_factory=list,
+        description="Every recorded visit as '{month} {year}' strings, in chronological order. "
+        "Empty if unvisited; more than one entry if visited on multiple trips.",
+        examples=[["July 2023"]],
     )
     total_trails: int = Field(
         ...,
@@ -725,6 +739,7 @@ class ParkSummaryResponse(BaseModel):
                     "url": "https://www.nps.gov/yose/index.htm",
                     "visit_month": "July",
                     "visit_year": 2023,
+                    "visits": ["July 2023"],
                     "total_trails": 42,
                     "total_miles": 187.3,
                     "avg_trail_length": 4.46,

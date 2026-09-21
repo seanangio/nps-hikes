@@ -155,6 +155,202 @@ class TestNPSDataCollector:
         assert isinstance(result, pd.DataFrame)
         assert set(result["park_name"]) == {"Zion", "Yosemite", "Yellowstone"}
 
+    def test_deduplicate_and_aggregate_parks_collapses_duplicate_park_codes(
+        self, collector
+    ):
+        """A park visited on one trip should still collapse to a single row."""
+        df = pd.DataFrame(
+            {
+                "park_code": ["zion", "yose"],
+                "park_name": ["Zion", "Yosemite"],
+                "full_name": ["Zion National Park", "Yosemite National Park"],
+                "visit_month": ["June", "July"],
+                "visit_year": [2024, 2024],
+                "states": ["UT", "CA"],
+            }
+        )
+        result = collector._deduplicate_and_aggregate_parks(df)
+        assert len(result) == 2
+        assert set(result["park_code"]) == {"zion", "yose"}
+
+    def test_deduplicate_and_aggregate_parks_keeps_earliest_visit(self, collector):
+        """A park visited more than once should collapse to its earliest visit,
+        regardless of the row order the visits appear in."""
+        df = pd.DataFrame(
+            {
+                "park_code": ["zion", "zion"],
+                "park_name": ["Zion", "Zion"],
+                "full_name": ["Zion National Park", "Zion National Park"],
+                # Second (later) visit listed first, to prove sorting - not
+                # input order - determines which visit is kept.
+                "visit_month": ["September", "May"],
+                "visit_year": [2026, 2023],
+                "states": ["UT", "UT"],
+            }
+        )
+        result = collector._deduplicate_and_aggregate_parks(df)
+
+        assert len(result) == 1
+        row = result.iloc[0]
+        assert row["park_code"] == "zion"
+        assert row["visit_month"] == "May"
+        assert row["visit_year"] == 2023
+
+    def test_deduplicate_and_aggregate_parks_earliest_visit_input_order_independent(
+        self, collector
+    ):
+        """Earliest-visit selection should not depend on which row comes first."""
+        chronological = pd.DataFrame(
+            {
+                "park_code": ["olym", "olym"],
+                "park_name": ["Olympic", "Olympic"],
+                "full_name": ["Olympic National Park", "Olympic National Park"],
+                "visit_month": ["Oct", "August"],
+                "visit_year": [2022, 2026],
+                "states": ["WA", "WA"],
+            }
+        )
+        reversed_order = chronological.iloc[::-1].reset_index(drop=True)
+
+        result_a = collector._deduplicate_and_aggregate_parks(chronological)
+        result_b = collector._deduplicate_and_aggregate_parks(reversed_order)
+
+        assert result_a.iloc[0]["visit_month"] == "Oct"
+        assert result_a.iloc[0]["visit_year"] == 2022
+        assert result_b.iloc[0]["visit_month"] == "Oct"
+        assert result_b.iloc[0]["visit_year"] == 2022
+
+    def test_get_all_visit_records_returns_one_row_per_visit(self, collector):
+        """A park visited twice should produce two visit records, not one."""
+        api_parks = [
+            {"parkCode": "zion", "fullName": "Zion National Park"},
+            {"parkCode": "olym", "fullName": "Olympic National Park"},
+        ]
+        visit_df = pd.DataFrame(
+            {
+                "park_name": ["Zion", "Olympic", "Zion"],
+                "month": ["May", "Oct", "September"],
+                "year": [2023, 2022, 2026],
+            }
+        )
+        with patch.object(collector, "load_parks_from_csv", return_value=visit_df):
+            result = collector.get_all_visit_records(api_parks, "dummy.csv")
+
+        assert len(result) == 3
+        zion_visits = result[result["park_code"] == "zion"]
+        assert len(zion_visits) == 2
+        assert set(
+            zip(zion_visits["visit_month"], zion_visits["visit_year"], strict=True)
+        ) == {
+            ("May", 2023),
+            ("September", 2026),
+        }
+        assert result["visit_year"].dtype.kind == "i"
+
+    def test_get_all_visit_records_excludes_unmatched_rows(self, collector):
+        """CSV rows that can't be matched to any known park should be dropped."""
+        api_parks = [{"parkCode": "zion", "fullName": "Zion National Park"}]
+        visit_df = pd.DataFrame(
+            {
+                "park_name": ["Zion", "Not A Real Park"],
+                "month": ["May", "June"],
+                "year": [2023, 2024],
+            }
+        )
+        with patch.object(collector, "load_parks_from_csv", return_value=visit_df):
+            result = collector.get_all_visit_records(api_parks, "dummy.csv")
+
+        assert len(result) == 1
+        assert result.iloc[0]["park_code"] == "zion"
+
+    def test_get_all_visit_records_empty_csv(self, collector):
+        api_parks = [{"parkCode": "zion", "fullName": "Zion National Park"}]
+        visit_df = pd.DataFrame(columns=["park_name", "month", "year"])
+        with patch.object(collector, "load_parks_from_csv", return_value=visit_df):
+            result = collector.get_all_visit_records(api_parks, "dummy.csv")
+
+        assert result.empty
+        assert list(result.columns) == ["park_code", "visit_month", "visit_year"]
+
+    def test_process_park_data_records_all_visits_for_already_collected_parks(
+        self, collector, tmp_path
+    ):
+        """Regression test: parks already present in the incremental cache
+        (e.g. from a prior pipeline run) are skipped for API re-fetching, but
+        a new visit added to the CSV for one of them must still show up in
+        all_visits_df, since park_visits writes come from the full CSV, not
+        from the parks the API-merge step actually touched."""
+        api_parks = [
+            {
+                "parkCode": "zion",
+                "fullName": "Zion National Park",
+                "name": "Zion",
+                "designation": "National Park",
+                "states": "UT",
+                "url": "https://www.nps.gov/zion/",
+                "latitude": "37.2982022",
+                "longitude": "-113.026505",
+                "description": "desc",
+            },
+            {
+                "parkCode": "olym",
+                "fullName": "Olympic National Park",
+                "name": "Olympic",
+                "designation": "National Park",
+                "states": "WA",
+                "url": "https://www.nps.gov/olym/",
+                "latitude": "47.8021",
+                "longitude": "-123.6044",
+                "description": "desc",
+            },
+        ]
+
+        existing_data = pd.DataFrame(
+            {
+                "park_code": ["zion", "olym"],
+                "park_name": ["Zion", "Olympic"],
+                "full_name": ["Zion National Park", "Olympic National Park"],
+                "visit_month": ["May", "Oct"],
+                "visit_year": [2023, 2022],
+                "states": ["UT", "WA"],
+            }
+        )
+
+        # The visit log now has a second, more recent visit for each park.
+        visit_df = pd.DataFrame(
+            {
+                "park_name": ["Olympic", "Zion", "Olympic", "Zion"],
+                "month": ["Oct", "May", "August", "September"],
+                "year": [2022, 2023, 2026, 2026],
+            }
+        )
+
+        output_path = str(tmp_path / "park_data_collected.csv")
+        existing_data.to_csv(output_path, index=False)
+
+        with (
+            patch.object(collector, "fetch_all_national_parks", return_value=api_parks),
+            patch.object(collector, "load_parks_from_csv", return_value=visit_df),
+        ):
+            collector.process_park_data(csv_path="dummy.csv", output_path=output_path)
+
+        all_visits = collector.all_visits_df
+        zion_visits = all_visits[all_visits["park_code"] == "zion"]
+        olym_visits = all_visits[all_visits["park_code"] == "olym"]
+
+        assert set(
+            zip(zion_visits["visit_month"], zion_visits["visit_year"], strict=True)
+        ) == {
+            ("May", 2023),
+            ("September", 2026),
+        }
+        assert set(
+            zip(olym_visits["visit_month"], olym_visits["visit_year"], strict=True)
+        ) == {
+            ("Oct", 2022),
+            ("August", 2026),
+        }
+
     def test_extract_valid_park_codes_handles_duplicates_and_missing(self, collector):
         # Create a DataFrame with valid, duplicate, empty, and null park codes
         df = pd.DataFrame(

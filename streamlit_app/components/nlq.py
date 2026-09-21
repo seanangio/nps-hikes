@@ -309,9 +309,9 @@ def _activate_trail_results(
     valid_codes = _valid_park_codes(all_parks)
     park_codes = sorted(
         {
-            trail.get("park_code")
+            code
             for trail in trails
-            if trail.get("park_code") in valid_codes
+            if (code := trail.get("park_code")) is not None and code in valid_codes
         }
     )
 
@@ -631,7 +631,7 @@ def _nlq_params_diverged(function_called: str, params: dict[str, Any]) -> bool:
 
     snapshot = st.session_state.get(_WIDGET_SNAPSHOT_KEY)
     if snapshot:
-        return _capture_widget_snapshot() != snapshot
+        return bool(_capture_widget_snapshot() != snapshot)
 
     # search_park_summary writes the park_code + relaxes state/visited.
     # If the user has since changed the park selection, that's divergence.

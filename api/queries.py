@@ -5,12 +5,45 @@ These functions execute SQL queries and return formatted results
 ready for API responses.
 """
 
+import calendar
 import json
 from typing import Any
 
 from sqlalchemy import text
 
 from api.database import get_db_engine
+
+# Maps both abbreviated ("Oct") and full ("October") month names to their
+# calendar position, for sorting a park's visits chronologically.
+_MONTH_ORDER: dict[str, int] = {
+    **{name: i for i, name in enumerate(calendar.month_abbr) if name},
+    **{name: i for i, name in enumerate(calendar.month_name) if name},
+}
+
+
+def _fetch_visits_by_park(engine: Any) -> dict[str, list[str]]:
+    """
+    Fetch every recorded visit, grouped by park_code and sorted chronologically.
+
+    Returns:
+        Dict mapping park_code to a list of "{month} {year}" strings, earliest first.
+    """
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT park_code, visit_month, visit_year FROM park_visits")
+        ).fetchall()
+
+    visits_by_park: dict[str, list[tuple[int, int, str]]] = {}
+    for row in rows:
+        sort_key = (row.visit_year, _MONTH_ORDER.get(row.visit_month, 13))
+        visits_by_park.setdefault(row.park_code, []).append(
+            (*sort_key, f"{row.visit_month} {row.visit_year}")
+        )
+
+    return {
+        park_code: [label for *_key, label in sorted(entries)]
+        for park_code, entries in visits_by_park.items()
+    }
 
 
 def fetch_all_parks(
@@ -125,6 +158,8 @@ def fetch_all_parks(
         result = conn.execute(text(query), query_params)
         rows = result.fetchall()
 
+    visits_by_park = _fetch_visits_by_park(engine)
+
     # Format parks
     parks = []
     visited_count = 0
@@ -140,6 +175,7 @@ def fetch_all_parks(
             "url": row.url,
             "visit_month": row.visit_month,
             "visit_year": row.visit_year,
+            "visits": visits_by_park.get(row.park_code, []),
         }
 
         if row.visit_year is not None:
@@ -750,6 +786,8 @@ def fetch_park_summary(park_code: str) -> dict[str, Any] | None:
     if not row:
         return None
 
+    visits_by_park = _fetch_visits_by_park(engine)
+
     return {
         "park_code": row.park_code,
         "park_name": row.park_name,
@@ -761,6 +799,7 @@ def fetch_park_summary(park_code: str) -> dict[str, Any] | None:
         "url": row.url,
         "visit_month": row.visit_month,
         "visit_year": row.visit_year,
+        "visits": visits_by_park.get(row.park_code, []),
         "total_trails": row.total_trails,
         "total_miles": round(float(row.total_miles), 2),
         "avg_trail_length": round(float(row.avg_trail_length), 2),

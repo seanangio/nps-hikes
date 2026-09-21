@@ -137,6 +137,19 @@ class TestTableSchemaDefinition:
         pk_columns = [col.name for col in parks_table.primary_key.columns]
         assert pk_columns == ["park_code"]
 
+    def test_park_visits_table_schema(self):
+        """Test park_visits table has a composite primary key covering one row per visit."""
+        mock_engine = Mock(spec=Engine)
+        writer = DatabaseWriter(mock_engine)
+
+        park_visits_table = writer.park_visits_table
+        column_names = [col.name for col in park_visits_table.columns]
+
+        assert column_names == ["park_code", "visit_month", "visit_year"]
+
+        pk_columns = [col.name for col in park_visits_table.primary_key.columns]
+        assert set(pk_columns) == {"park_code", "visit_month", "visit_year"}
+
     def test_boundaries_table_schema(self):
         """Test park_boundaries table has correct schema."""
         mock_engine = Mock(spec=Engine)
@@ -274,6 +287,24 @@ class TestTableCreation:
         mock_engine.begin.assert_called_once()
         mock_connection.execute.assert_called_once()
 
+    def test_ensure_table_exists_park_visits(self):
+        """Test ensuring park_visits table exists."""
+        mock_engine = Mock(spec=Engine)
+        mock_connection = Mock()
+        mock_context = Mock()
+        mock_context.__enter__ = Mock(return_value=mock_connection)
+        mock_context.__exit__ = Mock(return_value=None)
+        mock_engine.begin.return_value = mock_context
+
+        writer = DatabaseWriter(mock_engine)
+
+        with patch.object(
+            writer, "_load_sql_schema", return_value="CREATE TABLE park_visits ..."
+        ):
+            writer.ensure_table_exists("park_visits")
+
+        mock_connection.execute.assert_called_once()
+
     def test_ensure_table_exists_unknown_table(self):
         """Test error for unknown table name."""
         mock_engine = Mock(spec=Engine)
@@ -340,6 +371,58 @@ class TestParksOperations:
 
             mock_ensure.assert_called_once_with("parks")
             mock_append.assert_called_once_with(df, "parks")
+
+
+class TestParkVisitsOperations:
+    """Test cases for park_visits data operations."""
+
+    def test_write_park_visits_empty_dataframe(self):
+        """Test writing empty DataFrame logs and returns without touching the DB."""
+        mock_engine = Mock(spec=Engine)
+        mock_logger = Mock(spec=logging.Logger)
+        writer = DatabaseWriter(mock_engine, mock_logger)
+
+        writer.write_park_visits(pd.DataFrame())
+
+        mock_logger.info.assert_called_once_with("No visit records to save")
+        mock_engine.begin.assert_not_called()
+
+    def test_write_park_visits_inserts_one_row_per_visit_with_conflict_ignore(self):
+        """Each visit record should be inserted with ON CONFLICT DO NOTHING,
+        so re-running the pipeline never duplicates or overwrites a visit
+        already recorded."""
+        mock_engine = Mock(spec=Engine)
+        mock_connection = Mock()
+        mock_context = Mock()
+        mock_context.__enter__ = Mock(return_value=mock_connection)
+        mock_context.__exit__ = Mock(return_value=None)
+        mock_engine.begin.return_value = mock_context
+
+        writer = DatabaseWriter(mock_engine)
+
+        df = pd.DataFrame(
+            {
+                "park_code": ["zion", "zion"],
+                "visit_month": ["May", "September"],
+                "visit_year": [2023, 2026],
+            }
+        )
+
+        with patch.object(writer, "ensure_table_exists") as mock_ensure:
+            writer.write_park_visits(df)
+
+            mock_ensure.assert_called_once_with("park_visits")
+
+        assert mock_connection.execute.call_count == 2
+        for call_args in mock_connection.execute.call_args_list:
+            stmt = call_args[0][0]
+            assert stmt._post_values_clause.__class__.__name__ == "OnConflictDoNothing"
+            assert stmt._post_values_clause.constraint_target is None
+            assert list(stmt._post_values_clause.inferred_target_elements) == [
+                "park_code",
+                "visit_month",
+                "visit_year",
+            ]
 
 
 #    def test_upsert_parks_calls_correct_methods(self):
