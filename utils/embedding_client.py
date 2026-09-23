@@ -47,6 +47,55 @@ def check_ollama_available() -> None:
         ) from e
 
 
+def check_embedding_model_available() -> None:
+    """Verify that Ollama is reachable and has the embedding model installed.
+
+    Raises:
+        LlmConnectionError: If Ollama is unreachable, returns an error, or the
+            configured embedding model has not been pulled.
+    """
+    url = f"{config.OLLAMA_BASE_URL}/api/tags"
+
+    try:
+        with httpx.Client(timeout=httpx.Timeout(config.OLLAMA_TIMEOUT)) as client:
+            response = client.get(url)
+            response.raise_for_status()
+            models = response.json().get("models", [])
+    except httpx.ConnectError as e:
+        raise LlmConnectionError(
+            f"Cannot connect to Ollama at {config.OLLAMA_BASE_URL}. "
+            "Is Ollama running? Start it with: ollama serve",
+            context={"url": url},
+        ) from e
+    except httpx.TimeoutException as e:
+        raise LlmConnectionError(
+            f"Ollama availability check timed out after {config.OLLAMA_TIMEOUT}s.",
+            context={"url": url, "timeout": config.OLLAMA_TIMEOUT},
+        ) from e
+    except httpx.HTTPStatusError as e:
+        raise LlmConnectionError(
+            f"Ollama returned HTTP {e.response.status_code}: {e.response.text}",
+            context={"url": url, "status_code": e.response.status_code},
+        ) from e
+
+    installed_models = {model.get("name") for model in models if model.get("name")}
+    requested_model = config.OLLAMA_EMBEDDING_MODEL
+    accepted_names = {requested_model}
+    if ":" not in requested_model:
+        accepted_names.add(f"{requested_model}:latest")
+
+    if not installed_models.intersection(accepted_names):
+        raise LlmConnectionError(
+            f"Ollama embedding model '{requested_model}' is not installed. "
+            f"Install it with: ollama pull {requested_model}",
+            context={
+                "url": url,
+                "embedding_model": requested_model,
+                "installed_models": sorted(installed_models),
+            },
+        )
+
+
 async def get_embeddings(texts: list[str]) -> list[list[float]]:
     """Generate embeddings for a list of texts (async).
 

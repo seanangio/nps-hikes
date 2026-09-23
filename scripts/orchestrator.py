@@ -8,11 +8,14 @@ error handling and logging.
 
 Pipeline Steps:
 1. NPS Data Collection - Collect park metadata and boundaries (foundation)
-2. OSM Trails Collection - Collect hiking trails from OpenStreetMap
-3. TNM Trails Collection - Collect trails from The National Map
-4. GMaps Import - Import Google Maps hiking locations
-5. Trail Matching - Match GMaps locations to trail linestrings
-6. Elevation Collection - Collect elevation data for matched trails
+2. NPS Content Collection - Collect activities and place descriptions
+3. OSM Trails Collection - Collect hiking trails from OpenStreetMap
+4. TNM Trails Collection - Collect trails from The National Map
+5. GMaps Import - Import Google Maps hiking locations
+6. Trail Matching - Match GMaps locations to trail linestrings
+7. Elevation Collection - Collect elevation data for matched trails
+8. Content Embedding - Generate semantic content embeddings (Ollama)
+9. Content-Trail Linking - Link embedded content to trail records
 
 Usage:
     # Full pipeline
@@ -49,7 +52,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from config.settings import config
 from scripts.database.db_writer import get_postgres_engine
-from utils.embedding_client import check_ollama_available
+from utils.embedding_client import check_embedding_model_available
 from utils.exceptions import DatabaseConnectionError, NpsHikesError
 from utils.logging import setup_logging
 
@@ -71,6 +74,7 @@ class DataCollectionOrchestrator:
         test_limit: int | None = None,
         write_db: bool = False,
         dry_run: bool = False,
+        skip_embeddings: bool = False,
     ) -> bool:
         """
         Run the complete data collection pipeline.
@@ -79,18 +83,30 @@ class DataCollectionOrchestrator:
             test_limit: Limit processing to first N parks (for testing)
             write_db: Write results to database
             dry_run: Show execution plan without running commands
+            skip_embeddings: Skip content embedding and content-trail linking
 
         Returns:
             bool: True if pipeline completed successfully, False otherwise
         """
         self.logger.info("🚀 Starting NPS Hikes Data Collection Pipeline")
         self.logger.info(
-            f"Configuration: test_limit={test_limit}, write_db={write_db}, dry_run={dry_run}"
+            "Configuration: "
+            f"test_limit={test_limit}, write_db={write_db}, dry_run={dry_run}, "
+            f"skip_embeddings={skip_embeddings}"
         )
 
         # Pre-flight checks
         if not dry_run and not self._pre_flight_checks(write_db):
             return False
+
+        embedding_steps_enabled = not skip_embeddings
+        if embedding_steps_enabled and not dry_run:
+            embedding_steps_enabled = self._embedding_preflight_check()
+        elif skip_embeddings:
+            self.logger.info(
+                "⏭️  Skipping content embedding and content-trail linking "
+                "because --skip-embeddings was supplied"
+            )
 
         # Define pipeline steps with dependencies and test-limit support
         steps = [
@@ -121,17 +137,22 @@ class DataCollectionOrchestrator:
                 "scripts/collectors/usgs_elevation_collector.py",
                 True,
             ),
-            (
-                "Content Embedding",
-                "scripts/processors/embedding_indexer.py",
-                False,
-            ),
-            (
-                "Content-Trail Linking",
-                "scripts/processors/content_trail_linker.py",
-                False,
-            ),
         ]
+        if embedding_steps_enabled:
+            steps.extend(
+                [
+                    (
+                        "Content Embedding",
+                        "scripts/processors/embedding_indexer.py",
+                        False,
+                    ),
+                    (
+                        "Content-Trail Linking",
+                        "scripts/processors/content_trail_linker.py",
+                        False,
+                    ),
+                ]
+            )
 
         # Execute steps sequentially
         total_steps = len(steps)
@@ -197,19 +218,8 @@ class DataCollectionOrchestrator:
                 )
                 return False
 
-        # Check Ollama availability for embedding-dependent pipeline steps
-        try:
-            check_ollama_available()
-            self.logger.info("✅ Ollama connectivity verified")
-        except NpsHikesError as e:
-            self.logger.error(f"❌ Ollama connectivity check failed: {e!s}")
-            if e.context:
-                self.logger.error(f"Context: {e.context}")
-            self.logger.error(
-                "The pipeline now includes content embedding. Start Ollama with: "
-                "ollama serve"
-            )
-            return False
+        # Ollama is checked separately because the core pipeline can run without it.
+        # When unavailable, the embedding-dependent steps are skipped with a warning.
 
         # Check that log directory exists
         log_dir = os.path.dirname(config.ORCHESTRATOR_LOG_FILE)
@@ -217,8 +227,33 @@ class DataCollectionOrchestrator:
             os.makedirs(log_dir, exist_ok=True)
             self.logger.info(f"📁 Created log directory: {log_dir}")
 
-        self.logger.info("✅ All pre-flight checks passed")
+        self.logger.info("✅ Required pre-flight checks passed")
         return True
+
+    def _embedding_preflight_check(self) -> bool:
+        """Return whether embedding-dependent steps can safely run.
+
+        A missing Ollama service or model does not prevent core park and trail
+        collection. The user can rerun later after installing the model; the
+        embedding indexer will populate the omitted data then.
+        """
+        try:
+            check_embedding_model_available()
+            self.logger.info(
+                "✅ Ollama connectivity and embedding model verified "
+                f"({config.OLLAMA_EMBEDDING_MODEL})"
+            )
+            return True
+        except NpsHikesError as e:
+            self.logger.warning(f"⚠️  Embedding steps will be skipped: {e!s}")
+            if e.context:
+                self.logger.warning(f"Context: {e.context}")
+            self.logger.warning(
+                "Core park and trail collection will continue without content "
+                "embeddings or content-trail links. To enable them, start Ollama "
+                f"and run: ollama pull {config.OLLAMA_EMBEDDING_MODEL}"
+            )
+            return False
 
     def _run_step(
         self,
@@ -351,21 +386,26 @@ def main() -> int:
 Examples:
   %(prog)s --write-db                    # Run full pipeline with database writes
   %(prog)s --test-limit 3 --write-db     # Test with 3 parks only
+  %(prog)s --write-db --skip-embeddings  # Run core collection without Ollama
   %(prog)s --dry-run --write-db          # Show execution plan without running
   %(prog)s --help                        # Show this help message
 
 Pipeline Steps:
   1. NPS Data Collection    - Collect park metadata and boundaries
-  2. OSM Trails Collection  - Collect trails from OpenStreetMap
-  3. TNM Trails Collection  - Collect trails from The National Map
-  4. GMaps Import           - Import Google Maps hiking locations
-  5. Trail Matching         - Match locations to trail linestrings
-  6. Elevation Collection   - Collect elevation data for trails
+  2. NPS Content Collection - Collect activities and place descriptions
+  3. OSM Trails Collection  - Collect trails from OpenStreetMap
+  4. TNM Trails Collection  - Collect trails from The National Map
+  5. GMaps Import           - Import Google Maps hiking locations
+  6. Trail Matching         - Match locations to trail linestrings
+  7. Elevation Collection   - Collect elevation data for trails
+  8. Content Embedding      - Generate semantic content embeddings (Ollama)
+  9. Content-Trail Linking  - Link embedded content to trails
 
 Notes:
-  - Pipeline runs sequentially with fail-fast behavior
+  - Core pipeline steps run sequentially with fail-fast behavior
   - Each step depends on data from previous steps
-  - Ollama must be running locally for the content embedding step
+  - Embedding steps run by default, but are skipped if Ollama or its embedding
+    model is unavailable; use --skip-embeddings to skip them explicitly
   - Use --test-limit for development and testing
   - Check logs/orchestrator.log for detailed progress
         """,
@@ -390,6 +430,12 @@ Notes:
         help="Show execution plan without actually running commands",
     )
 
+    parser.add_argument(
+        "--skip-embeddings",
+        action="store_true",
+        help="Skip content embedding and content-trail linking steps",
+    )
+
     args = parser.parse_args()
 
     # Validate arguments
@@ -406,6 +452,7 @@ Notes:
             test_limit=args.test_limit,
             write_db=args.write_db,
             dry_run=args.dry_run,
+            skip_embeddings=args.skip_embeddings,
         )
         return 0 if success else 1
 

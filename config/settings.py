@@ -251,6 +251,10 @@ class Config:
         if ollama_model:
             self.OLLAMA_MODEL = ollama_model
 
+        ollama_embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL")
+        if ollama_embedding_model:
+            self.OLLAMA_EMBEDDING_MODEL = ollama_embedding_model
+
         ollama_timeout = os.getenv("OLLAMA_TIMEOUT")
         if ollama_timeout:
             self.OLLAMA_TIMEOUT = int(ollama_timeout)

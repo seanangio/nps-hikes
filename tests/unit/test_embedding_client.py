@@ -7,6 +7,7 @@ import httpx
 import pytest
 
 from utils.embedding_client import (
+    check_embedding_model_available,
     check_ollama_available,
     get_embeddings,
     get_embeddings_sync,
@@ -152,3 +153,37 @@ class TestCheckOllamaAvailable:
 
             with pytest.raises(LlmConnectionError, match="Cannot connect"):
                 check_ollama_available()
+
+
+class TestCheckEmbeddingModelAvailable:
+    """Tests for embedding-model preflight checks."""
+
+    def test_successful_check_with_implicit_latest_tag(self):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "models": [{"name": "nomic-embed-text:latest"}]
+        }
+        mock_response.raise_for_status.return_value = None
+
+        with patch("utils.embedding_client.httpx.Client") as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client.get.return_value = mock_response
+            mock_client_cls.return_value.__enter__.return_value = mock_client
+
+            check_embedding_model_available()
+
+    def test_missing_model_includes_pull_command(self):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"models": [{"name": "llama3.1:8b"}]}
+        mock_response.raise_for_status.return_value = None
+
+        with patch("utils.embedding_client.httpx.Client") as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client.get.return_value = mock_response
+            mock_client_cls.return_value.__enter__.return_value = mock_client
+
+            with pytest.raises(
+                LlmConnectionError,
+                match="ollama pull nomic-embed-text",
+            ):
+                check_embedding_model_available()

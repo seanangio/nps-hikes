@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Set up the NPS Hikes project locally with Docker, PostGIS, Python, the NPS API, and optional Ollama-powered natural language queries.
+description: Set up the NPS Hikes project locally with Docker, PostGIS, Python, the NPS API, and optional Ollama-powered semantic features.
 ---
 
 This guide walks you through setting up your own NPS hiking project from scratch. By the end, you'll have a PostGIS database with parks you've visited, queryable through an interactive API.
@@ -15,7 +15,7 @@ Before you begin, make sure you have the following:
 - **Python 3.12+**: The data collection pipeline runs on your local machine. Check your version with `python3 --version`. If you need to install or upgrade, see [python.org](https://www.python.org/downloads/).
 - **Git**: Install [Git](https://git-scm.com/install/) for your operating system to clone the repository.
 - An **NPS API key**: Free to sign up at the [NPS Developer Portal](https://www.nps.gov/subjects/developer/get-started.htm). You should receive a key by email within minutes.
-- **Ollama** (optional): Required only for the natural language query endpoint (`/query`). Install from [ollama.com](https://ollama.com/), and pull a model with `ollama pull llama3.1:8b`.
+- **Ollama** (optional for core park and trail collection): The default pipeline uses it to generate content embeddings, which power semantic search and content-to-trail links. Install it from [ollama.com](https://ollama.com/) and pull the required embedding model with `ollama pull nomic-embed-text`. If you also want the natural-language query endpoint (`/query`), pull a chat model such as `ollama pull llama3.1:8b`. `llama3.1:8b` is only the default `OLLAMA_MODEL`. You can configure it to use another compatible model you have pulled.
 
 ## Step 1: Clone the repository
 
@@ -64,9 +64,12 @@ POSTGRES_HOST=localhost
 POSTGRES_PORT=5433
 POSTGRES_DB=nps_hikes_db
 
-# Ollama (optional, for natural language queries)
+# Ollama (optional for core collection; required for embeddings and semantic features)
 OLLAMA_BASE_URL=http://localhost:11434
+# Chat model for /query; llama3.1:8b is the default, but other compatible models work.
 OLLAMA_MODEL=llama3.1:8b
+# Required by the default full pipeline's embedding step.
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 ```
 
 > **How the project uses the `.env` file:** Docker Compose reads it automatically to configure the database container. Local Python scripts also read it (via `python-dotenv`) for API credentials and database connections. In the recommended setup, local scripts talk to the Docker database on `localhost:5433`, while containers talk to that same database internally on `db:5432`.
@@ -171,16 +174,27 @@ python scripts/orchestrator.py --write-db --test-limit 1
 
 The `--test-limit 1` flag processes only one park, so you can verify it works before committing to the full run. Due to the elevation data collection step, this test run may take approximately 10 minutes.
 
-The pipeline runs six steps in order:
+The default pipeline runs nine steps in order. The final two are embedding-dependent, and the first of those uses Ollama. If Ollama is unavailable or `nomic-embed-text` has not been pulled, the pipeline warns you and completes the first seven core steps; it does not install models automatically.
 
 | Step | What it does | Data source |
 | --- | --- | --- |
 | 1. NPS Data Collection | Park metadata, coordinates, and boundary polygons | [NPS API](https://www.nps.gov/subjects/developer/) |
-| 2. OSM Trails Collection | Hiking trails within park boundaries | [OpenStreetMap](https://www.openstreetmap.org/) |
-| 3. TNM Trails Collection | Official trail data within park boundaries | [The National Map](https://www.usgs.gov/programs/national-geospatial-program/national-map) |
-| 4. GMaps Import | Hiking locations from Google My Maps KML files | KML files in `raw_data/gmaps/` |
-| 5. Trail Matching | Matches GMaps locations to TNM or OSM trail geometries | Internal |
-| 6. Elevation Collection | Elevation profiles for matched trails | [USGS EPQS](https://apps.nationalmap.gov/epqs/) |
+| 2. NPS Content Collection | Things to do and place descriptions | [NPS API](https://www.nps.gov/subjects/developer/) |
+| 3. OSM Trails Collection | Hiking trails within park boundaries | [OpenStreetMap](https://www.openstreetmap.org/) |
+| 4. TNM Trails Collection | Official trail data within park boundaries | [The National Map](https://www.usgs.gov/programs/national-geospatial-program/national-map) |
+| 5. GMaps Import | Hiking locations from Google My Maps KML files | KML files in `raw_data/gmaps/` |
+| 6. Trail Matching | Matches GMaps locations to TNM or OSM trail geometries | Internal |
+| 7. Elevation Collection | Elevation profiles for matched trails | [USGS EPQS](https://apps.nationalmap.gov/epqs/) |
+| 8. Content Embedding | Creates embeddings for collected NPS content | Ollama (`nomic-embed-text`) |
+| 9. Content-Trail Linking | Links embedded NPS content to trail records | Internal |
+
+To intentionally omit the two embedding-dependent steps, use:
+
+```bash
+python scripts/orchestrator.py --write-db --test-limit 1 --skip-embeddings
+```
+
+You can run the pipeline again after installing the embedding model to populate those omitted records.
 
 ### Verify the test run
 
@@ -215,7 +229,7 @@ This takes longer. If using the author's files, expect more than two hours for t
 
 The pipeline is resumable: with `--write-db`, each collector skips parks or trails that already have data in the database, and the elevation collector also maintains a persistent cache of individual elevation lookups. If something interrupts a run, re-running the same command picks up roughly where it left off. To force a full re-collection, pass `--force-refresh`.
 
-> **Tip:** The pipeline is fail-fast. If a step fails, check `logs/orchestrator.log` for details. You can also run individual collectors directly for debugging (see the [README](https://github.com/seanangio/nps-hikes) for individual component commands).
+> **Tip:** The core collection steps are fail-fast. Missing Ollama or its embedding model is handled by skipping the optional embedding-dependent steps with a warning. For any failed step, check `logs/orchestrator.log` for details. You can also run individual collectors directly for debugging (see the [README](https://github.com/seanangio/nps-hikes) for individual component commands).
 
 ## Step 7: Explore your data
 
